@@ -93,3 +93,35 @@ Consequences:
 
 ## Status
 This is a source-tree and public-documentation comparison only. No changes to OGAM runtime code, no APK analysis on the phone and no device validation were performed in this step.
+
+
+## Cross-ecosystem architecture additions (China + India survey, 2026-11-22)
+
+### New design patterns to evaluate for OGAM
+- **Tool runtime / plugin framework (GitCode ZorvAI):** investigate its separation of core agent, 235-tool registry, extension APK points, MCP and local model runtimes. OGAM should expose a stable Tool API and signed capability manifests rather than bundling arbitrary third-party extensions by default.
+- **System assistant contract (mathanroot/nova-ai):** source-audit its VoiceInteractionService, session lifecycle, default assistant role and screen-off wake path. Compare with official Android API requirements; do not assume README claims are verified.
+- **Deterministic local-first routing (Naomi/JarvisAI):** resolve known commands locally before invoking an LLM; keep LLM for ambiguous language and multi-step planning. This reduces latency, model size and accidental tool calls.
+- **Offline multilingual ASR (Uktam):** assess Sherpa-ONNX / AI4Bharat IndicConformer pipeline design, model-pack management and JNI lifecycle. For OGAM, compare Russian-capable models and do not transplant Indic-specific weights as Russian ASR.
+- **Low-memory model scheduling (ProjectCharlie):** consider unloading ASR before loading LLM and serializing heavy model inference on memory-constrained devices. Benchmark on Find X6 Pro before deciding; its hardware is stronger than the project's 2 GB target, but thermals and battery still matter.
+- **Screen automation safety (Mobile Agent / Sanna / OAssist):** use semantic Accessibility nodes first and visual coordinates only as fallback; classify actions as read-only, reversible or consequential; require confirmation for messages, purchases, deletion, payments, calls and account/security changes.
+- **Local knowledge + MCP (ZorvAI / yojana-sahayak):** define typed tool schemas and retrieval provenance; MCP is an adapter protocol, not a reason to expose every local tool to every model.
+- **Offline outbox (OffHand):** consider a durable queue for user-approved actions that require network, with idempotency keys, explicit pending state and cancellation. Never send queued content without prior user authorization.
+
+### Revised implementation sequence
+1. **P0 — Native assistant foundation:** VoiceInteractionService/Session, assistant-role onboarding, turn/session state machine, mic ownership, audio focus, cancellation and TTS interruption.
+2. **P0 — Tool safety and permissions:** capability registry, permission state probe, risk tiers, confirmation UI, audit trail and rollback where supported.
+3. **P0 — Local-first command router:** deterministic intents for common system actions, then local LLM planner for ambiguous/multi-step tasks; cloud fallback strictly optional.
+4. **P1 — Local agent runtime:** typed tool registry, MCP bridge, sandboxed extension contract, process/resource limits and signed plugin manifests.
+5. **P1 — Multimodal context:** user-triggered screen/camera/document capture, Accessibility semantic tree, OCR and provenance-aware context injection.
+6. **P1 — Model scheduler:** ASR/LLM/TTS lifecycle coordinator with memory budget, thermal/battery policy, streaming and cancellation.
+7. **P2 — ColorOS summon compatibility:** exact PGEM10 firmware inspection; public API first; OEM dispatch adapter only if a safe supported route exists. LSPosed/Shizuku remains optional lab-only.
+8. **P2 — Optional Breeno UI bridge:** separate module, disabled by default, version-fingerprinted and authenticated. Not required for Jarvis to be complete.
+
+### Russian language acceptance criteria
+- Russian ASR must be tested on device with quiet speech, noise, names, addresses, mixed Russian/English technical terms and natural pauses.
+- Wake word "Джарвис" must be tested separately from general ASR; no always-on claim until background/screen-off behavior, power use and privacy indicators are measured.
+- Russian TTS must support interruption, sentence streaming, speaking rate and voice selection independent of the underlying system TTS engine where possible.
+- Command aliases and entity resolution must support Russian morphology and colloquial forms while internal action schemas remain locale-independent.
+
+### Evidence gate
+All projects found through a README or platform search remain candidates until source audit verifies the relevant implementation, license, dependency notices, buildability and tests. Hardware features require target-device validation. Never label a project or feature "integrated" based only on a repository description.
