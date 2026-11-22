@@ -20,12 +20,14 @@ import { SPACING } from '../constants';
 import { useTheme } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 import { imageGenerationService } from '../services/imageGenerationService';
+import { resolveMobileImageParameters } from '../services/imageParameterPolicy';
 import type { ImageGenerationState } from '../services/imageGenerationService';
 import { enhanceImagePrompt } from '../services/imagePromptEnhancement';
 import { whisperService } from '../services/whisperService';
 import { useAppStore } from '../stores/appStore';
 import { useWhisperStore } from '../stores/whisperStore';
 import { MAX_IMAGE_STEPS } from '../utils/imageGenAdvice';
+import { resolveDocumentPath } from '../utils/resolveDocumentPath';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList, 'ImageGen'>;
 
@@ -49,8 +51,12 @@ export const ImageGenScreen: React.FC = () => {
   const whisper = useWhisperStore();
   const [prompt, setPrompt] = useState('');
   const [negativePrompt, setNegativePrompt] = useState('');
-  const [steps, setSteps] = useState(String(app.imageSteps));
-  const [guidanceScale, setGuidanceScale] = useState(String(app.imageGuidanceScale));
+  const initialModel = app.downloadedImageModels.find(model => model.id === app.activeImageModelId);
+  const initialParameters = initialModel
+    ? resolveMobileImageParameters(initialModel, app)
+    : { steps: app.imageSteps, guidanceScale: app.imageGuidanceScale, size: app.imageWidth ?? 512 };
+  const [steps, setSteps] = useState(String(initialParameters.steps));
+  const [guidanceScale, setGuidanceScale] = useState(String(initialParameters.guidanceScale));
   const [seed, setSeed] = useState('');
   const [previewBusy, setPreviewBusy] = useState(false);
   const [previewStatus, setPreviewStatus] = useState<string | null>(null);
@@ -59,6 +65,16 @@ export const ImageGenScreen: React.FC = () => {
   const [imageState, setImageState] = useState<ImageGenerationState>(INITIAL_STATE);
 
   useEffect(() => imageGenerationService.subscribe(setImageState), []);
+
+  useEffect(() => {
+    const state = useAppStore.getState();
+    const selected = state.downloadedImageModels.find(model => model.id === state.activeImageModelId);
+    if (selected) {
+      const resolved = resolveMobileImageParameters(selected, state);
+      setSteps(String(resolved.steps));
+      setGuidanceScale(String(resolved.guidanceScale));
+    }
+  }, [app.activeImageModelId]);
 
   useEffect(() => () => {
     if (whisperService.isCurrentlyTranscribing()) {
@@ -141,9 +157,9 @@ export const ImageGenScreen: React.FC = () => {
   const generate = useCallback(async () => {
     const finalPrompt = prompt.trim();
     if (!finalPrompt || imageState.isGenerating || recording || previewBusy) return;
-    const parsedSteps = Number.parseInt(steps, 10);
+    const parsedSteps = Number(steps);
     const parsedGuidance = Number(guidanceScale);
-    const parsedSeed = seed.trim() ? Number.parseInt(seed, 10) : undefined;
+    const parsedSeed = seed.trim() ? Number(seed) : undefined;
     if (!Number.isInteger(parsedSteps) || parsedSteps < 4 || parsedSteps > MAX_IMAGE_STEPS) {
       Alert.alert('Invalid steps', `Choose a whole number from 4 to ${MAX_IMAGE_STEPS}.`);
       return;
@@ -229,7 +245,7 @@ export const ImageGenScreen: React.FC = () => {
               testID="image-gen-enhance"
               style={{ minHeight: 42, paddingHorizontal: SPACING.md, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.xs }}
             >
-              {previewBusy ? <ActivityIndicator color={colors.primary} /> : <Icon name="sparkles" size={16} color={colors.primary} />}
+              {previewBusy ? <ActivityIndicator color={colors.primary} /> : <Icon name="zap" size={16} color={colors.primary} />}
               <Text style={{ color: colors.text, fontWeight: '600' }}>Enhance preview</Text>
             </TouchableOpacity>
           </View>
@@ -293,7 +309,7 @@ export const ImageGenScreen: React.FC = () => {
         {imageState.result ? (
           <Card style={{ padding: SPACING.md, marginBottom: SPACING.md }}>
             <Text style={{ color: colors.text, fontWeight: '600', marginBottom: SPACING.sm }}>Generated image</Text>
-            <Image source={{ uri: imageState.result.imagePath }} resizeMode="contain" style={{ width: '100%', aspectRatio: imageState.result.width / imageState.result.height, borderRadius: 10 }} />
+            <Image source={{ uri: `file://${resolveDocumentPath(imageState.result.imagePath)}` }} resizeMode="contain" style={{ width: '100%', aspectRatio: imageState.result.width / imageState.result.height, borderRadius: 10 }} />
             <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: SPACING.sm }}>
               {imageState.result.width} × {imageState.result.height} · {imageState.result.steps} steps · seed {imageState.result.seed}
             </Text>
