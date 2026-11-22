@@ -153,3 +153,32 @@ The following source files were opened directly from the current branch. This is
 ### Audit limitation and next step
 
 The connected GitHub code-search index returned no matches for these exact scoped package names, so absence of search results is not evidence of absence of imports. A complete import map still requires a repository-wide source scan. Do not start deleting or stubbing packages on the basis of this partial map. Next inspect the complete shared package manifests and each verified consumer's call surface, then migrate the highest-value vertical slice (likely the document engine or sync core) only after its public API and tests are understood.
+
+
+## CI run 18 — first hard failure evidence (2026-11-22)
+
+Run: https://github.com/sokfrut-tech/OGAM/actions/runs/45014987472
+Head: `1c271e3b97d5d65b922732aa25d7fb5b6d004b25`
+
+The run completed with failures; it is not a green validation and no APK/release gate is satisfied.
+
+### Observed failures
+
+- All eight Jest shards failed. The aggregate reported 89 failed suites, 1 skipped, 15 passed; 174 failed tests, 5 skipped, 92 passed (105 suites total).
+- Representative Jest resolver errors: `Cannot find module '@offgrid/models'` from `src/services/modelManager/scan.ts`, `src/constants/models.ts`, and `src/utils/modelHelpers.ts`; and missing mapped source `../shared/packages/sync/src/index.ts` for `@offgrid/sync`.
+- TypeScript reported TS2307 for `@offgrid/models`, `@offgrid/sync`, `@offgrid/pro/*`, and direct `../../pro/*` paths. This is consistent with missing shared and Pro source trees in the CI checkout; secondary implicit-any and interface-shape errors may be cascading from unresolved types and must be re-evaluated after dependencies are present.
+- ESLint and actionlint passed. Native video helper tests passed.
+- Type check, dependency-cruiser and knip failed. Knip also listed 34 unused exports and 6 unused exported types; these are a separate cleanup/audit category and should not be “fixed” by deleting public API blindly.
+
+### Important interpretation
+
+The job's “Set up the workspace” step reported success, but the subsequent Jest resolver could not find the exact shared paths configured in `jest.config.js`, and Pro source imports were unresolved. Therefore a green setup-step label does not prove that the private sibling repositories were actually checked out at the required paths. The next investigation must read the setup action logs and workflow inputs to establish whether the private-token gate skipped checkout or whether the checkout path/branch is wrong.
+
+### Next actions
+
+1. Inspect the CI job log around the shared/Pro checkout step and determine the actual checkout result, without asking the user for a token or changing secrets.
+2. Confirm whether the repository's intended public/open-core workflow should run with shared packages at all; current tests and tsconfig still reference shared and Pro source, so silently skipping those sources is not a valid passing test strategy.
+3. Separate genuinely open-core tests from private-package-dependent tests only after an explicit test inventory. Do not mask unresolved module errors with stubs.
+4. Re-run CI only after the workspace checkout behavior is corrected or the test strategy is intentionally and transparently redesigned.
+
+The PR remains draft and must not be merged. This run produced no successful APK evidence.
