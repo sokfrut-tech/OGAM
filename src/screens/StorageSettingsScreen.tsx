@@ -199,7 +199,7 @@ export const StorageSettingsScreen: React.FC = () => {
             <SectionLabel title={t('storage.modelFolders')} />
             <Card style={styles.section}>
               <View style={styles.infoRow}>
-                <View style={{ flex: 1 }}>
+                <View style={styles.permissionInfo}>
                   <Text style={styles.infoLabel}>{t('storage.permission')}</Text>
                   <Text style={styles.legendText}>
                     {allFilesAccess === null ? t('storage.checking') : allFilesAccess ? t('storage.granted') : t('storage.notGranted')}
