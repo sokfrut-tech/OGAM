@@ -30,6 +30,35 @@ class JarvisAssistantLaunchGuardTest {
   }
 
   @Test
+  fun rejectsAnExpiredBridgeToken() {
+    val issuedAt = 1_000L
+    val token = JarvisAssistantLaunchGuard.issue(issuedAt)
+
+    assertFalse(
+      JarvisAssistantLaunchGuard.consume(
+        token,
+        issuedAt + JarvisAssistantLaunchGuard.TOKEN_TTL_MS + 1L,
+      ),
+    )
+    assertFalse(JarvisAssistantLaunchGuard.consume(token, issuedAt + 1L))
+  }
+
+  @Test
+  fun acceptsATokenAtTheExpiryBoundaryAndRejectsClockRollback() {
+    val issuedAt = 2_000L
+    val token = JarvisAssistantLaunchGuard.issue(issuedAt)
+    assertFalse(JarvisAssistantLaunchGuard.consume(token, issuedAt - 1L))
+
+    val freshToken = JarvisAssistantLaunchGuard.issue(issuedAt)
+    assertTrue(
+      JarvisAssistantLaunchGuard.consume(
+        freshToken,
+        issuedAt + JarvisAssistantLaunchGuard.TOKEN_TTL_MS,
+      ),
+    )
+  }
+
+  @Test
   fun matchesCanonicalAssistantVoiceRoute() {
     assertTrue(
       JarvisAssistantLaunchGuard.matchesAssistantVoiceRoute(
