@@ -203,7 +203,7 @@ export const ImageGenScreen: React.FC = () => {
       <ScreenHeader title="Image generator" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: SPACING.xl, paddingBottom: SPACING.xxl }}>
         <Text style={{ color: colors.textSecondary, marginBottom: SPACING.md }}>
-          Describe the image, dictate in your selected speech language, then review and edit the final prompt before generation.
+          Describe the image, dictate in your selected speech language, then review and edit the final English prompt before generation. The enhancer targets a short CLIP-friendly prompt; the current native bridge does not expose an exact CLIP token counter.
         </Text>
 
         <Card style={{ padding: SPACING.md, marginBottom: SPACING.md }}>
