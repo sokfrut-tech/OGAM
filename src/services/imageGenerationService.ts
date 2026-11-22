@@ -476,6 +476,7 @@ class ImageGenerationService {
     const activeImageModel = downloadedImageModels.find(
       m => m.id === activeImageModelId,
     );
+    const shouldEnhance = settings.enhanceImagePrompts && !params.promptIsFinal;
     if (!activeImageModel) return this.failFor(job, 'No image model selected');
 
     const messageId = params.conversationId ? generateId() : null;
@@ -490,11 +491,11 @@ class ImageGenerationService {
     const imageHeight = imageParameters.size;
 
     this.updateFor(job, {
-      phase: settings.enhanceImagePrompts ? 'enhancing' : 'loading',
+      phase: shouldEnhance ? 'enhancing' : 'loading',
       prompt: params.prompt,
       conversationId: params.conversationId || null,
       messageId,
-      status: settings.enhanceImagePrompts
+      status: shouldEnhance
         ? 'Preparing prompt enhancement...'
         : 'Preparing image generation...',
       previewPath: null,
@@ -506,7 +507,7 @@ class ImageGenerationService {
     const enhancedPrompt = await this._enhancePrompt(job, params);
     logger.log(
       '[ImageGen] enhanceImagePrompts setting:',
-      settings.enhanceImagePrompts,
+      shouldEnhance,
     );
     // Stop can arrive while prompt enhancement owns the text engine. Do not clear that request and
     // continue into the image model after the user already pressed X.
