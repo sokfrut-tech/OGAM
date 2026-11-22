@@ -216,3 +216,25 @@ Evidence limits: no Breeno APK was decompiled, no device versionCode was read, n
 
 Source report:
 https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/breeno/ZAFIRO_BREENO_HOOK_COMPATIBILITY_AUDIT_2026-11-22.md
+
+
+## 11. Cross-audit: OGAM's existing Android system-assistant path vs Breeno-internal takeover (2026-11-22)
+
+The PR #1 source branch already contains a standard Android `VoiceInteractionService` / `RoleManager.ROLE_ASSISTANT` implementation. This was confirmed by inspecting the Android manifest, Kotlin services/session, role module, bridge Activity, launch guard, XML metadata, and source/JUnit tests at HEAD `67159e2f821b14616eebcaf0e6da997633cd7aa4`.
+
+Confirmed behavior:
+- System role request is user-mediated through Android's own confirmation UI; no silent role change.
+- Actual readiness requires both the role to be held and the VoiceInteractionService to be active.
+- Service is enabled only on Android 12 / API 31+; below that the resource disables it pending a local legacy RecognitionService.
+- Voice session hands off to the normal Chat screen through a non-exported bridge Activity and one-use, 10-second launch token.
+- The session disables/does not request assist/screenshot context; foreground app text, hierarchy, screenshot and audio context are not collected by this path.
+- Contract tests cover protected BIND permission, private bridge, token anti-replay/expiry/URI normalization, RoleManager state combinations, Android 12 gate and shared recorder handoff.
+
+Important product distinction:
+- OGAM's RoleManager path is the no-root Android system-assistant tier. OEM-specific ColorOS behavior still needs real PGEM10 verification.
+- Zafiro's Breeno-internal takeover hooks `com.heytap.speechassist` through LSPosed/Xposed and requires root. It is a separate, advanced integration tier, not a replacement for OGAM's existing role flow.
+- Keep OGAM's current standard assistant path as primary. Consider optional Breeno-internal hook adapter only if ColorOS invocation gaps remain after device testing and the user explicitly chooses the root/LSPosed route.
+- Existing RoleManager entrypoint only hands off to Chat; it does not establish always-on wake word, lock-screen operation, foreground-app context or full Siri-like background behavior.
+
+Detailed comparison and source links:
+https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/breeno/ZAFIRO_BREENO_HOOK_COMPATIBILITY_AUDIT_2026-11-22.md
