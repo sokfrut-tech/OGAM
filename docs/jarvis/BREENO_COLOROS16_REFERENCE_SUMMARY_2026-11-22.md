@@ -3,7 +3,7 @@
 This summary brings the offline static analysis of the 26 owner-supplied OPPO / ColorOS 16 APKs onto PR #1 (`feature/jarvis-step-2-storage-privacy`) so continuing engineering sessions have full context without switching branches.
 
 - **Full technical report & machine-readable inventory (PR #2):**
-  - Pull Request: [`#2 — Research: Breeno / ColorOS 16 offline APK static analysis`](https://github.com/sokfrut-tech/OGAM/pull/2) (`docs/research-breeno-coloros-2026-11-22`, head `e4ef6016329c791377bd448f9bc96c328812edfe`)
+  - Pull Request: [`#2 — Research: Breeno / ColorOS 16 offline APK static analysis`](https://github.com/sokfrut-tech/OGAM/pull/2) (`docs/research-breeno-coloros-2026-11-22`, latest inspected head `a5d5c71dafcfd91f487b4430c43a8710fa23c3e6`)
   - Detailed analysis: `research/breeno/OPPO_LOCAL_APK_STATIC_ANALYSIS_2026-11-22.md`
   - Manifest & native inventory JSON (`332,178` bytes, sanitized, zero secrets): `research/breeno/OPPO_APK_MANIFEST_AND_NATIVE_INVENTORY_2026-11-22.json`
 - **Target hardware & OS context:** OPPO Find X6 Pro (`PGEM10`), ColorOS `16.0.5`, build `PGEM10_16.0.5.1201(CN01C20P01)`, Android 16, Snapdragon 8 Gen 2, 12 GB RAM.
@@ -44,3 +44,15 @@ This summary brings the offline static analysis of the 26 owner-supplied OPPO / 
 4. **Explicit Exclusions (`com.opos.ads` & Bloat):**
    - `Сервис умных рекомендаций` (`com.opos.ads`, `5.5.6`) is purely an advertising, app-preload, and commercial coupon engine (`MobAdService`, `adx.ads.heytapmobi.com`). Out of scope and must not be emulated.
    - Skip Breeno's 130+ MB commercial/WebView/payment/Pangle footprint (`142` MB WebView in Global Search, Alipay agent pay, Pangle ads) to preserve RAM headroom for local 4B LLMs + vision + voice on the 12 GB Find X6 Pro.
+
+## Evidence boundary and latest follow-up (2026-11-22 evening)
+
+The 26 APK report represents offline, read-only structural inspection. It includes hashes/ZIP inventories, extracted signing-certificate fingerprints, decoded binary manifests and component declarations, DEX class/package/AIDL/URI/database/host identifiers, and native-library/assets inventories. Full JADX Java/Smali method decompilation, full-body `apksigner` verification, APK execution, dynamic traces and actual-device behaviour were not performed. Class names, method names inferred from descriptors, strings and bundled libraries do not prove method control flow or runtime behaviour.
+
+The exact Breeno 13.4.3 build and Breeno Memory 16.11.5 build match the screenshot build metadata. The Instructions APK inspected is 17.2.4; the device's installed 17.7.2 remains unanalysed. Do not apply 17.2.4 component findings to 17.7.2 without a new exact-build inspection.
+
+Follow-up evidence and task list:
+- `research/breeno/DEX_DECOMPILATION_AND_OGAM_TRANSFER_PLAN_2026-11-22.md`
+- `research/breeno/PR1_NATIVE_ASSISTANT_SOURCE_VERIFICATION_2026-11-22.md`
+
+PR #1 source inspection separately confirms the OGAM Android 12+ VoiceInteractionService/session, RoleManager assistant request, non-exported token bridge and static contract tests. These sources have not yet been verified by a Gradle/Kotlin build or on the PGEM10 device. The PR #2 research package does not itself implement or port proprietary Breeno code.
