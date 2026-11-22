@@ -50,10 +50,10 @@ Confirmed by screenshots:
 - The target device has a separately installed Breeno Memory 16.11.5_008719b_260901 app.
 - The visible OPPO AI surfaces advertise the feature families listed above.
 
-Not confirmed:
-- Exact ColorOS version currently installed. A ColorOS 16 promotional image is not proof the device itself runs ColorOS 16.
-- Android API level, firmware build fingerprint, security patch.
-- Breeno and Memory package names, versionCodes, signer certificates, APK hashes.
+Not established by the app-info/feature screenshots in Sections 1–2 alone:
+- Breeno and Memory package names, versionCodes, signer certificates and APK hashes. Those fields are not shown in the app-info screenshots.
+- The exact numeric Android SDK/API level and full `ro.build.fingerprint`; the Android release, firmware/build number and security patch are confirmed separately in Section 7.
+- Whether the advertised features are enabled, available in this user's region/account/language, or fully functional on this particular build.
 - Whether the features are enabled, available in the user's region/account/language, or fully functional on this particular build.
 - Internal APIs, Binder/AIDL contracts, service permissions, or the way screen content is captured.
 - Whether Breeno Memory stores data locally, in a cloud account, or both.
@@ -77,13 +77,15 @@ Suggested OGAM capability mapping:
 6. AI automation — capability registry, preview/confirmation for consequential actions, execute-and-verify.
 7. AI service modules — signed/versioned model and skill manifests, compatibility checks, least-privilege capabilities and rollback.
 
-## 5. Next device evidence needed
+## 5. Remaining device evidence needed
 
-Do not ask the user to extract APKs yet. First obtain:
-- Settings > About device screenshot showing model, ColorOS version and build number.
-- Android version/security patch if not included.
-- Breeno app permissions page, then Breeno Memory permissions page (only if needed for permission mapping).
-- If the user can later provide ADB output, collect package/versionCode/signer metadata read-only; no system modification.
+The model, ColorOS release/build number, Android release and security patch are already confirmed in Section 7; do not request those screenshots again.
+
+Remaining optional evidence, only when a later implementation decision depends on it:
+- Full `ro.build.fingerprint` and exact numeric SDK level (read-only `getprop` output).
+- Read-only package metadata for Breeno and Breeno Memory (package name, versionCode, installed signer digest and installed APK hash) if exact binary-to-device identity is required.
+- Separate Breeno and Breeno Memory permission/special-access screenshots if a specific capability mapping requires them.
+- No system modification, root, or private OEM API access is required for these evidence items.
 
 ## 6. Evidence handling
 
@@ -100,7 +102,7 @@ A separate user-supplied Settings > Version screenshot confirms:
 - Android version: 16
 - Android security update: 1 August 2026
 
-This resolves the previous uncertainty: the device is in fact running ColorOS 16.0.5 (as indicated by the version number and the user's device context), not merely displaying a ColorOS 16 promotional page. Keep the full build fingerprint and Android API level marked unknown until read directly.
+This resolves the earlier uncertainty: the Settings version screenshot confirms the installed ColorOS 16.0.5 build, Android 16 release, firmware, kernel and 1 August 2026 security update. The full `ro.build.fingerprint` and the exact numeric SDK level were not visible in the supplied screenshot and remain unverified.
 
 ## 8. Updated compatibility implications
 
