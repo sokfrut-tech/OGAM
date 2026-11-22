@@ -133,7 +133,7 @@ internal class JarvisPcmStreamPlayer(
 
       when {
         written > 0 -> cursor += written
-        written == 0 -> LockSupport.parkNanos(100_000L)
+        written == 0 -> LockSupport.parkNanos(5_000_000L)
         else -> {
           cancel(generationToken)
           return false
@@ -273,7 +273,7 @@ private class AndroidJarvisPcmTrackFactory : JarvisPcmTrackFactory {
     val bufferSize = maxOf(minimum * 2, sampleRate / 5 * Float.SIZE_BYTES)
 
     val attributes = AudioAttributes.Builder()
-      .setUsage(AudioAttributes.USAGE_MEDIA)
+      .setUsage(AudioAttributes.USAGE_ASSISTANT)
       .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
       .build()
     val format = AudioFormat.Builder()
@@ -331,7 +331,7 @@ private class AndroidJarvisAudioFocusController(
 
     val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       val attributes = AudioAttributes.Builder()
-        .setUsage(AudioAttributes.USAGE_MEDIA)
+        .setUsage(AudioAttributes.USAGE_ASSISTANT)
         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
         .build()
       val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
