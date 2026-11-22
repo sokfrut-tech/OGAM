@@ -111,7 +111,7 @@
       -->
       <service
           android:name="ai.offgridmobile.voice.JarvisVoiceInteractionService"
-          android:label="@string/app_name"
+          android:label="@string/jarvis_assistant_name"
           android:enabled="@bool/jarvis_voice_interaction_enabled"
           android:permission="android.permission.BIND_VOICE_INTERACTION"
           android:exported="true">
@@ -125,7 +125,7 @@
 
       <service
           android:name="ai.offgridmobile.voice.JarvisVoiceInteractionSessionService"
-          android:label="@string/app_name"
+          android:label="@string/jarvis_assistant_name"
           android:permission="android.permission.BIND_VOICE_INTERACTION"
           android:exported="true"
           android:process=":jarvis_voice" />
