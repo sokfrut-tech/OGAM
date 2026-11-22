@@ -16,7 +16,6 @@ import Icon from 'react-native-vector-icons/Feather';
 import { Card } from '../components';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { TouchableOpacity } from '../components/Touchable';
-import { SPACING } from '../constants';
 import { useTheme, useThemedStyles } from '../theme';
 import { t } from '../i18n';
 import type { RootStackParamList } from '../navigation/types';
