@@ -101,7 +101,7 @@ export const ChatScreen: React.FC = () => {
         setAssistantVoiceInputPending(false);
         setChatAlertState(showAlert(
           'Voice model needed',
-          'Jarvis is ready, but this device has no available speech recognizer yet. Download a Whisper/Qwen speech model, or select a local model that accepts audio input.',
+          'Jarvis is ready, but this device has no available speech recognizer yet. Download a Whisper or Qwen speech-to-text model first.',
           [
             { text: 'Not now', style: 'cancel' },
             {
