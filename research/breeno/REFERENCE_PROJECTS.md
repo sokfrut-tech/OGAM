@@ -220,3 +220,61 @@ P2 design references: Neyam Vaani, Dhwani/VaaniSahayak, iTantra, Eva, OffHand, c
 
 ## Cross-platform search policy for OGAM
 Search is not GitHub-only. For each research question, query at least: GitHub, GitLab, GitCode, AtomGit, Gitee, Codeberg and relevant model hubs (ModelScope, OpenI, Hugging Face). Search Chinese-language terms (安卓语音助手, 手机智能体, 离线语音识别, 系统助手, 无障碍自动化, 本地大模型) and English/Hindi/Indic terms. Record canonical upstream, mirror status, license, latest commit/release, build instructions, Android API/ABI, permission requirements, test evidence and compatibility. A project is not accepted merely because its README claims a feature.
+
+
+## Source-level audit: mathanroot/nova-ai (native VoiceInteractionService) — 2026-11-22
+Repository: https://github.com/mathanroot/nova-ai
+Inspected public source files: AndroidManifest.xml, NovaVoiceInteractionService.kt, NovaVoiceInteractionSessionService.kt, NovaVoiceInteractionSession.kt, WakeWordForegroundService.kt, AndroidWakeWordEngine.kt, AssistantStateMachine.kt and README.md. Read-only source audit; no build or device run performed.
+
+### Confirmed implementation elements
+- Manifest declares a service protected by BIND_VOICE_INTERACTION with android.service.voice.VoiceInteractionService action and android.voice_interaction metadata.
+- Separate VoiceInteractionSessionService and VoiceInteractionSession are declared; the session forwards to the app's MainActivity with a voice-trigger extra and then hides itself.
+- Separate RecognitionService is declared.
+- Wake-word listener runs in a microphone foreground service with a persistent notification, boot receiver, and partial wake lock.
+- Wake engine attempts Vosk constrained grammar for "hey nova", with a secondary acoustic-energy/cadence detector.
+- State machine defines Idle, WakeDetected, Listening, SpeechPaused, Processing, Speaking and FollowUpListening states.
+
+### Important source-level caveats
+1. The secondary acoustic detector does not identify phonemes or the actual phrase; it matches two speech-energy bursts of expected duration. It can false-trigger on unrelated speech and must never be considered a reliable wake-word model.
+2. Wake-word parsing accepts any partial/final text containing "nova", which can produce substring false positives.
+3. VoiceInteractionSession immediately starts MainActivity and hides the session. This demonstrates the service contract but is not a rich in-session assistant surface implementation.
+4. StateMachine logs invalid transitions but then forcibly applies the invalid state. OGAM should reject invalid transitions or route through explicit recovery states.
+5. Wake foreground service acquires a partial wake lock in onCreate and keeps it while listening. This can have material battery/thermal cost; OGAM needs measured, scoped wake locks and a power budget.
+6. README claims custom ONNX/TFLite wake models, but the inspected AndroidWakeWordEngine code shown here only instantiates Vosk plus the acoustic fallback; the advertised custom model path is not proven by these files.
+7. Manifest declares microphone, contacts, call/SMS, camera, exact alarm, Bluetooth and battery optimization permissions. Request only when the matching feature is enabled and explain the need.
+8. README's claimed screen-off activation and lock-screen response are not verified on the Find X6 Pro/ColorOS. Android foreground-service rules and OEM power management can block background microphone start.
+
+### OGAM decisions
+- Reuse the architectural pattern: standards-based assistant service + separate session service + session state machine + wake engine abstraction.
+- Do NOT copy the acoustic-energy fallback as a wake-word detector. Require a real keyword model with false-accept/false-reject measurements and noise testing.
+- Make the session UI native/embedded rather than automatically launching an Activity and hiding the session.
+- Enforce legal state transitions; never force invalid transitions silently.
+- Add wake-listener power telemetry, user-visible mic indicator, pause/stop control, and automatic release of recorder/wake lock on every error/stop path.
+- Add separate tests for assistant-role selection, VoiceInteractionService binding, summon UI, screen-off wake, lock-screen privacy and battery use.
+
+## Source-level audit: mukeshchandu/Personal-AI-Assistant (Naomi) — 2026-11-22
+Repository: https://github.com/mukeshchandu/Personal-AI-Assistant
+Inspected AndroidManifest.xml, WakeService.kt, CommandRouter.kt, AssistantBrain.kt, MemoryStore.kt, VoiceInput.kt and README.md. Read-only source audit; no build or device run performed.
+
+### Confirmed implementation patterns
+- Offline-first command router handles common actions before cloud/LLM: timers, alarms, time/date, app launch, calls, messages, media, maps, notes, calendar and settings.
+- AssistantBrain escalates unhandled or complex requests to cloud Groq/Gemini or a local Gemma model, with multi-turn follow-up state.
+- Wake service owns AudioRecord directly, uses Vosk grammar, AcousticEchoCanceler, NoiseSuppressor, proximity sensor, watchdog and a rolling audio buffer for optional speaker verification.
+- MemoryStore is a local JSON key-value fact store with add/get/update/remove and simple fact extraction from speech.
+- Accessibility service is used for WhatsApp auto-send, which is a consequential action and must not happen silently in OGAM.
+
+### Risks and adaptation decisions
+1. README says VoiceInput is free/on-device capable, but implementation uses Android SpeechRecognizer with en-IN and relies on the installed recognition provider/language pack; offline behavior is provider/device dependent. Wake-word Vosk and command ASR are separate paths. OGAM must explicitly show which ASR engine handles each stage and verify airplane-mode operation.
+2. Manifest requests SYSTEM_ALERT_WINDOW and USE_FULL_SCREEN_INTENT to surface UI from background/lock screen. These are sensitive, policy- and OS-constrained permissions; OGAM should prefer VoiceInteractionSession and notifications and avoid overlays/full-screen intents unless demonstrably necessary.
+3. Accessibility automation that auto-taps WhatsApp Send creates external side effects. OGAM must draft, preview recipient/content and require explicit user confirmation before send.
+4. Local memory is plain JSON in app internal storage, without field-level encryption, schema migration, provenance, consent controls or semantic retrieval in the inspected implementation. Useful as a prototype, insufficient for Jarvis's durable personal memory.
+5. Wake service is more sophisticated than a simple audio-energy spotter, but always-on reliability, background start restrictions, watchdog recovery and battery cost remain device-specific and unverified.
+6. Wake phrase and grammar are English-centric ("Naomi", en-IN). The command router is regex/keyword-driven and README documents English commands; Russian grammar, inflection and contact-name resolution require a separate locale layer.
+7. The router's offline-first pattern is valuable, but external app flows and Accessibility automation are brittle; use Android intents/APIs first, semantic Accessibility second, coordinate tapping only as last resort.
+
+### OGAM decisions
+- Adopt local deterministic routing before model inference.
+- Keep wake-word detection, command ASR, conversational ASR, and TTS as independently selectable engines.
+- Use a typed, encrypted memory store with explicit provenance and user review rather than plain key-value JSON.
+- Make action execution transactional: plan → show target/content → confirm → execute → verify result; require explicit confirmation for sending messages and other irreversible actions.
+- Treat full-screen overlays, Accessibility and background microphone as optional, separately consented capabilities.
