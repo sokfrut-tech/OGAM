@@ -139,6 +139,16 @@ export const ModelsScreen: React.FC<ModelsScreenProps> = ({
                 <TouchableOpacity
                   style={styles.downloadManagerButton}
                   hitSlop={SPACING.md}
+                  onPress={() => vm.navigation.navigate('LocalModels')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open local model library"
+                  testID="local-model-library-button"
+                >
+                  <Icon name="folder" size={20} color={colors.text} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.downloadManagerButton}
+                  hitSlop={SPACING.md}
                   onPress={handleCheckForNewModels}
                   disabled={isCheckingCatalog}
                   accessibilityRole="button"
