@@ -28,4 +28,64 @@ class JarvisAssistantLaunchGuardTest {
     assertFalse(JarvisAssistantLaunchGuard.consume(oldToken))
     assertTrue(JarvisAssistantLaunchGuard.consume(newToken))
   }
+
+  @Test
+  fun matchesCanonicalAssistantVoiceRoute() {
+    assertTrue(
+      JarvisAssistantLaunchGuard.matchesAssistantVoiceRoute(
+        "offgrid://assistant/voice?startVoice=1",
+      ),
+    )
+  }
+
+  @Test
+  fun matchesTrailingAndRepeatedSlashesNormalizedByReactNavigation() {
+    val equivalentUrls = listOf(
+      "offgrid://assistant/voice/?startVoice=1",
+      "offgrid://assistant/voice///?startVoice=1",
+      "offgrid://assistant//voice?startVoice=1",
+      "offgrid:///assistant//voice///?startVoice=1",
+      "offgrid:/assistant/voice/?startVoice=1",
+      "offgrid:assistant/voice/?startVoice=1",
+    )
+
+    equivalentUrls.forEach { url ->
+      assertTrue("Expected protected assistant route: $url",
+        JarvisAssistantLaunchGuard.matchesAssistantVoiceRoute(url))
+    }
+  }
+
+  @Test
+  fun matchesPercentEncodedStaticCharactersAcceptedByReactNavigation() {
+    val equivalentUrls = listOf(
+      "offgrid://%61ssistant/voice?startVoice=1",
+      "offgrid://assistant/%76oice/?startVoice=1",
+      "offgrid://%61ssistant/%76oice///?startVoice=1",
+    )
+
+    equivalentUrls.forEach { url ->
+      assertTrue("Expected protected assistant route: $url",
+        JarvisAssistantLaunchGuard.matchesAssistantVoiceRoute(url))
+    }
+  }
+
+  @Test
+  fun doesNotMatchOtherOffgridRoutesOrMalformedSchemes() {
+    val unrelatedUrls = listOf(
+      "offgrid://oauth/callback?code=abc",
+      "offgrid://pro/unlock",
+      "offgrid://assistant/settings",
+      "offgrid://assistant/voice/extra?startVoice=1",
+      "offgrid://other/assistant/voice?startVoice=1",
+      "https://assistant/voice?startVoice=1",
+      "offgrid-assistant://assistant/voice",
+      "assistant/voice",
+    )
+
+    unrelatedUrls.forEach { url ->
+      assertFalse("Unexpected assistant route match: $url",
+        JarvisAssistantLaunchGuard.matchesAssistantVoiceRoute(url))
+    }
+    assertFalse(JarvisAssistantLaunchGuard.matchesAssistantVoiceRoute(null))
+  }
 }
