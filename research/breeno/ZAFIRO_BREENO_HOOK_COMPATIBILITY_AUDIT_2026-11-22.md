@@ -169,3 +169,55 @@ The existing session currently hands off to the normal Chat screen; it is not ye
 - RoleManager bridge: https://github.com/sokfrut-tech/OGAM/blob/67159e2f821b14616eebcaf0e6da997633cd7aa4/android/app/src/main/java/ai/offgridmobile/voice/JarvisAssistantRoleModule.kt
 - Role-state tests: https://github.com/sokfrut-tech/OGAM/blob/67159e2f821b14616eebcaf0e6da997633cd7aa4/android/app/src/test/java/ai/offgridmobile/voice/JarvisAssistantRoleSnapshotTest.kt
 - Source-contract tests: https://github.com/sokfrut-tech/OGAM/blob/67159e2f821b14616eebcaf0e6da997633cd7aa4/scripts/__tests__/android-assistant-contract.node.test.mjs
+
+
+## 10. Deeper Zafiro 2.1.0 hook and test-harness audit
+
+Inspected the actual hook implementation at Zafiro commit `bd3767ef1849f12d7aa7e302d7f10342871a52d8`, not only its README/config. Also inspected its Breeno adaptation guide at `.agents/skills/assistant-add-support/docs/BREENO.md`.
+
+### Confirmed implementation details
+
+- `BreenoHook` is an orchestration layer: it initializes the renderer and installs separate session, response and input subhooks. The concrete host reflection is mostly isolated in `BreenoConfigProvider`, the subhooks and `BreenoCardRenderer`.
+- `CaptureInputHook` runs before the configured DataCenter method, extracts the configured bean argument, calls configured getters for chat type / room ID / content, accepts only the configured query chat type and suppresses only an immediately repeated identical (roomId, query) pair. This is a useful boundary, but not a durable request ID or a complete replay/deduplication protocol.
+- `FilterNativeDirectivesHook` is active only for `InjectedLLM`; `NativeTakeover` and missing turn state pass native directives through. It parses the directives JSON, preserves unknown/unrecognized entries, and removes a hard-coded set of namespaces/actions. If all directives are removed it sets the hooked method result to null; otherwise it replaces the JSON argument.
+- The suppression list is broad and includes system/app, SMS, phone-call, storage and other action families. This is a technical implementation detail, not evidence that the replacement agent has safe equivalents or user permission for those operations. OGAM must not reproduce this broad interception policy.
+- `BlockNativeCardHook` blocks only non-self-injected answer cards while the active turn is `InjectedLLM`; no active turn or `NativeTakeover` passes through. The local-data marker is the self-injection escape hatch.
+- `SuppressCleanupHook` replaces a configured `CleanOperation` with `DoNothingOperation` only during `InjectedLLM`; otherwise it passes through.
+- `ResetConversationSignalHook` forwards the configured host reset event to session reset. The high-level hook also watches floating-window detach / main-activity resume lifecycle signals.
+- `BreenoCardRenderer` resolves the host bean and DataCenter methods reflectively, creates one render bean per turn, inserts it once and updates it on later frames. It fills native reasoning/thinking fields, tool status text, content, first/final flags and feedback metadata. This demonstrates a host-specific presentation adapter, not a general Android assistant API.
+
+### Reverse-engineering gate clarified
+
+The Zafiro adaptation guide says its config + implementation are the single source of truth, and instructs maintainers to start from the closest supported config, then verify the host's core classes and obfuscated method names in the new APK. The repository's `assistant-add-support` skill explicitly requires its REA workflow first; if REA is unavailable, the maintainer must ask the user to deploy it. This is a project-specific gate. OGAM must not silently install/configure REA or bypass it.
+
+### Test evidence: important negative finding
+
+The recursive source tree at the inspected Zafiro commit contains extensive unit tests for agent runtime, permissions, IPC, UI and other modules. However, the inspected tree contains **no dedicated Breeno hook/config/renderer test suite** (no test paths matching the Breeno implementation or its subhooks). Therefore:
+- Generic Zafiro unit-test volume does not validate the Breeno adapter.
+- The 130302 config match and source implementation remain static evidence only.
+- We have no test evidence that these reflection targets resolve or behave correctly on the user's installed Breeno build.
+- Do not describe Zafiro's Breeno takeover as device-verified or production-compatible with PGEM10.
+
+### OGAM design decision refined
+
+Keep the existing no-root `RoleManager` + `VoiceInteractionService` implementation as the primary integration. If a separate Breeno adapter is ever justified, design it as a narrow host adapter with these OGAM-owned contracts:
+
+1. Read-only capture of a user-submitted query and stable host session identifier.
+2. Explicit ownership state per turn; default to native passthrough on unknown state, hook failure, timeout or unsupported host version.
+3. No blanket directive suppression. Map only explicitly supported intents to OGAM typed tools; require tool-level permissions, risk tiers and confirmation for consequential actions.
+4. Preserve native Breeno behavior for unsupported actions and provide a safe fallback if Jarvis is unavailable.
+5. Treat card rendering as optional presentation. Failure to render a native card must not lose the assistant response or execute an action twice.
+6. Add contract tests for config parsing, hook target resolution against controlled fixtures, turn ownership, duplicate/replay handling, native passthrough, self-injected markers, and failure recovery before any real-device trial.
+7. Keep the adapter behind a separately documented root/LSPosed opt-in; do not make root a prerequisite for Jarvis core.
+
+### Exact source references
+
+- [BreenoHook.kt](https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/app/src/main/java/com/niki914/zafiro/mod/feat/oppo/BreenoHook.kt)
+- [BreenoConfigProvider.kt](https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/app/src/main/java/com/niki914/zafiro/mod/feat/oppo/BreenoConfigProvider.kt)
+- [CaptureInputHook.kt](https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/app/src/main/java/com/niki914/zafiro/mod/feat/oppo/subhooks/CaptureInputHook.kt)
+- [FilterNativeDirectivesHook.kt](https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/app/src/main/java/com/niki914/zafiro/mod/feat/oppo/subhooks/FilterNativeDirectivesHook.kt)
+- [BlockNativeCardHook.kt](https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/app/src/main/java/com/niki914/zafiro/mod/feat/oppo/subhooks/BlockNativeCardHook.kt)
+- [SuppressCleanupHook.kt](https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/app/src/main/java/com/niki914/zafiro/mod/feat/oppo/subhooks/SuppressCleanupHook.kt)
+- [BreenoCardRenderer.kt](https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/app/src/main/java/com/niki914/zafiro/mod/feat/oppo/BreenoCardRenderer.kt)
+- [Breeno adaptation guide](https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/.agents/skills/assistant-add-support/docs/BREENO.md)
+- [Assistant support skill / REA gate](https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/.agents/skills/assistant-add-support/SKILL.md)
