@@ -150,3 +150,26 @@ ZorvAI is now a P0/P1 architecture reference. Its most useful patterns are typed
 P0: typed capability metadata; progressive tool discovery; task ledger + delivery verification; native engine supervisor; per-action risk and permission checks.
 P1: paired Binder capability bridge; first-party plugin framework; restricted MCP adapter; Russian ASR/TTS benchmark; local memory/RAG provenance.
 P2: optional ColorOS/Breeno bridge and LAN companion, only after device evidence and security review.
+
+
+## Eta / Phtomt / PocketMind additions (2026-11-22)
+
+### Native assistant entry and context
+From Eta: add a real VoiceInteractionService/Session and system role selection. Treat screen context as a short-lived invocation snapshot, exclude password fields, attach only to the current request, and never silently persist it. Optional ColorOS hooks must be build-fingerprinted, fail-open and nonessential to core Jarvis.
+
+### Privilege boundary
+From Phtomt: consider a separate privileged Provider APK/process. Use signature-restricted AIDL, versioned contracts, Binder death recovery, bounded timeouts and chunked screen payloads. Keep main AI runtime free of direct privileged service implementations. Use semantic intent translation; raw shell and raw Accessibility endpoints are advanced capabilities only.
+
+### Runtime approval gate
+From PocketMind: action approval must execute inside the runtime immediately before tool execution. UI prompts and system instructions are not sufficient. Missing approval callback, timeout, unknown tool and malformed policy all fail closed. Global deny outranks allow; session approvals do not silently become global. Safe reads may retry; writes and dangerous side effects must not auto-retry.
+
+### Undo and verification
+Add a durable TaskLedger/CheckpointStore with tool-call IDs, affected target, before-state backup where possible, completion verification and undo state. Distinguish delivered, executed and verified outcomes. Do not claim rollback for operations that cannot be reversed.
+
+### Updated priority order
+P0: Native VoiceInteractionService; short-lived Assist snapshot; runtime-enforced approval; typed semantic action contract; risk registry; structured result + verification.
+P1: Privileged AIDL Provider boundary; session/global permission policy; checkpoint/undo; tool idempotency metadata; provider health/version diagnostics.
+P2: ColorOS/Breeno hook and OEM personal memory bridge; advanced Shizuku/root/ADB; external plugin ecosystem after licensing and sandbox review.
+
+### License gate
+Eta is GPL-3.0 and Phtomt is AGPL-3.0 in the canonical GitHub repositories. PocketMind is Apache-2.0. OGAM should prefer independent reimplementation of ideas. Any code reuse requires file-level license review and a conscious decision about OGAM distribution obligations. A mirror's displayed license must not override the canonical upstream LICENSE.
