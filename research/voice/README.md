@@ -17,8 +17,8 @@ Status: public source research and design notes; no new TTS/KWS model is integra
 4. No wake-word, TTS model or acceleration backend is selected until license, exact artifacts, hashes and PGEM10 measurement are available.
 5. Do not copy RuVoice code or bundle its built-in v5_5_ru model: its root source and built-in model are CC BY-NC-SA 4.0. Official Silero now lists v5_6_ru as a newer Russian model, also under the main CC BY-NC-SA 4.0 license. The separate v5_cis_base_nostress MIT model pack is a clean-license candidate, but requires an independent stress/normalization layer and clean-room runtime.
 6. Qwen3-TTS 0.6B Q4_K_M is the leading Kotlin/JNI prototype candidate. The reference JNI C++ already has nativeSynthesizeStreaming, but the Kotlin QwenEngine wrapper does not declare or expose it. Expose and test that existing JNI path only in an isolated benchmark build first.
-7. Sherpa-ONNX remains a strong Kotlin chunked-TTS runtime candidate, but the located MMS Russian voice is CC BY-NC 4.0; seek a separately cleared model before general distribution.
-8. No TTS/KWS model weights, external APK, or proprietary OPPO code are committed to the repository.
+7. Sherpa-ONNX remains a strong Kotlin chunked-TTS API/runtime candidate, but the located Russian MMS ONNX voice is CC BY-NC 4.0. VoxSherpa confirms an Android system TTS integration path and a Russian MMS catalogue entry, but its app is GPL-3.0, its own system TTS path appears to call the MMS loader with isMms=false, and its sentence-level output is not model-streaming.
+8. No TTS/KWS model weights, external APK, or proprietary OPPO code are committed to the repository. The new VoxSherpa/MMS lead remains architecture/source evidence only.
 
 ## Next gate
 Create a benchmark-only Kotlin backend harness around JarvisTtsBackend + JarvisPcmStreamPlayer; compare Qwen3-TTS Q4_K_M, a legal MIT Silero CIS pack with a clean-room runtime, and Sherpa-ONNX with a separately cleared Russian VITS/Piper voice. Run the same Russian corpus on PGEM10, record TTFA/RTF/RSS/temperature/battery/audio quality, then choose. Do not change the production voice path before evidence.
