@@ -6,13 +6,13 @@ Status: public source research and design notes; no new TTS/KWS model is integra
 ## Current research documents
 
 - [Wake-word and Android background-microphone audit](OGAM_WAKEWORD_AND_BACKGROUND_MICROPHONE_RESEARCH_2026-11-22.md) — openWakeWord, AndroidWakeWord, Sherpa-ONNX, Android 12–16 background/microphone restrictions, Russian phrase and license checks.
-- [Russian Android TTS backend audit](OGAM_RUSSIAN_TTS_ANDROID_BACKEND_AUDIT_2026-11-22.md) — RuVoice TTS source/license audit, Qwen3-TTS Android Kotlin/JNI, native streaming callback already exists in JNI C++ but is not exposed by Kotlin QwenEngine, Sherpa-ONNX callback path, microphone ownership and AEC boundary.
+- [Russian Android TTS backend audit](OGAM_RUSSIAN_TTS_ANDROID_BACKEND_AUDIT_2026-11-22.md) — RuVoice TTS source/license audit, Qwen3-TTS Android Kotlin/JNI, native streaming callback already exists in JNI C++ but is not exposed by Kotlin QwenEngine, Sherpa-ONNX callback path, microphone ownership and a public Android AEC experiment route (unverified on PGEM10).
 - [Earlier Chinese/Indian on-device speech scan](../china-india/CHINESE_INDIAN_ON_DEVICE_SPEECH_SCAN_2026-11-22.md) — Qwen3-ASR/ASR and LiteRT routes, Qwen3-TTS LiteRT and Indian/Indic speech model scan.
 
 ## Decisions / no-go boundaries
 
 1. Keep the physical microphone owner unique: OGAM AudioRecorderService. KWS/ASR/Whisper must share/subcribe to it or coordinate through one native capture service; never start a competing recorder.
-2. Keep half-duplex voice turns until Android echo cancellation actually covers both capture and Jarvis playback. The current AudioRecorderService.isEchoCancelled() deliberately returns false.
+2. Keep half-duplex voice turns until Android AEC is attached to and verified on the actual AudioRecord session and the assistant playback reference is demonstrably suppressed. Current AudioRecorderService.isEchoCancelled() deliberately returns false. Android AEC is attached by AudioRecord session ID; OBOE preset comments alone are not proof.
 3. Preserve JarvisPcmStreamPlayer as the single Android AudioTrack/AudioFocus owner. TTS inference sends Float32 chunks; cancellation is generation-scoped.
 4. No wake-word, TTS model or acceleration backend is selected until license, exact artifacts, hashes and PGEM10 measurement are available.
 5. Do not copy RuVoice code or bundle its built-in v5_5_ru model: its root source and built-in model are CC BY-NC-SA 4.0. Its v5_cis_base_nostress MIT model pack is a separate candidate, but the exact pack and clean-room runtime remain to be verified.
