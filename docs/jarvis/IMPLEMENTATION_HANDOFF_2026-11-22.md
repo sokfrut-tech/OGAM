@@ -151,6 +151,16 @@ This section reconciles the user discussions available for 2026-11-22 with the r
    - It maps system invocation, duplex voice, local personal context/RAG, screen awareness, typed actions, multi-step plans, local model profiles, communication approval, continuity, multimodality, proactive assistance and HUD/presentation.
    - Apple APIs/UX are public-product references only. No private Apple code, assets or APIs are to be copied.
 
+### Open-source ecosystems and reference projects surveyed today
+
+These are research references, not claims that their code has been integrated into OGAM. Each reuse requires its own source, license, provenance, build and security review.
+
+- **Chinese Android / agent references:** GitCode `exepc/ZorvAI` (typed tools, local models, MCP, Binder/plugin architecture); GitCode `2401_88872702/Aiassistant` (offline command assistant); `niki914/zafiro` (Breeno adapters and version-specific profiles); `timetetng/breeno-rikkahub` (Breeno chat forwarding patterns and security caveats); `KYRIE66nb/mobile-agent` (semantic Accessibility + visual fallback); `UgOrange/gui_agent_skill` (ADB/UI agent patterns). Public source platforms include GitCode, Gitee, AtomGit and Jihu/GitLab; ModelScope/OpenI/Hugging Face are relevant for model discovery.
+- **Indian / Indic and voice-agent references:** `mukeshchandu/Personal-AI-Assistant` (Naomi; deterministic local commands and Vosk wake path); `mathanroot/nova-ai` (native VoiceInteractionService pattern); `Uktam-ai/uktam` (sherpa-onnx/llama.cpp/JNI Indic voice stack); `naveen-anon/JarvisAI`, `sannabotdev/sannabotapp`, `Subh24ai/yojana-sahayak-assistant`, `cld2labs/VaaniSahayak`, `Saanvirajput/Dhwani` and related Indic projects. Indic-specific model weights are not Russian models; only architecture and pipeline patterns may transfer.
+- **Cross-ecosystem Android agent/security references:** Eta, Phtomt, PocketMind, AzCode and Aries AI; use the saved source-audit documents in `research/breeno/` for license and implementation caveats.
+- **Russian voice pipeline references:** `meshoklv/ru-voice-agent` and `ru-speech-bench`, plus T-one, GigaAM-v3, Silero VAD, sherpa-onnx and tiny-voca-ru. These are candidates for benchmarking, not production integrations.
+- **Transfer principle:** reuse behaviours/contracts, not proprietary source. Prefer an OGAM-owned implementation and keep the user's local/offline requirement intact.
+
 5. **Models and reduced-overrefusal requirement**
    - The versioned candidate registry lists Qwen3.5-4B baseline, Qwen3.5-4B-Uncensored-v2, Huihui abliterated Qwen, Aurum 4B Uncensored and Gemma 4 E2B/E4B.
    - User's preference for less-restricted model behaviour is explicitly captured as a research requirement, but "uncensored" is not accepted as proof. Keep at least one ordinary control model; test unnecessary refusals separately from unsafe compliance.
