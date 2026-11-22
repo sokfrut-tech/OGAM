@@ -75,8 +75,13 @@ export const ChatScreen: React.FC = () => {
   // recordingController checks that a real input backend is available first.
   useEffect(() => {
     if (!route.params?.startVoice) return;
-    recordingController.start();
     rootNavigation.setParams({ startVoice: undefined });
+    // A system invocation must not bypass first-run setup.
+    if (!useAppStore.getState().hasCompletedOnboarding) {
+      rootNavigation.reset({ index: 0, routes: [{ name: 'Onboarding' }] });
+      return;
+    }
+    recordingController.start();
   }, [route.params?.startVoice, rootNavigation]);
   // Counted once per change to the chat, not on every render: opening a sheet re-renders this screen.
   const activeMessages = chat.activeConversation?.messages;
