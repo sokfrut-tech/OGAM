@@ -115,3 +115,16 @@ The assistant's personality should be warm, composed, precise and lightly witty 
 - Verify all candidate model licenses and full model cards at the exact pinned revision before packaging or redistributing weights.
 - Next engineering slice: build a model-evaluation manifest and a small Russian/tool-use benchmark runner; do not yet replace the existing model catalog or memory-fit policy.
 - Separately, the planned splitGgufModelName / modelDisplayName / isRawModelName extraction remains blocked until the full @offgrid/models implementation and tests can be recovered. The public repository search did not expose those helper implementations; do not guess their behaviour.
+
+
+## 9. Open Android assistant projects inspected
+
+These are architectural references, not dependencies selected for OGAM. Inspect current source and third-party notices again before any reuse.
+
+- Jandal AI — https://github.com/NickMonrad/kernel-ai-assistant — Apache-2.0. Relevant patterns: on-device Gemma via LiteRT, long-term semantic memory, deterministic Android actions, voice and native tool calling. Strong match for the local Brain-Memory-Action split; inspect its permission/action boundary and tests.
+- PocketDaemon — https://github.com/HyperCoherence/PocketDaemon — MIT. Relevant patterns: Android-native voice sessions, local memory, skills and telephony integration. Its README explicitly describes it as experimental and its privileged Magisk path as unsuitable for general consumer use; do not import privileged call/SMS behaviour into the default app.
+- Hermes Vox — https://github.com/chezgoulet/hermes-vox — GPL-3.0. Relevant patterns: voice call UX, interruption/turn-taking, visible agent activity, local audio path separated from the agent's tools/memory. Treat code reuse as a separate copyleft decision; architecture study only for now.
+- Droy — https://github.com/moonoops/Droy — AGPL-3.0-only. Relevant patterns: Android task execution, planner/session handling, companion UX and memory integration. Architecture study only unless the project explicitly accepts AGPL obligations; review its third-party notices before any component reuse.
+- Simon — https://github.com/damyan-deshev/simon — README describes local STT/TTS, SQLite FTS memory, Android client and a pre-response reasoning/checking phase. A root LICENSE file was not found in the inspected repository paths; no code copying or dependency until a valid license is confirmed.
+
+Selection rule: MIT/Apache-2.0 projects are candidates for deeper component-level inspection, but the license of every bundled dependency, model, asset and copied file still governs. GPL/AGPL projects remain reference-only unless the project explicitly chooses the corresponding obligations. No license means no copying.
