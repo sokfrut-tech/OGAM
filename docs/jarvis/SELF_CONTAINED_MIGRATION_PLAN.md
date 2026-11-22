@@ -193,3 +193,53 @@ A follow-up inspection of run 18's actual job log resolves the earlier uncertain
 - This directly explains the Jest missing-module errors and TypeScript TS2307 errors. The CI is therefore exercising neither a complete private-workspace checkout nor a valid standalone open-core test mode.
 
 This is a confirmed control-flow issue, not a guessed package API issue. Do not ask the user to create or share a token for the upstream organization's private repositories: the chosen product direction is to make OGAM self-contained. Next work should define a transparent migration/test boundary that can run from OGAM alone, while preserving real free-core features and not pretending Pro-dependent suites ran.
+
+
+## `@offgrid/models` consumer map — first source-backed pass (2026-11-22)
+
+Scope: inspected the OGAM feature-branch source tree at `2b5eb43336be056fb6e3ad3ab58f27aed9c2c02b`, plus the package manifest and Metro resolver. This is a consumer-side contract inventory, not a replacement implementation. The upstream package source remains unavailable through the connected GitHub access, so signatures and edge cases not demonstrated by consumers remain explicitly unresolved.
+
+### Confirmed runtime imports and observable responsibilities
+
+| Consumer | Imported API | Responsibility / classification |
+|---|---|---|
+| `src/constants/models.ts` | `CATALOG`, `ModelEntry`, `MobileTextCatalogModel` | **Runtime critical.** Filters catalog entries by kind/availability/grounder/quantOf/supersededBy, llama.cpp engine compatibility and primary file size; maps records to the mobile curated-model shape; registers the bundled fallback catalog. The consumer proves fields used: `kind`, `availability`, `grounder`, `quantOf`, `supersededBy`, `files[].role`, `files[].sizeBytes`, `minRamGb`, `params`, `description`, `org`, `id`, `name`, `isNew`, `activeParams`, `nonCommercial`. |
+| `src/screens/ModelsScreen/useTextModels.ts` | `CATALOG`, `MobileTextCatalogModel` | **Runtime critical.** Uses catalog as base for remote-merged model discovery, filtering, search, mapping to UI details, and recommended-model detail retrieval. |
+| `src/utils/recommendedModels.ts` | `MobileTextCatalogModel` | **Type contract.** Device RAM filtering and trending selection consume `id`, `minRam`, optional `maxRam`; runtime data shape is shared with the mobile catalog mapping. |
+| `src/services/modelManager/scan.ts` | `isCompanionFile`, `splitGgufPartNames` | **Runtime critical.** Excludes companion/projector files and later split-GGUF parts from being registered as independent models. |
+| `src/services/modelManager/index.ts` | `splitGgufPartNames` | **Runtime critical.** Removes all numbered GGUF split parts when deleting a model. |
+| `src/services/modelScannerService.ts` | `splitGgufPartNames` | **Runtime critical.** Detects whether all parts of a split GGUF are present in a user-selected SAF folder before marking it installable. |
+| `src/services/modelCardReasoning.ts` | `modelCardUrl`, `modelCardDeniesReasoning` | **Runtime critical.** Builds a revision-aware Hugging Face model-card URL and determines whether its text explicitly denies reasoning; result is persisted on the downloaded model. |
+| `src/services/modelCatalogFiles.ts` | `prefersQ4_0` | **Runtime critical.** Chooses preferred quantization order based on platform and inference backend; current mobile behavior falls back to Q4_K_M. |
+| `src/utils/modelHelpers.ts` | `CATALOG` | **Runtime critical.** Looks up video model display names by `kind === 'video'` and exact model ID, preserving a caller fallback. |
+| `src/services/modelDownloadService/types.ts` | `ModelEntry` (type-only, inline import) | **Type contract / video-download boundary.** Video download requests carry a full catalog model entry. |
+
+### Other confirmed consumer requirements
+
+- `metro.config.js` resolves `@offgrid/models` directly to `../shared/packages/models/dist/index.js` and watches the external package directory. The manifest declares `file:../shared/packages/models`; this is not a registry package dependency.
+- The shared catalog is a bundled offline fallback and is merged with a remote catalog. An offline-only implementation must preserve the bundled catalog path and must not make model discovery depend on a network request.
+- Catalog entries are used across text, vision and video. The mobile text recommendation list is only a filtered projection; it is not a complete substitute for the full catalog.
+- GGUF split handling and companion-file classification affect inventory correctness and deletion safety. These functions must be tested against real multi-part naming conventions and projector/companion edge cases.
+- Model-card reasoning is deliberately fail-open to the existing template decision when the card is unavailable; the port must preserve that unknown state rather than treating network failure as “non-reasoning”.
+
+### API surface proven by call sites
+
+The following exports are directly evidenced by source imports: `CATALOG`, `isCompanionFile`, `splitGgufPartNames`, `modelCardUrl`, `modelCardDeniesReasoning`, `prefersQ4_0`, plus the types `ModelEntry` and `MobileTextCatalogModel`.
+
+This does **not** yet prove the complete public export surface, the full field schema, catalog update format, validation rules, aliases, or behavior for malformed entries. Do not implement a substitute package until those are recovered from an accessible licensed source or independently specified and covered by tests.
+
+### Next migration sequence
+
+1. Recover the full `ModelEntry` and `MobileTextCatalogModel` shapes from additional local consumer usage, fixtures and test expectations; inventory all catalog field reads and writes.
+2. Establish exact GGUF split/companion naming behavior from OGAM tests and documented upstream formats; build a compatibility test matrix before porting either helper.
+3. Recover the model-card parsing rule and preferred-quant policy from consumer tests and app behavior.
+4. Inventory the complete catalog data (including text, vision, video, embeddings, image and speech kinds) and its license/provenance. Do not fabricate a smaller catalog and label it equivalent.
+5. Implement a first-party package only after the contract, data provenance and test fixtures are sufficient. Keep package imports and Metro/Jest/TypeScript resolution consistent; do not add a stub or silently bypass functionality.
+
+### Current classification
+
+- **Runtime critical:** catalog data and filtering; GGUF split/companion helpers; model-card URL and reasoning parser; platform/backend quant preference; video display-name lookup.
+- **Tests/tooling:** test fixtures and mocks still need a dedicated pass; this first pass did not claim a complete import census of every test file.
+- **Pro-only:** none of the confirmed imports above is directly imported from a Pro source file in this pass. Pro-only consumers must be classified separately after the Pro boundary is mapped.
+- **Unresolved:** complete catalog schema and contents, all exported APIs, exact parser and naming edge cases, update/versioning contract, licensing and attribution of catalog metadata.
+
