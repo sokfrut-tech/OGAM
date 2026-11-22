@@ -265,3 +265,28 @@ A deeper inspection of the pinned submodule found that the JNI C++ file already 
 - The Kotlin wrapper's default `NativeParams.languageId` is 2050 (English), while Russian is 2069. Jarvis must always pass 2069 explicitly rather than relying on the wrapper default.
 
 Updated implementation opportunity: OGAM may only need a thin Kotlin API exposure over the already-present JNI function, plus tests and proper backend/PCM lifecycle integration. This is narrower than implementing a new C++ streaming layer from scratch. It remains a planned change, not a completed feature.
+
+
+## 4.1 Android public AEC experiment — possible route, not a confirmed fix
+
+AOSP and Android API documentation provide a concrete experiment path that is more precise than simply changing audio attributes:
+
+- `AcousticEchoCanceler` is an audio preprocessor in the **capture path**. The public API attaches it to a particular `AudioRecord` using that recorder's `getAudioSessionId()`. `isAvailable()` only tells whether the device implements AEC; after creating it for the actual session, the app must inspect its enabled state and whether the platform owns/control status. (Android API: https://developer.android.com/reference/android/media/audiofx/AcousticEchoCanceler)
+- AOSP guidance says implementations should provide AEC on the capture path for `MediaRecorder.AudioSource.VOICE_COMMUNICATION`, and if present, it must be discoverable/controllable via the SDK API. This is a platform implementation requirement, not proof that OPPO's current audio stack exposes or enables it for this recorder. (AOSP: https://source.android.com/docs/core/audio/implement-pre-processing)
+- OGAM's audio recorder source comments say its Android Oboe input preset is patched to `VOICE_COMMUNICATION`, but its current recorder API path does not expose the underlying `AudioRecord` session ID or an observable AEC enabled state to the JS service. That needs direct native verification; a comment about a preset is not runtime proof.
+- Jarvis output currently sets `AudioAttributes.USAGE_ASSISTANT` for AudioTrack and AudioFocus. AOSP maps `USAGE_ASSISTANT` to the `VOICE_COMMAND` context, while `USAGE_VOICE_COMMUNICATION` maps to `CALL`. Therefore, do not assume that a voice-communication capture preset will cancel assistant TTS output identically on every vendor audio HAL. (AOSP: https://source.android.com/docs/core/audio/attributes)
+- Android's current AudioManager documentation describes `MODE_ASSISTANT_CONVERSATION` for interactive assistants, but it is gated by `canManageAssistantAudio()`. Do not unconditionally switch the device-wide audio mode or assume a third-party app is allowed to use that mode. (Android API: https://developer.android.com/reference/android/media/AudioManager)
+- A mode change to `MODE_IN_COMMUNICATION` is also device-wide audio routing state and must not be changed speculatively; test only in an isolated user-visible session, remember the prior mode and restore it reliably.
+
+### Bounded AEC experiment for PGEM10
+
+1. Add a benchmark-only native probe to the same microphone recorder implementation to report (without recording/storing user audio): actual capture source, AudioRecord session ID, `AcousticEchoCanceler.isAvailable()`, `create(sessionId)` success, enabled state, control state and effect descriptor.
+2. Confirm whether the capture path really uses `VOICE_COMMUNICATION` on PGEM10. Do not infer from the RN wrapper's comments.
+3. Compare in a controlled local test: output through current `USAGE_ASSISTANT`; then, only as a separate experiment, `USAGE_VOICE_COMMUNICATION`; check whether app has permission for any relevant assistant audio mode before considering `MODE_ASSISTANT_CONVERSATION`. Do not change mode during normal use.
+4. Play a fixed generated speech corpus from the phone speaker at safe volume while recording known near-end test phrases. Measure residual echo, near-end speech preservation, clipped word rate, false speech triggers, latency and whether the AEC state remains enabled. Repeat on earpiece, Bluetooth headset and speaker routing.
+5. Keep `isEchoCancelled() == false` until a PGEM10 test demonstrates adequate suppression and no material near-end speech degradation over these routes. If unsupported or no effect is attached, keep half-duplex and report why.
+6. On stop, permission loss, service interruption or call-state transition, release the AEC effect with its AudioRecord session, restore any audio mode/route changed by the experiment, and return to normal audio state.
+
+### Current verdict
+
+The Android public API offers a plausible, testable AEC route and AOSP specifies expected behavior for VOICE_COMMUNICATION capture. It does **not** prove that OGAM's current recorder exposes its AudioRecord session, that ColorOS 16 enables AEC, or that assistant playback is removed from the captured signal. No code was changed and half-duplex remains the current safe behavior.
