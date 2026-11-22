@@ -50,25 +50,29 @@ The user's Settings screenshots show these installed version strings:
 
 The catalog pages expose public versionName/versionCode, not the internal build suffixes above. The matching versionName/versionCode makes them candidate artifacts, not exact-build matches. Verify package/version/signing certificate/hash from the actual APK and, if possible, read-only package metadata from the target device before calling them exact.
 
-## Acquisition status — unchanged
+## Acquisition & local static-analysis update (2026-11-22)
 
-The catalog pages are directly accessible, but the actual binary download control is dynamically rendered and no APK byte stream has been retrieved into the analysis workspace in this pass. No APK has been hashed, signature-verified, opened as ZIP, decoded, decompiled or executed. No binary-derived code findings are claimed.
+Twenty-six owner-supplied local APK files (kept strictly outside version control) were acquired offline and inspected read-only using Python 3.12 + `cryptography` (streaming SHA-256, ZIP entry scan, v1/v2/v3/v3.1 X.509 signing certificates, AXML `AndroidManifest.xml`, native `.so` / asset inventories, and DEX structural tables).
 
-## Next acquisition paths
+Verified exact-build / catalog matches from the local set:
+- `Breeno-13.4.3.apk` (`com.heytap.speechassist`, `versionCode=130403`, SHA-256 `cf547e47328383823caacb28f8abd634260b783453fd93848e98d7d5d79c4940`): manifest metadata records `versionCommit=08c04e4` and `versionDate=261110`, matching screenshot build `13.4.3_08c04e4_261110`.
+- `Breeno Memory-16.11.5.apk` (`com.oplus.aimemory`, `versionCode=16011005`, SHA-256 `b9646e41186717bf0d59e6d8815d587f547fa503900978731d670454f9ae3e7e`, v2/v3 cert `b0a9bbfc05eee5e7d0a2c97c030586e15bb3301152078f54473bb82df6d8c818`): matches APKMirror's catalog file hash and signer fingerprint byte-for-byte, and manifest metadata records `versionCommit=008719b` / `versionDate=260901` (`16.11.5_008719b_260901`).
+- `Инструкции Breeno-17.2.4.apk` (`com.coloros.shortcuts`, `versionCode=17002004`, SHA-256 `fb26a5990a067156e7c456d956a8586a002f4a41cc77fea7e1cdb6c9beda9304`, metadata `468698a_260701`): valid older reference build; differs from screenshot `17.7.2_91aa93e_261102`.
 
-1. Prefer owner-authorized read-only extraction from the target device because it guarantees the exact installed build. On a computer with ADB:
-   - `adb shell pm path com.heytap.speechassist`
-   - `adb shell pm path com.oplus.aimemory`
-   - `adb shell pm path com.coloros.shortcuts`
-   - Pull every returned `base.apk` and split path with `adb pull`; do not assume a single APK.
-2. If using AppShare, resolve the actual historical-version download action and preserve original filename, source URL and retrieval timestamp. Do not install it.
-3. For every acquired artifact, compute SHA-256, inspect ZIP integrity, verify APK signer with apksigner, record package/version/minSdk/targetSdk/ABI/splits, then decode manifest/resources/DEX in an isolated workspace.
-4. Compare APKMirror's catalog hashes only after acquisition; never accept a hash match without locally calculating it.
+Additional 23 local APKs also inspected (`Breeno-13.3.2.apk` diff baseline, `com.oplus.aiunit` 16.1.33, `com.oplus.dmp` 16.16.80, `com.oplus.pantanal.ums` 17.22.4 & 17.24.2, `com.coloros.colordirectservice` 16.12.2, `com.coloros.ocrscanner` 16.3.15, `com.coloros.accessibilityassistant` 16.1.40, `com.oplus.aicall` 15.7.3, `com.oplus.aiwriter` 16.0.124, `com.oplus.aiwidgets` 15.0.9, `com.oplus.statistics.rom` 5.9.17.01, `com.oplus.linker` 16.25.6, `com.android.systemui` 16.00.14, `com.heytap.quicksearchbox` 11.64.3.20, `com.opos.ads` 5.5.6, plus 6 companion/third-party APKs).
+
+Full findings and structured metadata deliverables:
+- [Offline Static Analysis of 26 Local OPPO / Breeno / ColorOS 16 APKs](OPPO_LOCAL_APK_STATIC_ANALYSIS_2026-11-22.md)
+- [Machine-readable 26-APK manifest & native inventory JSON](OPPO_APK_MANIFEST_AND_NATIVE_INVENTORY_2026-11-22.json)
+
+Remaining verification limits:
+- Full-body JDK `apksigner` checks and full JADX Java decompilation were not run (JDK/`apksigner`/`jadx` unavailable here).
+- Live on-device signer comparison on `PGEM10` (`adb shell pm path ...` / PackageInfo digest) remains optional if exact system-image verification for `SystemUI`/`AIUnit`/`Shortcuts 17.7.2` is later needed.
 
 ## Security and legal boundary
 
 - No APK installed on the user's phone.
 - No bypass of account authentication, OEM signature permissions, DRM, encryption or server authorization.
 - No extraction or disclosure of personal memory contents, credentials or tokens.
-- No proprietary code/assets copied into OGAM; implement independent equivalents using public APIs.
-- Treat catalog descriptions as unverified claims until confirmed in the binary or on a test device.
+- No proprietary code/assets/DEX/secrets copied into OGAM; implement independent equivalents using public APIs.
+- Treat catalog descriptions and unexecuted native internals strictly within static-observation bounds.
