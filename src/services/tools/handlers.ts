@@ -42,6 +42,9 @@ export async function executeToolCall(
     if (!validation.valid) {
       throw new Error(`Tool call rejected: ${validation.errors.join(' ')}`);
     }
+    if (validation.requiresApproval) {
+      throw new Error('This tool requires explicit user approval before execution.');
+    }
     featureUsed(toolFeature(call.name));
     const content = await dispatchTool(call);
     return makeResult(call, start, { content });
