@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { transcriptionLanguages } from '@offgrid/speech';
+import { transcriptionLanguages } from '../utils/transcriptionLanguages';
 import { useWhisperStore } from '../stores/whisperStore';
 import { SettingsOptionSelect } from './SettingsOptionSelect';
 import { callHook, HOOKS } from '../bootstrap/hookRegistry';

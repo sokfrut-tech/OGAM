@@ -42,7 +42,6 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@offgrid/models": "file:../shared/packages/models",
     "@offgrid/rag": "file:../shared/packages/rag",
-    "@offgrid/speech": "file:../shared/packages/speech",
     "@offgrid/sync": "file:../shared/packages/sync",
     "@op-engineering/op-sqlite": "^15.2.5",
     "@react-native-async-storage/async-storage": "^2.2.0",

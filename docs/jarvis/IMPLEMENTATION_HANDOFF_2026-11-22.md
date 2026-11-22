@@ -88,13 +88,13 @@ This file is the durable continuation point for the current OGAM fork work. It r
 
 Two-directory mystery (`pro/` and `../shared/packages/*`) is now completely decoded and mapped at the symbol level in [`docs/jarvis/TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md`](TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md):
 - **`pro/` (`off-grid-ai/mobile-pro`):** Core `src/` already builds/runs open-core with **only 2** `require('@offgrid/pro')` sites (`src/bootstrap/loadProFeatures.ts` and `src/services/demoSeed.ts`), isolated by `src/bootstrap/proStub.js` and hook/slot/screen registries (enforced by `.dependency-cruiser.js`). The other 153 `@offgrid/pro/*` imports are inside `__tests__/` and ignored automatically by `jest.config.js` when `pro/package.json` is absent. All 56 imported subpaths are decoded and assigned parity decisions.
-- **`../shared/packages/*` (reduced `8 → 4` `package.json` deps):**
-  - **MIT pre-extraction source exists inside `sokfrut-tech/OGAM` git history:** `@offgrid/design` (`efc85a70`), `@offgrid/speech` `speechEndpoint.ts` (`aaf68870`), `@offgrid/rag` chunking/retrieval/vectorMath (`6ba7d5cb`), plus pre-Pro TTS wiring (`908af16a`, `767e0b91`).
+- **`../shared/packages/*` (reduced `8 → 3` `package.json` deps):**
+  - **MIT pre-extraction source exists inside `sokfrut-tech/OGAM` git history:** `@offgrid/design` (`efc85a70`), `@offgrid/speech` `speechEndpoint.ts` (`aaf68870`) & Qwen3-ASR language map (`9fc50207`/`a6cd8033`), `@offgrid/rag` chunking/retrieval/vectorMath (`6ba7d5cb`), plus pre-Pro TTS wiring (`908af16a`, `767e0b91`).
   - **Completed & tested in OGAM-owned source (2026-11-22):**
     - `@offgrid/design` **100% eliminated** (`2 → 0` imports) via MIT tokens restored in `src/theme/designTokens.ts` (`scripts/__tests__/design-tokens.node.test.mjs`, 4/4 pass).
     - Pro-only zero-importer shared entries (`@offgrid/notes`, `@offgrid/notes-editor`, `@offgrid/writing`) removed from `package.json`, `metro.config.js`, and `jest.config.js`.
-    - `@offgrid/speech` migrated `5` of `8` `src/` files (`9 → 4` imports): `src/utils/wavTrimPlan.ts`, `src/utils/voiceTurnSettings.ts`, and `src/utils/speechEndpoint.ts` (`scripts/__tests__/wav-trim-plan.node.test.mjs` 4/4 pass; `scripts/__tests__/speech-endpoint.node.test.mjs` 4/4 pass).
-  - **Remaining 4 `file:../shared/packages/*` dependencies:** `@offgrid/speech` (3 `src/` files: `voiceSession`, `transcriptionLanguages`), `@offgrid/rag` (`31` symbols), `@offgrid/models` (`148` symbols in slices `M2..M7`), and `@offgrid/sync` (split into **Half A** pure chat/thinking/markdown/queue helpers vs **Half B** Personal Mesh TCP/NaCl/mDNS).
+    - `@offgrid/speech` **100% eliminated** (`9 → 1` hits = `0` in `src/`, `0` in `package.json`/`metro.config.js`, only `1` synthetic scanner test fixture remaining): `src/utils/wavTrimPlan.ts`, `src/utils/voiceTurnSettings.ts`, `src/utils/speechEndpoint.ts`, `src/utils/transcriptionLanguages.ts`, and `src/utils/voiceSessionMachine.ts` (`wav-trim-plan.node.test.mjs` 4/4 pass; `speech-endpoint.node.test.mjs` 4/4 pass; `transcription-languages.node.test.mjs` 4/4 pass; `voice-session-machine.node.test.mjs` 7/7 pass).
+  - **Remaining 3 `file:../shared/packages/*` dependencies:** `@offgrid/rag` (`31` symbols), `@offgrid/models` (`148` symbols in slices `M2..M7`), and `@offgrid/sync` (split into **Half A** pure chat/thinking/markdown/queue helpers vs **Half B** Personal Mesh TCP/NaCl/mDNS).
 
 Do not ask the user for `PRO_SUBMODULE_PAT` or add fake no-op stubs. Continue porting real vertical slices from `TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md`.
 
@@ -105,7 +105,7 @@ Do not ask the user for `PRO_SUBMODULE_PAT` or add fake no-op stubs. Continue po
 
 ## Ordered next work
 
-1. **Finish `@offgrid/speech` (`3` remaining `src/` files → removes dep `4 → 3`):** Implement OGAM-owned `transcriptionLanguages` and full contract-verified `voiceSession` state machine (`src/utils/voiceSessionMachine.ts`) after checking all `__tests__/` audio suites for replay event names.
+1. ~~**Finish `@offgrid/speech` (`3` remaining `src/` files → removes dep `4 → 3`):**~~ **DONE:** `src/utils/transcriptionLanguages.ts` + `src/utils/voiceSessionMachine.ts` implemented, all `src/` imports rewired, and `@offgrid/speech` removed from `package.json` & `metro.config.js`.
 2. **Extract `@offgrid/sync` Half A pure chat/markdown/queue helpers (~9 `src/` files):** Migrate `parseChatModelOutput`, `parseChatThinkingContent`, `splitInlineReasoning`, `preprocessChatMarkdown`, `chatQueueHeld`, `chatThread`, `chatStreamPreviewRows` cleanly without touching cryptography or TCP.
 3. **Port `@offgrid/rag` & `@offgrid/rag/documents` (removes dep `3 → 2`):** Start from OGAM's own MIT pre-extraction source (`6ba7d5cb:src/services/rag/*`), implementing pure helpers (`estimateTokens`, `splitCitations`, etc.) first and local SQLite/SQLCipher chunked RAG (`com.oplus.dmp`-inspired) for Jarvis personal context.
 4. **Port `@offgrid/models` slices `M2`–`M7` (removes dep `2 → 1`):** Tackle pure `M2` (reasoning budget & tool-loop limits) → `M3` (SD checkpoint header & media styles) → `M4` (model naming/classification) → `M5` (fit budget & eviction) → `M6`/`M7` (catalog & guide), pinning every slice against existing Jest specs.
@@ -119,9 +119,9 @@ Do not ask the user for `PRO_SUBMODULE_PAT` or add fake no-op stubs. Continue po
 - PR #1 remains open/draft/unmerged (do not merge prematurely while `../shared` / `pro` build work continues).
 - **Merge conflict resolved (`b7c06988`):** Merged `origin/main` (`14b27f7c`) cleanly, keeping PR #1's `src/utils/ggufSplitFiles` import in `src/services/modelArtifactClassifier.ts` (`main` conflict cleared).
 - **Previous baseline run on source `59dd17e6`:** [run #45039205432](https://github.com/sokfrut-tech/OGAM/actions/runs/45039205432) (`1,976` files, `1,354` external refs).
-- **Updated local Node audit & test verification (before pushing latest commits):**
-  - Executed all **17** open-core Node test suites (`68` test cases total: `13` plain Node tests + `55` `--experimental-strip-types` TS tests) locally on Node `v26.13.1` → **68/68 passed, 0 failed, 0 skipped**.
-  - Local `node scripts/audit-offgrid-imports.mjs` measured: `filesScanned: 1983`, `localFileDependencies: 4` (`8 → 4`), total external hits `1,339` (`1,354 → 1,339`), `packageImports: 450` (`@offgrid/design: 2 → 0`, `@offgrid/speech: 9 → 4`), `sharedWorkspacePaths: 65` (`73 → 65`), `0` external hits in newly added files.
+- **Updated local Node audit & test verification (`@offgrid/speech` 100% eliminated):**
+  - Executed all **19** open-core Node test suites (**80** test cases total, incl. B4 contract check, `transcription-languages.node.test.mjs` 4/4, and `voice-session-machine.node.test.mjs` 7/7) locally on Node `v26.13.1` → **80/80 passed, 0 failed, 0 skipped**.
+  - Local `node scripts/audit-offgrid-imports.mjs` measured: `filesScanned: 1987`, `localFileDependencies: 3` (`8 → 4 → 3`: only `@offgrid/models`, `@offgrid/rag`, `@offgrid/sync`), total external hits `1,335` (`1,354 → 1,339 → 1,335`), `packageImports: 447` (`@offgrid/design: 2 → 0`, `@offgrid/speech: 9 → 4 → 1` with `0` in `src/` and `0` in build config, `1` synthetic test fixture only), `sharedWorkspacePaths: 64` (`73 → 65 → 64`), `0` external package imports in newly added files.
 - **Same strict verification limits still apply:** The open-core Node test suite does **not** compile Kotlin, execute Gradle/JUnit, run `tsc` or full Jest (`npm test`), build an arm64 APK, or verify runtime/audio behavior on OPPO Find X6 Pro.
 - Continue from the active branch using [`TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md`](TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md) as the exact symbol checklist.
 
@@ -219,8 +219,8 @@ These are research references, not claims that their code has been integrated in
 
 Substantive independent report is now available; this supersedes the earlier statement that Gemini had not yet produced a report.
 
-- Full report: [Universal-AI-Factory Gemini outbox report](https://github.com/sokfrut-tech/Universal-AI-Factory/blob/main/coordination/gemini/outbox/REPORT_2026-11-22_OGAM_breeno_dex_audit.md)
-- Acceptance record: [Gemini acceptance](https://github.com/sokfrut-tech/Universal-AI-Factory/blob/main/coordination/gemini/outbox/ACCEPTED_2026-11-22_OGAM_breeno_dex_audit.md)
+- Full report: [Universal-AI-Factory Gemini outbox report](https://github.com/sokfrut-tech/Universal-AI-Factory/blob/main/coordination/gemini/outbox/REPORT_2026-11-22_OGAM_breeno_dex_audit.md) (commit `99bac606` on `sokfrut-tech/Universal-AI-Factory` `main`)
+- Acceptance record: [Gemini acceptance](https://github.com/sokfrut-tech/Universal-AI-Factory/blob/main/coordination/gemini/outbox/ACCEPTED_2026-11-22_OGAM_breeno_dex_audit.md) (commit `3536746b`)
 - OGAM summary and action list: [GEMINI_INDEPENDENT_AUDIT_2026-11-22.md](GEMINI_INDEPENDENT_AUDIT_2026-11-22.md)
 - Reviewed PR #2 at `a5d5c71d`, PR #1 at `8ad6a6fd`, CI run `#45045542937` (17 Node suites / 68 local cases; not Gradle).
 - Gemini independently confirmed the 26 APK Markdown/JSON metrics, exact Breeno and Memory build metadata, and evidence boundaries. No JADX, apksigner, Android build or device execution occurred; those tools were absent from the reviewed Windows workstation.
@@ -234,7 +234,6 @@ Substantive independent report is now available; this supersedes the earlier sta
 5. Obtain exact Instructions 17.7.2 APK from the device; run pinned JADX/apksigner/aapt2 only in an out-of-repository scratch directory. Do not commit raw proprietary output.
 
 Gemini's B1–B5 findings are reviewer findings, not all reproduced defects. No runtime code has been changed from these claims. Reproduce/verify each finding, then implement and test the smallest safe fix. Preserve the original offline-first and clean-room requirements.
-
 
 ## B4 security finding reproduced and mitigated — 2026-11-22
 
@@ -286,3 +285,12 @@ Commits:
 3. Verify a valid private-bridge-issued token still opens the Chat voice route exactly once.
 4. Test the same flows on an Android emulator and OPPO PGEM10 / ColorOS 16, including task already running and process recreation.
 5. Then continue B1–B3 build/API verification and A1–A5 PR #2 documentation corrections; do not merge either draft PR merely because the Node contract workflow is green.
+
+## Latest completed slice — `@offgrid/speech` 100% eliminated (`4 → 3` local deps)
+
+- Migrated the remaining 3 `src/` consumers off `@offgrid/speech` into OGAM-owned self-contained TypeScript modules:
+  - `src/utils/transcriptionLanguages.ts` (`isEnglishOnlyWhisperModel`, `transcriptionLanguages`) → wired into `src/components/TranscriptionLanguageSelect.tsx` and `src/services/qwenAsrEngine.ts`.
+  - `src/utils/voiceSessionMachine.ts` (`MAX_EMPTY_TURNS`, `initialVoiceSession`, `nextVoiceSession`, `micShouldBeOpen`, `speechMayPlay`, `VoiceSession`, `VoiceSessionEvent`) → wired into `src/services/voiceSession.ts`.
+- Removed `"@offgrid/speech": "file:../shared/packages/speech"` from `package.json` and removed `speechPackagePath` / `watchFolders` / `extraNodeModules['@offgrid/speech']` from `metro.config.js` (`package-lock.json` left untouched per `340c80e2`; synthetic scanner fixture in `scripts/__tests__/audit-offgrid-imports.test.mjs` kept).
+- Added Node tests `scripts/__tests__/transcription-languages.node.test.mjs` (4/4) and `scripts/__tests__/voice-session-machine.node.test.mjs` (7/7) and wired both into `.github/workflows/ogam-external-dependency-audit.yml`.
+- **Next continuation step starts at item 2:** extract `@offgrid/sync` **Half A** pure chat/reasoning/markdown/queue helpers into `src/utils/` (see `TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md` Section 3.5), while keeping PR #1 as `Draft` and verifying `OGAM external dependency audit` CI.

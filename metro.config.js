@@ -24,9 +24,6 @@ const ragPackagePath = path.resolve(sharedRoot, 'packages/rag');
 // @offgrid/models: cross-platform model contracts (catalog, reasoning-budget rule) shared
 // with desktop. Out-of-root like rag, prebuilt CJS in dist/.
 const modelsPackagePath = path.resolve(sharedRoot, 'packages/models');
-// @offgrid/speech: voice-turn decisions (when a spoken turn begins and ends) shared with desktop.
-// Out-of-root like sync, so Metro must watch it and be pointed at its built entry.
-const speechPackagePath = path.resolve(sharedRoot, 'packages/speech');
 const sharedNodeModulesPath = path.resolve(sharedRoot, 'node_modules');
 // A git worktree links each package to the main checkout (scripts/link-worktree-deps.sh). Metro
 // indexes files by their real path, so it must also watch the folder those links point into.
@@ -51,7 +48,6 @@ const config = {
     automationPackagePath,
     ragPackagePath,
     modelsPackagePath,
-    speechPackagePath,
     sharedNodeModulesPath,
     ...linkedNodeModulesPaths,
   ],
@@ -77,7 +73,6 @@ const config = {
       // Documents attached to chat (ingest, retrieval, prompt shape); its splitter is bundled in.
       '@offgrid/rag/documents': path.resolve(ragPackagePath, 'dist/documents/index.js'),
       '@offgrid/models': path.resolve(modelsPackagePath, 'dist/index.js'),
-      '@offgrid/speech': path.resolve(speechPackagePath, 'dist/index.cjs'),
       // @offgrid/sync owns this dependency in its package manifest. Metro still needs the
       // out-of-root file dependency mapped to a watched, built CommonJS entry.
       '@offgrid/automation': path.resolve(automationPackagePath, 'dist/index.js'),

@@ -3,7 +3,7 @@
 This document resolves the core blocker in `sokfrut-tech/OGAM` PR #1 (`feature/jarvis-step-2-storage-privacy`): **what lived inside the two external/private directories (`pro/` and `../shared/packages/*`), what open-source MIT source already exists in OGAM's own git history, what must be ported vs kept gated/dropped, and exact consumer-pinned TypeScript contracts.**
 
 Evidence base:
-- Automated audit JSONs (`ogam-import-audit.json` baseline `1,976` files / `1,354` refs → post-Slice 3A–3D `1,983` files / `1,339` refs).
+- Automated audit JSONs (`ogam-import-audit.json` baseline `1,976` files / `1,354` refs → post-Slice 3A–3D `1,983` files / `1,339` refs → post-`@offgrid/speech` completion `1,987` files / `1,335` refs).
 - Full AST/regex symbol parse of all **240** importing `src/` and `__tests__/` files on PR #1.
 - `package.json`, `package-lock.json`, `metro.config.js`, `jest.config.js`, `tsconfig.json`, `.dependency-cruiser.js`, and `docs/SYNC_INTEGRATION_PLAN.md`.
 - Local git history of `sokfrut-tech/OGAM` (`LICENSE`: **MIT License**).
@@ -12,19 +12,19 @@ Evidence base:
 
 ---
 
-## 1. Measured Audit Delta After Slices 3A–3D (2026-11-22)
+## 1. Measured Audit Delta After `@offgrid/speech` Completion (2026-11-22)
 
-| Metric | Before (`b7c06988`) | After Slices 3A–3D | Change |
-|---|---:|---:|---|
-| Files scanned | 1,976 | **1,983** | `+7` (4 OGAM TS modules + 3 Node test suites) |
-| `localFileDependencies` (`package.json`) | 8 | **4** | **`-4`** (`design`, `notes`, `notes-editor`, `writing` removed) |
-| Total external refs | 1,354 | **1,339** | **`-15`** |
-| `packageImports` | 457 | **450** | **`-7`** |
-| `sharedWorkspacePaths` | 73 | **65** | **`-8`** |
-| `@offgrid/design` imports | 2 | **0** | **100% eliminated** (`src/theme/designTokens.ts`) |
-| `@offgrid/speech` imports | 9 | **4** | **`wavTrimPlan`, `speechEndpoint`, `voiceTurnSettings` migrated; `3` `src/` files + `1` test fixture left** |
-| `@offgrid/notes`, `@offgrid/notes-editor`, `@offgrid/writing` | 0 / 0 / 0 | **0 / 0 / 0** | Removed from `package.json`, `metro.config.js`, `jest.config.js` |
-| Remaining `localFileDependencies` | — | `@offgrid/models`, `@offgrid/rag`, `@offgrid/speech`, `@offgrid/sync` | Remaining migration targets mapped below |
+| Metric | Baseline (`b7c06988`) | After Slices 3A–3D | After `@offgrid/speech` 100% | Total Change |
+|---|---:|---:|---:|---|
+| Files scanned | 1,976 | 1,983 | **1,987** | `+11` (`6` OGAM TS modules + `5` Node test suites) |
+| `localFileDependencies` (`package.json`) | 8 | 4 | **3** | **`-5`** (`design`, `notes`, `notes-editor`, `writing`, `speech` removed) |
+| Total external refs | 1,354 | 1,339 | **1,335** | **`-19`** |
+| `packageImports` | 457 | 450 | **447** | **`-10`** |
+| `sharedWorkspacePaths` | 73 | 65 | **64** | **`-9`** |
+| `@offgrid/design` imports | 2 | 0 | **0** | **100% eliminated** (`src/theme/designTokens.ts`) |
+| `@offgrid/speech` imports | 9 | 4 | **1** *(0 in `src/`, 1 test fixture)* | **100% eliminated from `src/` & `package.json` & `metro.config.js`** (`scripts/__tests__/audit-offgrid-imports.test.mjs` fixture only) |
+| `@offgrid/notes`, `@offgrid/notes-editor`, `@offgrid/writing` | 0 / 0 / 0 | 0 / 0 / 0 | **0 / 0 / 0** | Removed from `package.json`, `metro.config.js`, `jest.config.js` |
+| Remaining `localFileDependencies` | — | 4 | **3** (`@offgrid/models`, `@offgrid/rag`, `@offgrid/sync`) | Remaining migration targets mapped below |
 
 ---
 
@@ -66,31 +66,21 @@ All packages below carry `"license": "AGPL-3.0-only"` in `package-lock.json`. Co
 | **`@offgrid/notes-editor`** | **Removed (this PR)** | `@tiptap/*`, `marked 17.0.6`, `esbuild` (dev) | `0 → 0` | `0` | — | **PRO-ONLY / REMOVED** |
 | **`@offgrid/writing`** | **Removed (this PR)** | `tsup`, `typescript` (dev) | `0 → 0` | `0` | — | **PRO-ONLY / REMOVED** |
 | **`@offgrid/automation`** | Not in `package.json` | Used internally by `@offgrid/sync` | `0 → 0` | `0` | Added in `8741abb5` (Metro-only) | **TRANSITIVE OF `@offgrid/sync`** (keep Metro alias until `@offgrid/sync` Half B is migrated/removed) |
-| **`@offgrid/speech`** | Remains (`file:../shared/packages/speech`) | `tsup`, `typescript` (dev) | `8 → 3` | `0` *(+1 in audit test)* | `aaf68870:src/services/speechEndpoint.ts` (`94f8f714^`) | **PARTIAL (5 of 8 `src/` files migrated!)**: `wavTrimPlan.ts`, `speechEndpoint.ts`, `voiceTurnSettings.ts` DONE; 3 `src/` files remain (`voiceSession.ts`, `TranscriptionLanguageSelect.tsx`, `qwenAsrEngine.ts`) |
+| **`@offgrid/speech`** | **Removed (this PR)** | *(cleared from `package.json` & `metro.config.js`; `package-lock.json` left untouched per `340c80e2`)* | `8 → 0` | `0` *(+1 synthetic fixture in audit test)* | `aaf68870:src/services/speechEndpoint.ts` (`94f8f714^`); `9fc50207` / `a6cd8033` Qwen3-ASR language map | **DONE (100% eliminated)**: `wavTrimPlan.ts`, `speechEndpoint.ts`, `voiceTurnSettings.ts`, `transcriptionLanguages.ts`, `voiceSessionMachine.ts` |
 | **`@offgrid/rag`** (`+ /documents`) | Remains (`file:../shared/packages/rag`) | `@langchain/textsplitters ^1.0.2` (dev) | `19` | `4` | `6ba7d5cb:src/services/rag/{chunking,retrieval,vectorMath}.ts` (`5c12cc2f^`) | **KEEP & PORT NEXT** (19 `src/` + 4 `__tests__/`, 31 unique symbols) |
 | **`@offgrid/models`** | Remains (`file:../shared/packages/models`) | `minisearch ^7.2.0` (dev) | `87` | `31` *(+2 scripts)* | Partial (`ggufSplitFiles`, `modelCompanionFiles`, `formatFileSize` already ported in PR #1) | **KEEP & PORT BY SLICES `M2..M7`** (`148` unique symbols across `src/` & `__tests__/`) |
 | **`@offgrid/sync`** (`+ /rn, /rn-discovery, /portable`) | Remains (`file:../shared/packages/sync`) | `@noble/hashes 1.8.0`, `@offgrid/automation`, `@offgrid/models`, `bonjour-service`, `js-sha512`, `tweetnacl` | `43` | `103` *(+2 scripts)* | `docs/SYNC_INTEGRATION_PLAN.md` (`c06b2211`) | **SPLIT INTO HALF A (PURE CHAT HELPERS) + HALF B (PERSONAL MESH)** (`171` symbols) |
 
 ---
 
-### 3.2 Package Detail: `@offgrid/speech` (Remaining 3 Source Files)
+### 3.2 Package Detail: `@offgrid/speech` — **100% Eliminated (`8` of `8` `src/` Consumers Cleared)**
 
-**Already migrated & Node-tested in PR #1 (`5` of `8` `src/` consumers cleared):**
-- `WAV_HEADER_BYTES`, `WAV_HEADER_SCAN_BYTES`, `planWavTrim` → `src/utils/wavTrimPlan.ts` (`src/services/wavTrimmer.ts`)
-- `SpeechEndpointTimer` → `src/utils/speechEndpoint.ts` (`src/components/ChatInput/useSilenceEndpoint.ts`)
+- `WAV_HEADER_BYTES`, `WAV_HEADER_SCAN_BYTES`, `planWavTrim` → `src/utils/wavTrimPlan.ts` (`src/services/wavTrimmer.ts`, tested by `scripts/__tests__/wav-trim-plan.node.test.mjs`, 4/4 pass)
+- `SpeechEndpointTimer` → `src/utils/speechEndpoint.ts` (`src/components/ChatInput/useSilenceEndpoint.ts`, tested by `scripts/__tests__/speech-endpoint.node.test.mjs`, 4/4 pass)
 - `VoiceTurnMode`, `DEFAULT_SILENCE_AFTER_SPEECH_MS`, `DEFAULT_SPEAKER_DRAIN_MS`, `SPEECH_ONSET_LOOKBACK_MS`, `SILENCE_AFTER_SPEECH_CHOICES_MS`, `SPEAKER_DRAIN_CHOICES_MS`, `VOICE_TURN_LABELS`, `VOICE_DELAY_LABELS`, `secondsLabel` → `src/utils/voiceTurnSettings.ts` (`voiceSections.tsx`, `appStore.ts`, `types/index.ts`, `useSilenceEndpoint.ts`)
-
-**Remaining 3 `src/` consumers & exact symbol contracts (`4` total imports incl. `1` audit test fixture):**
-
-1. **`transcriptionLanguages(engine: 'whisper' | 'qwen3-asr', modelId?: string | null): Array<{ code: string; label: string }>`**
-   - Imported by `src/components/TranscriptionLanguageSelect.tsx` and `src/services/qwenAsrEngine.ts`.
-   - `TranscriptionLanguageSelect.tsx` shows `'This model supports English.'` when `options.length === 1`, otherwise `'Choose a language or use auto-detect.'`.
-   - `qwenAsrEngine.ts` builds `Object.fromEntries(transcriptionLanguages('qwen3-asr', QWEN_ASR_MODEL_ID).filter(({ code }) => code !== 'auto').map(({ code, label }) => [code, label]))`, expecting English names (e.g., `ru` → `'Russian'`, `en` → `'English'`) to form Qwen3-ASR prefill `language ${languageName}<asr_text>`.
-2. **`initialVoiceSession`, `nextVoiceSession`, `micShouldBeOpen`, `speechMayPlay`, `type VoiceSession`, `type VoiceSessionEvent`**
-   - Imported by `src/services/voiceSession.ts`.
-   - **Exact events observed across ALL `src/` callers:** `'userStart'`, `'userStop'`, `'turnCaptured'`, `'dictationFinished'`, `'nothingHeard'` (plus replay floor transition evidenced by `session.replayReturnsTo` in `useVoiceSessionDriver.ts:34` — verify all `__tests__/` audio files before finalizing replay event names).
-   - **Observed session fields:** `state` (`'listen' | 'speak' | 'stop'`, `useVoiceSessionDriver.ts:24-26` + JSDoc), `phase`, `replayReturnsTo`.
-   - *Next action:* Specify state table completely in an OGAM-owned `src/utils/voiceSessionMachine.ts` with exhaustive Node transition tests covering `tap`/`silence`/`handsfree` and two-strike `nothingHeard` handling in `Voice.ts:285`.
+- `isEnglishOnlyWhisperModel`, `transcriptionLanguages`, `TranscriptionEngine`, `TranscriptionLanguage` → `src/utils/transcriptionLanguages.ts` (`src/components/TranscriptionLanguageSelect.tsx` & `src/services/qwenAsrEngine.ts`, tested by `scripts/__tests__/transcription-languages.node.test.mjs`, 4/4 pass)
+- `MAX_EMPTY_TURNS`, `initialVoiceSession`, `nextVoiceSession`, `micShouldBeOpen`, `speechMayPlay`, `VoiceSession`, `VoiceSessionEvent`, `VoiceSessionState`, `VoiceSessionPhase`, `VoiceReplayReturnState` → `src/utils/voiceSessionMachine.ts` (`src/services/voiceSession.ts`, tested by `scripts/__tests__/voice-session-machine.node.test.mjs`, 7/7 pass)
+- `@offgrid/speech` dependency removed from `package.json`, and `speechPackagePath` / `watchFolders` / `extraNodeModules['@offgrid/speech']` removed from `metro.config.js`. Only the intentional synthetic test fixture in `scripts/__tests__/audit-offgrid-imports.test.mjs` remains (`1` test hit, `0` source hits).
 
 ---
 
@@ -147,7 +137,7 @@ Zero TCP/NaCl/mDNS dependency; extract into `src/utils/` & `src/services/chat/` 
 
 ## 4. Recommended Next Execution Sequence for GPT
 
-1. Finish `@offgrid/speech` (`transcriptionLanguages` + `voiceSession` state machine) → removes `1` more `localFileDependency` (`4 → 3`).
+1. ~~Finish `@offgrid/speech` (`transcriptionLanguages` + `voiceSession` state machine)~~ → **DONE (`4 → 3` `localFileDependencies`, `0` `@offgrid/speech` imports in `src/`).**
 2. Extract `@offgrid/sync` **Half A** pure chat/reasoning/markdown/queue helpers into `src/utils/`.
 3. Port `@offgrid/rag/documents` + `@offgrid/rag` starting from MIT commit `6ba7d5cb:src/services/rag/*` → removes `@offgrid/rag` (`3 → 2`).
 4. Port `@offgrid/models` slices `M2` → `M3` → `M4` → `M5` → `M6` → `M7` with strict parity against Jest specs → removes `@offgrid/models` (`2 → 1`).
