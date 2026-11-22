@@ -27,6 +27,7 @@ import { UnderlineTabs } from '../../components/UnderlineTabs';
 import { useIsFocused } from '@react-navigation/native';
 import { LivingField } from '../../components/LivingField';
 import { useGetPro } from '../../hooks/useGetPro';
+import { t } from '../../i18n';
 
 const MODEL_TABS: ReadonlyArray<{
   key: ModelTab;
@@ -141,7 +142,7 @@ export const ModelsScreen: React.FC<ModelsScreenProps> = ({
                   hitSlop={SPACING.md}
                   onPress={() => vm.navigation.navigate('ImageGen')}
                   accessibilityRole="button"
-                  accessibilityLabel="Open image generator"
+                  accessibilityLabel={t('models.imageGenerator')}
                   testID="image-generator-screen-button"
                 >
                   <Icon name="image" size={20} color={colors.text} />
@@ -151,7 +152,7 @@ export const ModelsScreen: React.FC<ModelsScreenProps> = ({
                   hitSlop={SPACING.md}
                   onPress={() => vm.navigation.navigate('LocalModels')}
                   accessibilityRole="button"
-                  accessibilityLabel="Open local model library"
+                  accessibilityLabel={t('models.localLibrary')}
                   testID="local-model-library-button"
                 >
                   <Icon name="folder" size={20} color={colors.text} />
