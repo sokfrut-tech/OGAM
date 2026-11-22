@@ -80,6 +80,38 @@ export async function validateQwenAsrFiles(files: QwenAsrFiles): Promise<void> {
   }
 }
 
+/**
+ * Import a user-selected Whisper model directly from its SAF content URI.
+ * The final filename is constrained to the existing ggml catalogue convention so the normal
+ * listing and validation path discovers it without a second registry.
+ */
+export async function importWhisperModelFromUri(
+  sourceUri: string,
+  fileName: string,
+): Promise<{ modelId: string; fileName: string; sizeBytes: number; filePath: string }> {
+  if (!/^ggml-[a-z0-9._-]+\.bin$/i.test(fileName) || fileName !== fileName.split(/[\\/]/).pop()) {
+    throw new Error('Only files named ggml-<model>.bin can be imported as Whisper models.');
+  }
+  await ensureModelsDirExists();
+  const filePath = `${getModelsDir()}/${fileName}`;
+  if (await RNFS.exists(filePath)) throw new Error(`A Whisper model named "${fileName}" already exists.`);
+  try {
+    await RNFS.copyFile(sourceUri, filePath);
+    await validateModelFile(filePath);
+    const facts = await statFile(filePath);
+    if (!facts) throw new Error('Could not read the imported Whisper model size.');
+    return {
+      modelId: fileName.replace(/^ggml-/, '').replace(/\.bin$/i, ''),
+      fileName,
+      sizeBytes: facts.size,
+      filePath,
+    };
+  } catch (error) {
+    await RNFS.unlink(filePath).catch(() => {});
+    throw error;
+  }
+}
+
 /** List every downloaded ggml whisper model on disk (for the Download Manager). */
 export async function listDownloadedModels(): Promise<
   Array<{
