@@ -18,6 +18,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { TouchableOpacity } from '../components/Touchable';
 import { SPACING } from '../constants';
 import { useTheme } from '../theme';
+import { t } from '../i18n';
 import type { RootStackParamList } from '../navigation/types';
 import { imageGenerationService } from '../services/imageGenerationService';
 import { resolveMobileImageParameters } from '../services/imageParameterPolicy';
@@ -85,7 +86,7 @@ export const ImageGenScreen: React.FC = () => {
   const handleEnhance = useCallback(async () => {
     if (!prompt.trim() || previewBusy || imageState.isGenerating) return;
     setPreviewBusy(true);
-    setPreviewStatus('Loading the selected text model and preparing an English prompt…');
+    setPreviewStatus(t('image.enhancing'));
     try {
       const enhanced = await enhanceImagePrompt(
         { prompt: prompt.trim() },
@@ -94,10 +95,10 @@ export const ImageGenScreen: React.FC = () => {
         true,
       );
       setPrompt(enhanced);
-      setPreviewStatus('Preview ready. Edit the prompt before generating.');
+      setPreviewStatus(t('image.previewReady'));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      setPreviewStatus(`Enhancement unavailable: ${message}. Your original prompt is unchanged.`);
+      setPreviewStatus(t('image.enhancementUnavailable', { error: message }));
     } finally {
       setPreviewBusy(false);
     }
@@ -107,7 +108,7 @@ export const ImageGenScreen: React.FC = () => {
     if (recording || previewBusy || imageState.isGenerating) return;
     if (Platform.OS !== 'android' && Platform.OS !== 'ios') return;
     if (!whisper.downloadedModelId) {
-      Alert.alert('Whisper model required', 'Download and select a Whisper model in Models → Voice before using dictation.');
+      Alert.alert(t('image.whisperRequiredTitle'), t('image.whisperRequiredBody'));
       navigation.navigate('Main', { screen: 'ModelsTab', params: { initialTab: 'voice' } });
       return;
     }
@@ -115,9 +116,9 @@ export const ImageGenScreen: React.FC = () => {
       const loadResult = await useWhisperStore.getState().loadModel();
       if (loadResult !== 'loaded') {
         Alert.alert(
-          'Speech model not ready',
+          t('image.whisperNotReady'),
           loadResult === 'blocked'
-            ? 'There is not enough free memory to load Whisper alongside the current model. Eject the text or image model and try again.'
+            ? t('image.whisperMemoryBlocked')
             : (useWhisperStore.getState().error || 'Whisper could not be loaded.'),
         );
         return;
@@ -140,7 +141,7 @@ export const ImageGenScreen: React.FC = () => {
     } catch (error) {
       setRecording(false);
       const message = error instanceof Error ? error.message : String(error);
-      Alert.alert('Voice input failed', message);
+      Alert.alert(t('image.voiceFailed'), message);
     }
   }, [imageState.isGenerating, navigation, previewBusy, recording, whisper.downloadedModelId]);
 
@@ -150,7 +151,7 @@ export const ImageGenScreen: React.FC = () => {
       await whisperService.stopTranscription();
     } catch (error) {
       setRecording(false);
-      Alert.alert('Could not stop dictation', error instanceof Error ? error.message : String(error));
+      Alert.alert(t('image.stopVoiceFailed'), error instanceof Error ? error.message : String(error));
     }
   }, [recording]);
 
@@ -161,15 +162,15 @@ export const ImageGenScreen: React.FC = () => {
     const parsedGuidance = Number(guidanceScale);
     const parsedSeed = seed.trim() ? Number(seed) : undefined;
     if (!Number.isInteger(parsedSteps) || parsedSteps < 4 || parsedSteps > MAX_IMAGE_STEPS) {
-      Alert.alert('Invalid steps', `Choose a whole number from 4 to ${MAX_IMAGE_STEPS}.`);
+      Alert.alert(t('image.invalidStepsTitle'), t('image.invalidSteps', { max: MAX_IMAGE_STEPS }));
       return;
     }
     if (!Number.isFinite(parsedGuidance) || parsedGuidance <= 0 || parsedGuidance > 30) {
-      Alert.alert('Invalid CFG', 'Guidance scale must be greater than 0 and no more than 30.');
+      Alert.alert(t('image.invalidCfgTitle'), t('image.invalidCfg'));
       return;
     }
     if (seed.trim() && (!Number.isInteger(parsedSeed) || parsedSeed! < 0)) {
-      Alert.alert('Invalid seed', 'Use a non-negative whole number, or leave it blank for a random seed.');
+      Alert.alert(t('image.invalidSeedTitle'), t('image.invalidSeed'));
       return;
     }
     try {
@@ -182,10 +183,10 @@ export const ImageGenScreen: React.FC = () => {
         promptIsFinal: true,
       });
       if (!result && imageGenerationService.getState().error) {
-        Alert.alert('Image generation failed', imageGenerationService.getState().error || 'Unknown error');
+        Alert.alert(t('image.generationFailed'), imageGenerationService.getState().error || 'Unknown error');
       }
     } catch (error) {
-      Alert.alert('Image generation failed', error instanceof Error ? error.message : String(error));
+      Alert.alert(t('image.generationFailed'), error instanceof Error ? error.message : String(error));
     }
   }, [guidanceScale, imageState.isGenerating, negativePrompt, previewBusy, prompt, recording, seed, steps]);
 
@@ -200,20 +201,20 @@ export const ImageGenScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
-      <ScreenHeader title="Image generator" onBack={() => navigation.goBack()} />
+      <ScreenHeader title={t('image.title')} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: SPACING.xl, paddingBottom: SPACING.xxl }}>
         <Text style={{ color: colors.textSecondary, marginBottom: SPACING.md }}>
-          Describe the image, dictate in your selected speech language, then review and edit the final English prompt before generation. The enhancer targets a short CLIP-friendly prompt; the current native bridge does not expose an exact CLIP token counter.
+          {t('image.intro')}
         </Text>
 
         <Card style={{ padding: SPACING.md, marginBottom: SPACING.md }}>
-          <Text style={{ color: colors.text, fontWeight: '600', marginBottom: SPACING.sm }}>Prompt</Text>
+          <Text style={{ color: colors.text, fontWeight: '600', marginBottom: SPACING.sm }}>{t('image.prompt')}</Text>
           <TextInput
             value={prompt}
             onChangeText={setPrompt}
             multiline
             textAlignVertical="top"
-            placeholder="Describe the image you want to create…"
+            placeholder={t('image.promptPlaceholder')}
             placeholderTextColor={colors.textMuted}
             editable={!imageState.isGenerating && !recording}
             accessibilityLabel="Image prompt"
@@ -222,7 +223,7 @@ export const ImageGenScreen: React.FC = () => {
           />
           {recording || voicePreview ? (
             <Text style={{ color: colors.primary, marginTop: SPACING.sm }}>
-              {recording ? 'Listening… ' : 'Recognized: '}{voicePreview}
+              {recording ? t('image.listening') + ' ' : t('image.recognized') + ' '}{voicePreview}
             </Text>
           ) : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginTop: SPACING.md }}>
@@ -235,7 +236,7 @@ export const ImageGenScreen: React.FC = () => {
               style={{ minHeight: 42, paddingHorizontal: SPACING.md, borderRadius: 10, backgroundColor: recording ? colors.error : colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.xs }}
             >
               <Icon name={recording ? 'square' : 'mic'} size={16} color={recording ? '#FFFFFF' : colors.primary} />
-              <Text style={{ color: recording ? '#FFFFFF' : colors.text, fontWeight: '600' }}>{recording ? 'Stop dictation' : 'Dictate'}</Text>
+              <Text style={{ color: recording ? '#FFFFFF' : colors.text, fontWeight: '600' }}>{recording ? t('image.stopDictation') : t('image.dictate')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => void handleEnhance()}
@@ -253,12 +254,12 @@ export const ImageGenScreen: React.FC = () => {
         </Card>
 
         <Card style={{ padding: SPACING.md, marginBottom: SPACING.md }}>
-          <Text style={{ color: colors.text, fontWeight: '600', marginBottom: SPACING.sm }}>Negative prompt</Text>
+          <Text style={{ color: colors.text, fontWeight: '600', marginBottom: SPACING.sm }}>{t('image.negativePrompt')}</Text>
           <TextInput
             value={negativePrompt}
             onChangeText={setNegativePrompt}
             multiline
-            placeholder="Optional: things to avoid…"
+            placeholder={t('image.negativePlaceholder')}
             placeholderTextColor={colors.textMuted}
             editable={!imageState.isGenerating}
             testID="image-gen-negative-prompt"
@@ -267,23 +268,23 @@ export const ImageGenScreen: React.FC = () => {
         </Card>
 
         <Card style={{ padding: SPACING.md, marginBottom: SPACING.md }}>
-          <Text style={{ color: colors.text, fontWeight: '600', marginBottom: SPACING.md }}>Supported generation controls</Text>
+          <Text style={{ color: colors.text, fontWeight: '600', marginBottom: SPACING.md }}>{t('image.controls')}</Text>
           <View style={{ flexDirection: 'row', gap: SPACING.md }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.textSecondary, marginBottom: 6 }}>Steps (4–{MAX_IMAGE_STEPS})</Text>
+              <Text style={{ color: colors.textSecondary, marginBottom: 6 }}>{t('image.steps', { max: MAX_IMAGE_STEPS })}</Text>
               <TextInput value={steps} onChangeText={setSteps} keyboardType="number-pad" editable={!imageState.isGenerating} testID="image-gen-steps" style={{ color: colors.text, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: SPACING.sm }} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.textSecondary, marginBottom: 6 }}>CFG / Guidance</Text>
+              <Text style={{ color: colors.textSecondary, marginBottom: 6 }}>{t('image.cfg')}</Text>
               <TextInput value={guidanceScale} onChangeText={setGuidanceScale} keyboardType="decimal-pad" editable={!imageState.isGenerating} testID="image-gen-cfg" style={{ color: colors.text, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: SPACING.sm }} />
             </View>
           </View>
           <View style={{ marginTop: SPACING.md }}>
-            <Text style={{ color: colors.textSecondary, marginBottom: 6 }}>Seed (blank = random)</Text>
-            <TextInput value={seed} onChangeText={setSeed} keyboardType="number-pad" editable={!imageState.isGenerating} testID="image-gen-seed" placeholder="Random" placeholderTextColor={colors.textMuted} style={{ color: colors.text, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: SPACING.sm }} />
+            <Text style={{ color: colors.textSecondary, marginBottom: 6 }}>{t('image.seed')}</Text>
+            <TextInput value={seed} onChangeText={setSeed} keyboardType="number-pad" editable={!imageState.isGenerating} testID="image-gen-seed" placeholder={t('image.random')} placeholderTextColor={colors.textMuted} style={{ color: colors.text, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: SPACING.sm }} />
           </View>
           <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: SPACING.md, lineHeight: 18 }}>
-            Sampler, denoising strength, inpainting and LoRA are not exposed by the current OGAM image-generation request/native bridge, so they are intentionally not shown as working controls.
+            {t('image.unsupported')}
           </Text>
         </Card>
 
@@ -291,7 +292,7 @@ export const ImageGenScreen: React.FC = () => {
           <Card style={{ padding: SPACING.md, marginBottom: SPACING.md }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <Text style={{ color: colors.text, fontWeight: '600' }}>{imageState.status || 'Generating image…'}</Text>
-              <TouchableOpacity onPress={cancel} accessibilityRole="button" accessibilityLabel="Cancel image generation" testID="image-gen-cancel">
+              <TouchableOpacity onPress={cancel} accessibilityRole="button" accessibilityLabel={t('image.cancel')} testID="image-gen-cancel">
                 <Icon name="x-circle" size={22} color={colors.error} />
               </TouchableOpacity>
             </View>
@@ -300,7 +301,7 @@ export const ImageGenScreen: React.FC = () => {
                 <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.border, overflow: 'hidden', marginTop: SPACING.md }}>
                   <View style={{ height: 6, width: `${progressPercent}%`, backgroundColor: colors.primary }} />
                 </View>
-                <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: SPACING.xs }}>{progress.step}/{progress.totalSteps} steps · {progressPercent}%</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: SPACING.xs }}>{t('image.progress', { step: progress.step, total: progress.totalSteps, percent: progressPercent })}</Text>
               </>
             ) : null}
           </Card>
@@ -308,10 +309,10 @@ export const ImageGenScreen: React.FC = () => {
 
         {imageState.result ? (
           <Card style={{ padding: SPACING.md, marginBottom: SPACING.md }}>
-            <Text style={{ color: colors.text, fontWeight: '600', marginBottom: SPACING.sm }}>Generated image</Text>
+            <Text style={{ color: colors.text, fontWeight: '600', marginBottom: SPACING.sm }}>{t('image.generated')}</Text>
             <Image source={{ uri: `file://${resolveDocumentPath(imageState.result.imagePath)}` }} resizeMode="contain" style={{ width: '100%', aspectRatio: imageState.result.width / imageState.result.height, borderRadius: 10 }} />
             <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: SPACING.sm }}>
-              {imageState.result.width} × {imageState.result.height} · {imageState.result.steps} steps · seed {imageState.result.seed}
+              {t('image.stepsCount', { width: imageState.result.width, height: imageState.result.height, steps: imageState.result.steps, seed: imageState.result.seed })}
             </Text>
           </Card>
         ) : null}
@@ -322,12 +323,12 @@ export const ImageGenScreen: React.FC = () => {
           onPress={() => void generate()}
           disabled={!prompt.trim() || imageState.isGenerating || recording || previewBusy}
           accessibilityRole="button"
-          accessibilityLabel="Generate image"
+          accessibilityLabel={t('image.generate')}
           testID="image-gen-generate"
           style={{ minHeight: 50, borderRadius: 12, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, opacity: !prompt.trim() || imageState.isGenerating || recording || previewBusy ? 0.5 : 1 }}
         >
           {imageState.isGenerating ? <ActivityIndicator color="#FFFFFF" /> : <Icon name="image" size={18} color="#FFFFFF" />}
-          <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>{imageState.isGenerating ? 'Generating…' : 'Generate image'}</Text>
+          <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>{imageState.isGenerating ? t('image.generating') : t('image.generate')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
