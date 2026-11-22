@@ -1,7 +1,7 @@
 import { videoModelDisplayName } from '../../utils/modelHelpers';
 import { useAppStore } from '../../stores/appStore';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Keyboard, Platform } from 'react-native';
+import { FlatList, Keyboard, Platform, InteractionManager } from 'react-native';
 // Edge-to-edge-aware KeyboardAvoidingView. RN's own version leaves a residual
 // padding band on Android under edge-to-edge (adjustResize is a no-op there);
 // this one reconciles the keyboard frame against the navigation-bar inset.
@@ -73,6 +73,7 @@ export const ChatScreen: React.FC = () => {
   // Android's system-assistant service enters through offgrid://assistant/voice.
   // Reuse the exact same ChatInput/Whisper/Qwen recorder as a manual mic press;
   // recordingController checks that a real input backend is available first.
+  const setChatAlertState = chat.setAlertState;
   useEffect(() => {
     if (!route.params?.startVoice) return;
     rootNavigation.setParams({ startVoice: undefined });
@@ -81,8 +82,35 @@ export const ChatScreen: React.FC = () => {
       rootNavigation.reset({ index: 0, routes: [{ name: 'Onboarding' }] });
       return;
     }
-    recordingController.start();
-  }, [route.params?.startVoice, rootNavigation]);
+
+    // Wait until ChatInput has mounted and registered its single recording controller.
+    // If no speech backend exists, explain the exact next action instead of silently doing nothing.
+    let cancelled = false;
+    const interaction = InteractionManager.runAfterInteractions(() => {
+      if (cancelled) return;
+      const result = recordingController.start();
+      if (result === 'unavailable' || result === 'no-recorder') {
+        setChatAlertState(showAlert(
+          'Voice model needed',
+          'Jarvis is ready, but this device has no available speech recognizer yet. Download a Whisper/Qwen speech model, or select a local model that accepts audio input.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            {
+              text: 'Open speech models',
+              onPress: () => rootNavigation.navigate('Main', {
+                screen: 'ModelsTab',
+                params: { initialTab: 'transcription' },
+              }),
+            },
+          ],
+        ));
+      }
+    });
+    return () => {
+      cancelled = true;
+      interaction.cancel();
+    };
+  }, [route.params?.startVoice, rootNavigation, setChatAlertState]);
   // Counted once per change to the chat, not on every render: opening a sheet re-renders this screen.
   const activeMessages = chat.activeConversation?.messages;
   const imageCount = useMemo(() => countConversationImages(activeMessages), [activeMessages]);
