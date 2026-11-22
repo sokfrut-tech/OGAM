@@ -128,7 +128,7 @@ export const LocalModelsScreen: React.FC = () => {
         await importWhisperModelFromUri(uri, artifact.name);
         await useWhisperStore.getState().refreshPresentModels();
       } else {
-        throw new Error('This artifact is not a standalone model. Its full pack and runtime compatibility must be validated first.');
+        throw new Error(t('models.notStandalone'));
       }
       await refreshInventory();
       Alert.alert(t('models.importComplete'), `${artifact.name} ${t('models.importAvailable')}`);
@@ -164,7 +164,7 @@ export const LocalModelsScreen: React.FC = () => {
             <View key={model.id} style={{ paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: colors.border }}>
               <Text style={{ color: colors.text, fontWeight: '500' }} numberOfLines={1}>{model.name}</Text>
               <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                {model.quantization} · file {formatBytes(model.fileSize)} · estimated RAM {formatBytes(estimatedRamBytes)}
+                {model.quantization} · {t('models.fileSize')} {formatBytes(model.fileSize)} · {t('models.estimatedRam')} {formatBytes(estimatedRamBytes)}
                 {ggufArchitecture ? ` · ${ggufArchitecture}` : ''}
               </Text>
             </View>
