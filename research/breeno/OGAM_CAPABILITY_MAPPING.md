@@ -125,3 +125,28 @@ This is a source-tree and public-documentation comparison only. No changes to OG
 
 ### Evidence gate
 All projects found through a README or platform search remain candidates until source audit verifies the relevant implementation, license, dependency notices, buildability and tests. Hardware features require target-device validation. Never label a project or feature "integrated" based only on a repository description.
+
+
+## ZorvAI deep-audit transfer decisions (2026-11-22)
+
+ZorvAI is now a P0/P1 architecture reference. Its most useful patterns are typed tool registry + progressive disclosure, AIDL/ Binder capability bridge, separate process for native ASR, signed first-party APK extension contract, and bounded task-level delivery verification.
+
+### New OGAM modules to specify
+- `CapabilityRegistry`: typed manifest with id, schema version, permission scopes, risk tier, online/offline flag, supported Android API/ABI, adapter, owner, signature and test evidence.
+- `ToolDiscoveryRouter`: categories + intent matching + schema-on-demand + persistent cache. Keep the always-on schema set minimal and measured; do not copy ZorvAI README tool counts because source comments and README counts conflict.
+- `EngineSupervisor`: ASR/LLM/vision/TTS engine processes with bounded startup/shutdown, memory/thermal budget, health, crash count, timeout, cancellation and graceful fallback.
+- `JarvisCapabilityBridge`: local Binder/AIDL protocol, paired peer identity, signing certificate, request IDs, typed payloads, permission scopes, consent, revocation, timeout, replay protection and audit.
+- `TaskLedger`: plan/step/result/verification records, bounded replan, stop conditions and escalation to user.
+- `PluginContract`: built-in modules first; first-party signed packages only initially; declarative restricted third-party manifests later.
+
+### Security requirements added
+- Default-deny for all cross-app capabilities. Never accept a token based only on a prefix or non-empty string; bind token to authenticated peer identity and compare against stored high-entropy secret or use platform-backed key agreement.
+- Never expose a local HTTP/LAN control endpoint without explicit enablement, authenticated pairing, scoped authorization, replay protection and audit. Prefer Binder for same-device IPC.
+- Same-signature APK plugins are trusted code with host-level privileges, not sandboxed third-party plugins. Keep third-party plugins declarative/restricted until a real sandbox exists.
+- Do not request all Android permissions at startup. Feature-gate SMS, contacts, notification access, media management, location, camera, overlay, screen capture and package visibility.
+- Treat proot as convenience user-space, not a security boundary. Shell/script tools require allowlists, process limits, no secrets by default and explicit user confirmation.
+
+### Updated priorities
+P0: typed capability metadata; progressive tool discovery; task ledger + delivery verification; native engine supervisor; per-action risk and permission checks.
+P1: paired Binder capability bridge; first-party plugin framework; restricted MCP adapter; Russian ASR/TTS benchmark; local memory/RAG provenance.
+P2: optional ColorOS/Breeno bridge and LAN companion, only after device evidence and security review.
