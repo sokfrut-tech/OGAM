@@ -321,3 +321,51 @@ The migration policy is clarified: third-party libraries and projects are allowe
 3. Select the smallest useful MIT/Apache implementation for the first missing contract; record provenance and notices.
 4. Port one vertical slice into OGAM, update package aliases/lockfile only for that slice, and run focused tests plus a clean install/build.
 5. Repeat package-by-package. Do not skip feature tests or claim independence until the clean OGAM-only build and APK gates pass.
+
+
+## Candidate source inspection — model, RAG, memory and Android tools (2026-11-22)
+
+This pass opened implementation files and tests, not only project landing pages.
+
+### Vesta — implementation details verified
+
+Repository: [RisorseArtificiali/vesta](https://github.com/RisorseArtificiali/vesta), MIT.
+
+- `apps/mobile/lib/models/model-registry.ts`: SQLite-backed installed-model registry with typed CRUD, active-model invariant, state transitions, resume token, SHA-256 and one-time legacy path migration. This is a useful design reference, but OGAM already has a richer model lifecycle and should not replace its model manager with this smaller registry.
+- `apps/mobile/lib/orchestrator/tool-dispatcher.ts`: validates required parameters/types/formats before dispatch, normalizes model-emitted ISO datetimes where a date-only value is expected, catches execution errors and routes to explicit Android bridges. The dispatcher includes alarms, calendar, reminders, timers, navigation, contacts, calls/SMS and document queries.
+- `apps/mobile/lib/tools/tool-registry.ts`: tool schema carries category, confirmation requirement, localized descriptions and a `returnsData` flag so query results can be fed back to the model instead of treating the model's first response as final.
+- `apps/mobile/lib/native/system-actions.ts`: uses Android intents and checks native-module availability. It correctly reports that opening the calendar editor is not the same as saving an event, and documents that Android's alarm intent ignores a requested date.
+- `apps/mobile/lib/orchestrator/memory-manager.ts`: asynchronous extraction, concurrency guard, cancellation when a new user turn begins, timeout that stops native generation, context-window budget check and stable-prefix/KV-cache awareness.
+- Tests inspected: `memory-gate.test.ts` covers skipping tool-call confirmations and short acknowledgements; `memory-order.test.ts` locks deterministic prompt ordering; `session-cache.test.ts` covers prefix cache persistence/restore and corruption/staleness policy; `download-manager.test.ts` covers truncated downloads, commit atomicity and resume/pause behavior.
+
+**OGAM implication:** borrow the tested behavioral patterns (tool validation, confirmation/returns-data semantics, cancellable background memory extraction, deterministic prompt memory ordering and resumable download invariants). Do not transplant Vesta's complete application or downgrade OGAM's existing capabilities.
+
+### OfflineMate — implementation details verified
+
+Repository: [KingPegasus/OfflineMate](https://github.com/KingPegasus/OfflineMate), MIT terms are present in `LICENSE.md` (GitHub's metadata did not classify the licence, so preserve and verify the actual file).
+
+- `src/ai/rag-pipeline.ts`: selects retrieval top-K and similarity thresholds by model tier, diversifies by source, deduplicates normalized snippets and surfaces a warning when embeddings are in fallback mode.
+- `src/ai/tool-action-schema.ts`: parses constrained JSON decisions, rejects malformed/placeholder values, validates supported tool names, and has a cautious lenient fallback that refuses reasoning/structured fragments as direct answers.
+- `src/context/memory-manager.ts`: implements a simple tier-dependent sliding history window. This is not a full persistent memory engine; treat it only as a context-window policy example.
+- Its README/tree also expose a model registry, tool schemas, long-term memory, voice hooks and RAG grounding. Those files still require targeted review before any code reuse.
+
+**OGAM implication:** source-diversified retrieval and explicit embedding-fallback warnings are useful RAG behaviors to compare with OGAM's document engine. The tool parser is a useful robustness reference, but OGAM must keep its own supported tool registry and parameter schemas.
+
+### ToolNeuron — implementation details verified
+
+Repository: [vapordude/ToolNeuron-cai](https://github.com/vapordude/ToolNeuron-cai), Apache-2.0.
+
+- `EmbeddingEngine.kt`: serializes initialization with a coroutine Mutex, checks model existence/readability, validates the native engine with a test embedding, records vector dimension and closes the native handle on failed validation.
+- `RagDao.kt`: Room DAO provides explicit CRUD and observable installed/loaded/enabled RAG state.
+- `GGUFEngine.kt`: Kotlin wrapper around a native GGUF engine, supports loading by path or file descriptor, applies model-specific sampling/template settings, and catches OutOfMemoryError to unload native state.
+- These files import `com.dark.gguf_lib`; that library is a separate provenance/licence/dependency boundary and must be inspected before adopting the engine wrapper.
+
+**OGAM implication:** valuable patterns for native model lifecycle, SAF/file-descriptor loading, embedding validation and failure cleanup. Do not copy the wrapper until its native library and transitive notices are verified.
+
+### First migration decision
+
+No source code was copied in this pass. These projects are architecture/behavior references; the existing OGAM services and test contracts remain the source of truth for compatibility. Before the first implementation PR:
+1. finish locating every OGAM import/call site for each missing package;
+2. inspect the exact source and licence of the candidate implementation and every non-platform dependency it pulls in;
+3. map old behavior to OGAM tests and add missing regression tests;
+4. port the smallest independent vertical slice, then run focused Jest/TypeScript checks and a clean install.
