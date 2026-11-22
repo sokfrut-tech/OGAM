@@ -621,3 +621,15 @@ Added source-only implementation on this branch:
 - External dependency audit run 426 completed successfully on this exact head: https://github.com/sokfrut-tech/OGAM/actions/runs/45058165618
 - The passing audit includes the TTS backend/chunker source contract, assistant bridge source contracts, PCM playback source contract and the other configured Node-only checks.
 - Full CI run 182 is still pending/no job result at last inspection. Gradle/JUnit, APK build and PGEM10 tests are not verified.
+
+
+## Follow-up work snapshot — 2026-11-22 (chunker fix + TTS candidate reprioritization)
+
+- `JarvisSpeechChunker.kt` now recognizes closing quote/bracket characters after terminal punctuation and protects spaced Russian forms `т. д.`, `т. п.`, `и т. д.`. New JUnit regression cases are in `JarvisSpeechChunkerTest.kt`.
+- Isolated local Kotlin compile + harness passed 7 representative chunker cases. This is not Gradle/JUnit, APK or OPPO verification.
+- The Node source-contract test was extended to require the new regression fixtures; audit for latest commit is pending.
+- sherpa-onnx v2.0.3 is the upstream latest release as of 2026-11-22. Official AAR: 52,411,426 bytes; SHA-256 `4c766e2e74c9d33d595338c21fe3b305c73ba45d47e96a235675c33142a2ec50`. Kotlin API has incremental PCM callback, but Supertonic C++ still ignores callback return; the patch must be applied and rebuilt before claiming native cancellation.
+- Corrected JNI assessment: inspected v2.0.3 `generateWithConfigImpl` invokes `Generate` synchronously, so the callback appears synchronous on the invoking JNI thread. Do not make speculative JNI thread-attachment changes without runtime evidence.
+- CosyVoice3-MNN research benchmark estimates Flow-only RTF ~3.69 on Honor BKQ_AN90 / Adreno 840 and explicitly fails real-time gate. It is demoted to batch-quality experiment; not tested on OPPO SM8550.
+- Full CI run 45058750893 on preceding head was not green: private workspace packages `@offgrid/sync` / `@offgrid/models` missing in CI caused type and Jest-load failures; Android job was still in progress at last check. Do not describe full CI as passed.
+- Detailed candidate/benchmark evidence and limitations are in `LOCAL_RUSSIAN_TTS_RUNTIME_EVALUATION.md`.
