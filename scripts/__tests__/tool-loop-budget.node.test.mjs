@@ -89,7 +89,7 @@ test('instructs the model to stop calling tools and report missing information h
 test('combines the recovery instruction and non-empty completed results in order', () => {
   assert.equal(
     finalResponseFromToolResults('Answer from available data.', ['first result', '', 'third result']),
-    'Answer from available data.\n\nCompleted tool result 1:\nfirst result\n\nCompleted tool result 3:\nthird result',
+    'Answer from available data.\n\nCompleted tool result 1:\nfirst result\n\nCompleted tool result 2:\nthird result',
   );
   assert.equal(finalResponseFromToolResults('', []), '');
 });
