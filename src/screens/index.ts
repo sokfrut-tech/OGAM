@@ -22,6 +22,7 @@ export { ModelSettingsScreen } from './ModelSettingsScreen';
 export { DeviceInfoScreen } from './DeviceInfoScreen';
 export { StorageSettingsScreen } from './StorageSettingsScreen';
 export { LocalModelsScreen } from './LocalModelsScreen';
+export { ImageGenScreen } from './ImageGenScreen';
 export { SearchModelScreen } from './SearchModelScreen';
 export { SecuritySettingsScreen } from './SecuritySettingsScreen';
 export { EngineUpdatesScreen } from './EngineUpdatesScreen';
