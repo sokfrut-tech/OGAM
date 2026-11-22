@@ -10,6 +10,7 @@ import { estimateTextModelMemoryMB } from './activeModelService/memory';
 
 export type ModelArtifactKind =
   | 'gguf'
+  | 'litert'
   | 'mmproj'
   | 'whisper'
   | 'qnn-model'
@@ -66,6 +67,7 @@ export function classifyModelArtifact(fileName: string): {
     const firstPart = splitGgufPartNames(name)[0] === name;
     return { kind: 'gguf', installable: firstPart };
   }
+  if (lower.endsWith('.litertlm')) return { kind: 'litert', installable: true };
   if (/^ggml-.+\.bin$/i.test(name)) return { kind: 'whisper', installable: true };
   if (lower.endsWith('.mnn')) return { kind: 'mnn-model', installable: false };
   if (lower.endsWith('.so') && /^libqnn/i.test(name)) {
@@ -90,13 +92,21 @@ export function classifyModelArtifact(fileName: string): {
 export async function scanSelectedModelDirectory(grant: string): Promise<ScannedModelArtifact[]> {
   if (!grant.trim()) throw new Error('A selected folder grant is required.');
   const entries = await nativeDirectorySourceBoundary.enumerate(grant);
+  const names = new Set(entries.map(entry => entry.name));
   return entries
     .filter(entry => entry.fileSize >= 0)
-    .map(entry => ({
-      ...entry,
-      ...classifyModelArtifact(entry.name),
-      source: 'selected-folder' as const,
-    }))
+    .map(entry => {
+      const classification = classifyModelArtifact(entry.name);
+      // A split GGUF is importable only when every numbered part is present in the selected tree.
+      const splitParts = classification.kind === 'gguf' ? splitGgufPartNames(entry.name) : [entry.name];
+      const completeSplit = splitParts.every(part => names.has(part));
+      return {
+        ...entry,
+        ...classification,
+        installable: classification.installable && completeSplit,
+        source: 'selected-folder' as const,
+      };
+    })
     .filter(entry => entry.kind !== 'unknown')
     .sort((a, b) => a.name.localeCompare(b.name));
 }
