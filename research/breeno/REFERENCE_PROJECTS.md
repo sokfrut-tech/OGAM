@@ -353,3 +353,8 @@ https://github.com/ZG0704666/Aries-AI — AGPL-3.0.
 - Task states include pause/resume and terminal outcomes. Internal automation dispatch uses a process-local 256-bit random token and constant-time comparison. PathGuard rejects traversal and paths outside trusted roots.
 - Virtual display requires Shizuku and target ROM/device verification; not a Jarvis core dependency. Qwen3.5-9B MNN and X-ASR-zh-en are not evidence of Russian quality.
 - Source audit: AZCODE_ARIES_SOURCE_AUDIT.md.
+
+
+## Target-device correction (2026-11-22)
+
+The user's OPPO screenshots show Breeno `13.4.3_08c04e4_261110` and separate Breeno Memory `16.11.5_008719b_260901`. Earlier Breeno 13.3.2/13.3.5 source profiles remain useful historical/version-adapter research only; they are not the installed target baseline. The visible OPPO AI feature surfaces are documented in `OPPO_FIND_X6_PRO_DEVICE_EVIDENCE_2026-11-22.md`. Do not infer ColorOS 16 from a marketing image on the tips page.
