@@ -61,7 +61,7 @@ Obtain exact installed com.coloros.shortcuts 17.7.2_91aa93e_261102. Compare trig
 
 ## 4. OGAM clean-room transfer sequence
 
-1. P0 Native assistant entry/session: confirm current PR #1 implementation and tests before relying on it. Public Android VoiceInteractionService/Session + RoleManager only; optional ColorOS summon adapter remains separate.
+1. P0 Native assistant entry/session: PR #1 source now confirms VoiceInteractionService/Session, non-exported token-gated bridge, and user-mediated RoleManager. Static source-contract CI passed; Gradle/Kotlin/JUnit and PGEM10 runtime validation remain open. Public Android APIs only; optional ColorOS summon adapter remains separate.
 2. P0 Voice session controller: one turn ID across capture → VAD/ASR → dialogue → tools → TTS; cancellation, audio focus, barge-in and lifecycle recovery.
 3. P0 Safe action runtime: typed capability registry, risk tiers, permission checks, just-in-time approval immediately before execution, audit ledger and truthful delivery verification.
 4. P1 Local-first router: deterministic Russian commands first; local LLM planning for ambiguous/multi-step tasks; cloud fallback optional and explicit.
@@ -83,6 +83,7 @@ Obtain exact installed com.coloros.shortcuts 17.7.2_91aa93e_261102. Compare trig
 
 - Exact Instructions 17.7.2 APK is not present in the analyzed set. Obtain it from the device or existing local APK archive.
 - JADX and apksigner are not installed in the workstation environment used for the 26-APK inventory. Install pinned tools or run analysis on a dedicated workstation.
+- PR #1 source review: RoleManager.ROLE_ASSISTANT request and active-service status checks are present. See PR1_NATIVE_ASSISTANT_SOURCE_VERIFICATION_2026-11-22.md; CI run #45039077226 is static/source-contract only, not Gradle or device validation.
 - APK bytes are not in GitHub and are intentionally not committed. A remote agent without access to the local workstation cannot perform true DEX decompilation.
 - Keep the research PR description consistent: local APKs were acquired and structurally inspected; full JADX and runtime analysis remain outstanding.
 
