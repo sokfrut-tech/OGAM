@@ -1,5 +1,6 @@
 import type { DownloadedModel } from '../types';
-import { NativeDirectoryCandidate, nativeDirectorySourceBoundary } from './sync/nativeDirectorySource';
+import { nativeDirectorySourceBoundary } from './sync/nativeDirectorySource';
+import type { NativeDirectoryCandidate } from './sync/nativeDirectorySource';
 import { isMMProjFile } from './modelManager/scan';
 import { splitGgufPartNames } from '@offgrid/models';
 import { modelManager } from './modelManager';
@@ -66,7 +67,7 @@ export function classifyModelArtifact(fileName: string): {
     return { kind: 'gguf', installable: firstPart };
   }
   if (/^ggml-.+\.bin$/i.test(name)) return { kind: 'whisper', installable: true };
-  if (lower.endsWith('.mnn')) return { kind: 'mnn-model', installable: true };
+  if (lower.endsWith('.mnn')) return { kind: 'mnn-model', installable: false };
   if (lower.endsWith('.so') && /^libqnn/i.test(name)) {
     return { kind: 'qnn-runtime', installable: false };
   }
