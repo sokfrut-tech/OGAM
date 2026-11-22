@@ -91,5 +91,8 @@
   "storage.explanation": "This optional Android permission lets Jarvis scan model files in shared folders. You can keep it disabled and select individual folders through Android’s folder picker instead. Jarvis will re-check the permission when you return.",
   "storage.notNow": "Not now",
   "storage.openSettings": "Open Android settings",
-  "storage.openFailed": "Could not open settings"
+  "storage.openFailed": "Could not open settings",
+  "models.notStandalone": "This artifact is not a standalone model. Its full pack and runtime compatibility must be validated first.",
+  "models.fileSize": "file",
+  "models.estimatedRam": "estimated RAM"
 }
