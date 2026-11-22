@@ -64,8 +64,8 @@ Android references: [RoleManager](https://developer.android.com/reference/androi
 
 ## CI evidence and what it does not prove
 
-Latest completed open-core audit for the current code snapshot: run #45038838766
-https://github.com/sokfrut-tech/OGAM/actions/runs/45038838766
+Latest completed open-core audit for the current source snapshot: run #45039077226
+https://github.com/sokfrut-tech/OGAM/actions/runs/45039077226
 
 Passed:
 - 6 static Android-assistant/security contract tests;
