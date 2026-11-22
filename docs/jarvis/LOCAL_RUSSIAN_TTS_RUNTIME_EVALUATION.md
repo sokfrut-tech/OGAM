@@ -162,3 +162,12 @@ The v2.0.3 Android JNI wrapper captures `JNIEnv*` and a local callback `jobject`
 - Sherpa-ONNX 2.0.3 + Supertonic-3 remains the first streaming-oriented candidate, but only after applying/testing the callback-stop patch, checking the JNI callback path on Android and reviewing OpenRAIL-M terms.
 - Qwen3-TTS/CosyVoice are high-quality batch A/B candidates, not first streaming backends.
 - `react-native-sherpa-onnx` remains an architecture reference rather than a recommended dependency for OGAM's native Kotlin TTS slice; the existing plan already uses the narrower official Kotlin AAR, and the RN wrapper adds unrelated modules and third-party license surface.
+
+
+## 2026-11-22 OGAM native TTS adapter groundwork
+
+Added to `feature/jarvis-step-2-storage-privacy`:
+- `JarvisTtsBackend.kt`: engine-neutral backend interface and explicit capability flags for batch/sentence-chunked/model-streaming output, native cancellation, cloning, instructions and language hints. It keeps inference separate from playback and microphone/session ownership.
+- `JarvisSpeechChunker.kt`: incremental text chunker with Russian abbreviations, decimal numbers, initials, fragment boundaries, maximum chunk size, flush and reset.
+- Tests: 6 chunker tests + 3 backend-contract tests. Existing PCM player has 8 JVM tests.
+- No native engine/model dependency added. No Gradle tests run or Android device test confirmed.
