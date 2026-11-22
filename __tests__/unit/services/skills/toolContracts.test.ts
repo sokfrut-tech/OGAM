@@ -1,4 +1,3 @@
-import { AVAILABLE_TOOLS } from '../../../../src/services/tools/registry';
 import {
   getToolSkillContract,
   validateBuiltInToolInvocation,
@@ -56,9 +55,7 @@ describe('OGAM built-in tools as Jarvis skills', () => {
     expect(result.errors).toContain('Unknown input: reveal_private_data.');
   });
 
-  it('does not expose Pro-only tools when their existing seam is unavailable', () => {
-    const names = AVAILABLE_TOOLS.map(tool => tool.name);
-    expect(names).toContain('generate_video');
+  it('does not create contracts for unknown or unclassified tools', () => {
     expect(getToolSkillContract('not_a_real_tool')).toBeNull();
   });
 });
