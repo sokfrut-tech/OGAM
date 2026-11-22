@@ -447,7 +447,9 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
   cancelRef.current = cancelRecording;
   useEffect(() => {
     return recordingController.registerHandlers({
-      canStart: () => voiceAvailableRef.current,
+      canStart: options => options?.requiresTranscript
+        ? !!downloadedModelId || remoteTranscriptionAvailable
+        : voiceAvailableRef.current,
       start: () => startRef.current(),
       stop: () => {
         // In hands-free there was no tap to start, so the stop button means STOP THE SESSION - and a
