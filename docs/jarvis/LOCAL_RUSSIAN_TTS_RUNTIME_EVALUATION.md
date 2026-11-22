@@ -134,3 +134,31 @@ This is a reusable native output component, not yet a user-visible speech featur
 - No local Russian TTS reply path exists in the Free/Core build yet.
 - Open-core CI checks the PCM source contract, but does not compile Kotlin or run the 8 JVM tests. Android Gradle and OPPO verification remain outstanding.
 - Next implementation slice: create the streaming text-to-TTS adapter contract and sentence chunker, then connect a selected backend after its licence and OPPO footprint gates are passed.
+
+## 2026-11-22 follow-up: reconcile Chinese TTS research and verify Supertonic cancellation
+
+The new Qwen3-TTS and CosyVoice Android source audits are additional high-quality/batch candidates, not replacements for the original selection above:
+- Qwen3-TTS Android `QwenEngine.synthesize()` returns the complete FloatArray after generation; its callback is token progress only, not incremental PCM.
+- CosyVoice3-MNN Android `CosyVoiceRuntime.synthesize()` writes a completed audio file and returns a report; the inspected Kotlin surface does not expose PCM chunks.
+- Therefore both are batch-quality candidates and cannot satisfy the first-sentence-before-full-reply streaming requirement without additional native changes. Their model cards' streaming claims do not transfer automatically to these Android wrappers.
+- Keep the original priority: tiny-voca-ru as compact Russian prototype; Sherpa-ONNX + Supertonic-3 as streaming-oriented Kotlin prototype after license and callback gates. Qwen3-TTS/CosyVoice remain optional A/B quality comparisons.
+
+### Supertonic callback cancellation finding
+Pinned source: sherpa-onnx v2.0.3, commit `38016c6e0622e90bf417c35e8b47e0eb805af417`.
+
+The public `GeneratedAudioCallback` contract in `sherpa-onnx/csrc/offline-tts.h` says return `0` to stop and `1` to continue. However, `OfflineTtsSupertonicImpl::ProcessChunksAndConcatenate()` in `sherpa-onnx/csrc/offline-tts-supertonic-impl.cc` calls the callback and ignores its return value. Thus the Supertonic callback surface emits sentence/chunk PCM, but does not currently honor cancellation through the documented return contract.
+
+Prepared an OGAM-side source patch:
+- `patches/sherpa-onnx/v2.0.3-supertonic-callback-stop.patch`
+- It stores the current generated chunk, checks callback return, and breaks before generating the next text chunk when return is 0.
+- The patch has been recorded but NOT applied to a compiled sherpa library, and no native build/test has been run. Do not claim cancellation is fixed yet.
+- For immediate user barge-in, JarvisPcmStreamPlayer can stop audio immediately. Without the native patch, Supertonic may continue computing remaining chunks in the background. Do not start a second TTS generation until the first one finishes or its worker process is safely terminated.
+
+### JNI callback audit note
+The v2.0.3 Android JNI wrapper captures `JNIEnv*` and a local callback `jobject` in the callback lambda. The callback path appears to be called synchronously from the C++ generation loop, but the wrapper has no explicit `JavaVM`/global-reference/AttachCurrentThread protection. A reported upstream issue describes SIGABRT on Android callback invocation (issue #3492). Treat callback use as a device-smoke-test gate; if the callback can cross threads in our integration, patch JNI to use a global reference and attach the calling thread safely. Do not claim the upstream bug is fixed from the v2.0.3 source inspected here.
+
+### Updated decision
+- Tiny-voca-ru remains the first compact Russian prototype candidate.
+- Sherpa-ONNX 2.0.3 + Supertonic-3 remains the first streaming-oriented candidate, but only after applying/testing the callback-stop patch, checking the JNI callback path on Android and reviewing OpenRAIL-M terms.
+- Qwen3-TTS/CosyVoice are high-quality batch A/B candidates, not first streaming backends.
+- `react-native-sherpa-onnx` remains an architecture reference rather than a recommended dependency for OGAM's native Kotlin TTS slice; the existing plan already uses the narrower official Kotlin AAR, and the RN wrapper adds unrelated modules and third-party license surface.
