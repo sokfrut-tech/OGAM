@@ -302,7 +302,9 @@ private class AndroidJarvisPcmTrack(
   override fun play() = delegate.play()
   override fun write(samples: FloatArray, offset: Int, length: Int): Int =
     delegate.write(samples, offset, length, AudioTrack.WRITE_NON_BLOCKING)
-  override fun setVolume(volume: Float) = delegate.setVolume(volume)
+  override fun setVolume(volume: Float) {
+    delegate.setVolume(volume)
+  }
   override fun pause() = delegate.pause()
   override fun flush() = delegate.flush()
   override fun stop() = delegate.stop()
