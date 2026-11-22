@@ -227,6 +227,32 @@ describe('buildVoiceNoteHandlers.onTranscript (Chat-mode dictation)', () => {
     expect(consumed).toHaveBeenCalledTimes(1);
   });
 
+  it('assistant auto-send path in Chat mode sends text without attaching the temporary audio file', () => {
+    const onSend = jest.fn();
+    const appendTranscript = jest.fn();
+    const consumed = jest.fn();
+    const { onAutoSend } = buildVoiceNoteHandlers({
+      getComposerText: () => '',
+      getPendingAttachments: () => [],
+      isAudioMode: false,
+      autoSendVoiceInput: true,
+      onAssistantVoiceInputConsumed: consumed,
+      imageMode: 'auto',
+      onSend,
+      addAudioAttachment: jest.fn(),
+      clearAttachments: jest.fn(),
+      appendTranscript,
+      onHaptic: jest.fn(),
+    });
+
+    expect(onAutoSend).toBeDefined();
+    onAutoSend!('turn on the lights', { uri: '/tmp/assistant.wav', format: 'wav', durationSeconds: 2 });
+
+    expect(onSend).toHaveBeenCalledWith('turn on the lights', [], 'auto', undefined);
+    expect(appendTranscript).not.toHaveBeenCalled();
+    expect(consumed).toHaveBeenCalledTimes(1);
+  });
+
   it('system-assistant dictation preserves pending attachments and appends instead of auto-sending', () => {
     const onSend = jest.fn();
     const appendTranscript = jest.fn();
