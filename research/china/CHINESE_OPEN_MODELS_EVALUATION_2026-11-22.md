@@ -262,3 +262,50 @@ This React Native TurboModule is the best integration candidate for a short, iso
 - https://github.com/XDcobra/react-native-sherpa-onnx/blob/main/docs/stt.md
 - https://github.com/XDcobra/react-native-sherpa-onnx/blob/main/docs/execution-providers.md
 - https://github.com/XDcobra/react-native-sherpa-onnx/blob/main/android/prebuilt-versions.gradle
+
+
+## 2026-11-22 further TTS discovery: Qwen3-TTS Android port + Supertonic 3
+
+### A. Qwen3-TTS on Android via qwen3-tts.cpp
+A second concrete Android implementation was found:
+- App: https://github.com/Danmoreng/qwen3-tts-android
+- Native runtime submodule: https://github.com/Danmoreng/qwen3-tts.cpp
+- App uses Kotlin/Jetpack Compose + JNI + C++17/GGML; app license MIT.
+- README says it downloads Q4_K_M talker and tokenizer into private app storage, supports local voice profiles, speaker embedding extraction, generation history, stop, WAV export and progress reporting.
+- Android minSdk 31, arm64-v8a only; our target Android 16 satisfies the OS requirement.
+- Android CMake supports CPU by default, optional OpenMP, Vulkan and OpenCL. Optional GPU paths are disabled by default.
+- App README does not provide a verified Android handset, performance, memory, thermal or audio-quality benchmark. Do not treat as PGEM10-proven.
+- The qwen3-tts.cpp upstream README says its primary tested target is Windows CUDA; it supports 0.6B/1.7B Base, 1.7B CustomVoice, voice cloning, speaker embeddings and language IDs including Russian. Desktop benchmark numbers are Windows RTX 5080 and must not be applied to mobile.
+- Model Q4_K_M talker + tokenizer sizes from the GGUF model index: 0.6B Base talker ~629 MB + tokenizer ~255 MB, roughly 884 MB total. 1.7B VoiceDesign is ~1.2 GB talker + 255 MB tokenizer, but is not suitable as a default phone model without a memory study.
+- Official Qwen3-TTS lists 10 languages including Russian and streaming generation, but the Android C++ port's own README only documents local synthesis/progress; it does not establish low-latency incremental audio streaming on Android.
+- The app's MIT license and model's Apache-2.0 are separate; audit all GGML submodules and model conversion provenance before adopting.
+
+### B. Supertonic 3 as a lightweight Russian fallback
+- Official sherpa-onnx has a Supertonic 3 TTS implementation with 31 languages including Russian, 10 speakers, 24 kHz output and an INT8 model release.
+- Upstream model pages show the sherpa Android TTS Engine APK and Kotlin API. The model is much smaller than 0.6B-class TTS (another mobile repack reports about 99M parameters / roughly 120 MB ONNX assets), but the repack is third-party and must not be mistaken for the official release.
+- Supertonic 3 is fixed-speaker multi-speaker TTS, not zero-shot cloning or natural-language voice design. It may be a fast fallback/command voice, not the primary expressive Jarvis persona.
+- Model license is OpenRAIL-M; inspect restrictions and notices before shipping. It is not equivalent to Apache-2.0.
+
+### C. TTS comparison / next benchmark
+| Candidate | Russian | Phone implementation evidence | Main advantage | Main unknown / constraint |
+|---|---|---|---|---|
+| CosyVoice3-MNN 0.5B | Yes | Standalone Android app; verified only on SM8850 | expressive instruction control, multilingual cloning, MNN/JNI | SM8550 performance unknown; ~1.3 GB model archive, ~2.25 GB reported PSS on SM8850; voice-design path much heavier |
+| Qwen3-TTS 0.6B GGUF | Yes | Standalone Android app + C++/JNI | local voice cloning, compact Q4 model package (~884 MB), language control | no published Android handset benchmark; CPU default; streaming on Android unproven |
+| Supertonic 3 INT8 | Yes | sherpa-onnx Kotlin/Android TTS APK + RN bridge model support | small footprint, 31 languages, simple fallback voice | fixed speakers; OpenRAIL-M; expressive cloning not supported |
+| Piper / current lightweight path | Depends on voice | established mobile runtime | small/low-resource fallback | quality/voice naturalness may be lower; individual voice license varies |
+
+### Revised recommendation
+1. Preserve Piper or another known lightweight local voice as safe baseline.
+2. Benchmark Supertonic 3 INT8 first as a low-memory Russian fallback (but license review before shipping).
+3. Benchmark Qwen3-TTS 0.6B Q4 as a candidate for Jarvis's cloned/expressive voice.
+4. Benchmark CosyVoice3-MNN regular synthesis as the high-quality reference candidate.
+5. Do not select by paper claims or desktop metrics: compare identical Russian command and long-form clips on PGEM10, measuring naturalness, pronunciation, first audio latency, RTF, peak RSS, temperature, cancellation and offline operation.
+6. Do not load more than one large TTS engine at once; maintain a low-memory fallback and a hard memory admission gate.
+
+### Additional primary sources
+- https://github.com/Danmoreng/qwen3-tts-android
+- https://github.com/Danmoreng/qwen3-tts.cpp
+- https://github.com/QwenLM/Qwen3-TTS
+- https://k2-fsa.github.io/sherpa/onnx/tts/supertonic.html
+- https://k2-fsa.github.io/sherpa/onnx/tts/all/Russian/supertonic-3-ru.html
+- https://github.com/XDcobra/react-native-sherpa-onnx
