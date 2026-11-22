@@ -71,17 +71,20 @@ export async function scanAppModelInventory(): Promise<LocalModelInventory> {
     modelManager.getDownloadedImageModels(),
     listWhisperModels(),
   ]);
-  const textModels = await Promise.all(models.map(async model => {
+  const textModels: InspectedTextModel[] = [];
+  // Inspect one native GGUF header at a time: several multi-GB model metadata reads in parallel
+  // can contend for file descriptors and the phone's memory even though no weights are loaded.
+  for (const model of models) {
     const header = model.engine === 'llama' ? await readModelHeader(model.filePath) : null;
     const estimatedRamMB = await estimateTextModelMemoryMB(model);
     const architecture = header?.['general.architecture'];
     const fileType = header?.['general.file_type'];
-    return {
+    textModels.push({
       model,
       estimatedRamBytes: estimatedRamMB * 1024 * 1024,
       ...(typeof architecture === 'string' ? { ggufArchitecture: architecture } : {}),
       ...(typeof fileType === 'number' ? { ggufFileType: fileType } : {}),
-    };
-  }));
+    });
+  }
   return { textModels, imageModels, whisperModels };
 }
