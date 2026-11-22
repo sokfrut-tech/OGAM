@@ -517,3 +517,16 @@ Verification:
 - New import audit succeeded on the change sequence; its artifact reports 0 `@offgrid/ui` imports, 8 remaining local `file:../shared/packages/*` dependencies, 468 total `@offgrid/*` import references, 73 shared workspace path references, 787 Pro source-path references, and 37 private checkout references.
 - [Latest successful standalone dependency audit](https://github.com/sokfrut-tech/OGAM/actions/runs/45017492595)
 - Main CI for the current branch head was queued when this note was written; the progress-core tests and the full CI result must be confirmed before calling this migration step verified.
+
+
+### Verification update — progress-core slice (2026-11-22)
+
+The dependency-free OGAM-only workflow completed successfully at branch head `15325fcc1737e9930297af3c20e8c16160597579`:
+- [Workflow run](https://github.com/sokfrut-tech/OGAM/actions/runs/45017602234)
+- The scanner's unit tests passed.
+- The standalone progress contract tests passed using Node's native test runner and `--experimental-strip-types`.
+- The 1,938-file source/config inventory was generated and uploaded successfully.
+
+The main CI run `45017602205` for the same head remains in GitHub's `pending` state and has not exposed any jobs yet. Therefore Jest, TypeScript, lint, dependency-cruiser, and Android/iOS build results for the integrated app remain **unverified**. The passing standalone tests prove the pure progress contract in isolation only; they do not prove the complete React Native app builds or that the shared progress package's inaccessible implementation is byte-for-byte behaviorally identical.
+
+Next migration target remains `@offgrid/models`, beginning with a complete OGAM-owned export/consumer contract and catalog provenance—not a wholesale replacement with the older 16-entry list.
