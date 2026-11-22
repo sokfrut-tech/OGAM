@@ -144,3 +144,10 @@ Measure identical audio corpus and device conditions:
 
 ## Evidence boundary
 This is a research and design note. Repository READMEs and vendor performance tables are not independent benchmarks. No model was downloaded, built, executed or measured on OPPO Find X6 Pro. No OGAM source code or production dependency was changed. No always-on listening capability is claimed.
+
+
+## 7. Follow-up correction and stronger Russian candidate
+
+The MIT trainer interkelstar/microwakeword-trainer now provides a much stronger candidate for a custom Russian «Джарвис» model than a pretrained English wake word. Its source-reported 47/50 real activations, 1/140 mined hard negatives and 82.5 KB TFLite output are only a small author-run evaluation; no model binary was found in the trainer repository and OGAM has not reproduced any result. See [the detailed microWakeWord Android audit](OGAM_RUSSIAN_MICROWAKEWORD_ANDROID_AUDIT_2026-11-22.md).
+
+**Clarification:** the VoiceInteractionService exception applies to the while-in-use microphone restriction. It does not waive all general background foreground-service start restrictions and does not grant hidden DSP hotword permissions. The selected service is system-kept alive, but public Android APIs do not give ordinary apps the privileged AlwaysOnHotwordDetector/SystemApi path. Android 15+ also blocks microphone FGS startup from BOOT_COMPLETED for target API 35+. Start the user-approved microphone session from a visible interaction unless another explicit current exemption is verified, and validate ColorOS 16 on PGEM10.
