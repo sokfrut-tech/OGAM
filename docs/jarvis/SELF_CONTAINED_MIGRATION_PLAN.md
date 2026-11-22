@@ -406,3 +406,30 @@ Opened the following current OGAM files on `feature/jarvis-step-2-storage-privac
 Do not start by replacing the entire RAG package. The source review shows the highest-value safe first slice is likely a **small pure helper contract** from `@offgrid/models` (catalog parsing/merge or model metadata classification) only after its exact consumer and tests are fully mapped. In parallel, build a complete document-engine contract map. Sync and speech remain later slices because they are stateful/security-sensitive and already sit on critical app paths.
 
 No runtime source was changed in this pass. This update records the exact OGAM compatibility boundaries so future reuse of external code cannot silently remove existing features.
+
+
+## Standalone fork source audit — model-catalog recovery decision (2026-11-22)
+
+A public standalone snapshot was inspected as a possible source for recovering the model package:
+
+- Repository: [wednesday-solutions/off-grid-mobile-ai](https://github.com/wednesday-solutions/off-grid-mobile-ai)
+- Exact inspected tree commit: `5ab8ca980ef2798fde7278862200f66f44b65a2f`
+- `LICENSE` contains MIT terms and copyright notice for Mohammed Ali Chherawalla (2026). Any reuse must preserve the notice and verify that each selected file belongs to that licensed snapshot.
+- `src/constants/models.ts` contains an older mobile curated list (16 text/vision recommendations) and quantization display constants. It is a useful historical behavioral/data reference, not a current replacement for `@offgrid/models`.
+
+### Why this is not a safe wholesale replacement
+
+The current OGAM branch's `catalog/models.json` is explicitly a delta catalog, not the full bundled catalog. Its inspected schema version is 1, updated 2026-11-01, and currently contains 23 `models` entries (text, vision, image and video), one `text` recommendation, one transcription entry, and empty CoreML/LiteRT sections. The catalog README says the app already ships its own full catalog and this file only adds/replaces entries.
+
+The older standalone fork's 16-entry text/vision recommendation list cannot reconstruct the current full catalog. Substituting it for `CATALOG` would drop current image/video catalog metadata and other full-catalog behaviors, so it is rejected as a complete package replacement.
+
+### Decision
+
+- Keep the old standalone MIT snapshot as a compatibility reference only.
+- Do not replace `CATALOG` with the old curated list or label the result equivalent.
+- A future OGAM-owned model package must combine a provenance-verified complete catalog source with the already documented mobile contracts and the current delta catalog, or independently rebuild and maintain the full catalog with explicit provenance.
+- Before porting the pure helpers (`prefersQ4_0`, `modelCardUrl`, `modelCardDeniesReasoning`, GGUF split/companion helpers), add direct parity tests and resolve the current naming/parser edge cases. The helper port can be separated from the full catalog migration only if package imports and all existing runtime behaviors remain intact.
+
+## Global recovery policy
+
+This migration follows the mandatory cross-project rule in [Universal AI Factory — OPEN_SOURCE_GAP_RECOVERY_POLICY.md](https://github.com/sokfrut-tech/Universal-AI-Factory/blob/main/docs/OPEN_SOURCE_GAP_RECOVERY_POLICY.md): search, inspect, compare, verify licensing, adapt/integrate, test and document. An inaccessible original source is not a reason to abandon a required feature; a superficially similar but incomplete replacement is not acceptable either.
