@@ -37,6 +37,8 @@ jobs:
         run: node --experimental-strip-types --test scripts/__tests__/transcription-language.node.test.mjs
       - name: Verify Android Jarvis assistant contract
         run: node --experimental-strip-types --test scripts/__tests__/android-assistant-contract.node.test.mjs
+      - name: Verify Jarvis assistant role UI wiring
+        run: node --experimental-strip-types --test scripts/__tests__/jarvis-assistant-role.node.test.mjs
       - name: Verify Jarvis assistant URI mapping
         run: node --experimental-strip-types --test scripts/__tests__/jarvis-voice-linking.node.test.mjs
       - name: Generate complete source/config inventory
