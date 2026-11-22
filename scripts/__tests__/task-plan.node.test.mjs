@@ -60,3 +60,73 @@ test('refuses to schedule a draft or malformed plan', () => {
   plan.steps[0].input = null;
   assert.deepEqual(getReadyTaskSteps(plan, []), []);
 });
+
+import {
+  createTaskPlanRun,
+  claimNextTaskStep,
+  resolveTaskStepApproval,
+  completeTaskStep,
+  failTaskStep,
+  retryFailedTaskStep,
+  pauseTaskPlanRun,
+  resumeTaskPlanRun,
+  cancelTaskPlanRun,
+} from '../../src/services/planner/taskPlan.ts';
+
+test('claims dependency-ready steps and waits for approval when required', () => {
+  const plan = makePlan();
+  let run = createTaskPlanRun(plan, '2026-11-22T10:00:00.000Z');
+  let claimed = claimNextTaskStep(plan, run, skillId => skillId === 'research.search');
+  assert.equal(claimed.step?.id, 'collect');
+  assert.equal(claimed.run.status, 'awaiting-approval');
+  assert.equal(claimed.run.stepStates.collect, 'awaiting-approval');
+
+  const approved = resolveTaskStepApproval(claimed.run, 'collect', true);
+  assert.equal(approved.run.status, 'running');
+  assert.equal(approved.run.stepStates.collect, 'running');
+  const completed = completeTaskStep(approved.run, 'collect', { count: 3 }, plan);
+  assert.equal(completed.run.stepStates.collect, 'completed');
+  assert.deepEqual(completed.run.stepOutputs.collect, { count: 3 });
+  assert.equal(claimNextTaskStep(plan, completed.run, () => false).step?.id, 'summarize');
+});
+
+test('rejecting approval cancels all remaining pending steps', () => {
+  const plan = makePlan();
+  const run = createTaskPlanRun(plan);
+  const pending = claimNextTaskStep(plan, run, () => true).run;
+  const rejected = resolveTaskStepApproval(pending, 'collect', false);
+  assert.equal(rejected.run.status, 'cancelled');
+  assert.deepEqual(Object.values(rejected.run.stepStates), ['cancelled', 'cancelled', 'cancelled']);
+});
+
+test('failed steps can be retried without losing completed dependencies', () => {
+  const plan = makePlan();
+  let run = createTaskPlanRun(plan);
+  run = claimNextTaskStep(plan, run, () => false).run;
+  run = completeTaskStep(run, 'collect', 'sources', plan).run;
+  run = claimNextTaskStep(plan, run, () => false).run;
+  run = failTaskStep(run, 'summarize', 'temporary failure').run;
+  assert.equal(run.status, 'failed');
+  assert.equal(run.stepErrors.summarize, 'temporary failure');
+  run = retryFailedTaskStep(run, 'summarize').run;
+  assert.equal(run.status, 'ready');
+  assert.equal(run.stepStates.collect, 'completed');
+  assert.equal(run.stepStates.summarize, 'pending');
+  assert.deepEqual(getReadyTaskSteps({ ...plan, status: run.status }, ['collect']).map(step => step.id), ['summarize']);
+});
+
+test('pause/resume and cancellation do not silently interrupt an active step', () => {
+  const plan = makePlan();
+  let run = createTaskPlanRun(plan);
+  run = claimNextTaskStep(plan, run, () => false).run;
+  const blockedPause = pauseTaskPlanRun(run);
+  assert.ok(blockedPause.error);
+  const blockedCancel = cancelTaskPlanRun(run);
+  assert.ok(blockedCancel.error);
+
+  run = completeTaskStep(run, 'collect', null, plan).run;
+  const paused = pauseTaskPlanRun(run).run;
+  assert.equal(paused.status, 'paused');
+  assert.equal(resumeTaskPlanRun(paused).run.status, 'ready');
+  assert.equal(cancelTaskPlanRun(paused).run.status, 'cancelled');
+});
