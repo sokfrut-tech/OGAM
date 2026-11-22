@@ -163,3 +163,7 @@ Additional references reviewed: MindTriggerAssist (Find X7 / ColorOS 16 long-pre
 
 ## Expanded international research scope (2026-11-22)
 The source survey now includes Chinese platforms and Chinese-language projects (GitCode/AtomGit and discovery targets Gitee, ModelScope, OpenI), Indian/Indic-language Android assistants, and broader Android agent projects. New findings and links are recorded in REFERENCE_PROJECTS.md; OGAM architecture decisions and priorities are recorded in OGAM_CAPABILITY_MAPPING.md. This adds a standing rule: search beyond GitHub, including regional code hosts and model hubs, and audit source/license/build/tests before reuse.
+
+
+## New deep-audit result
+- [ZorvAI source audit and OGAM transfer notes](ZORVAI_SOURCE_AUDIT.md) — tool registry, ACI/Binder, plugin framework, permission tiers, native ASR isolation, orchestration and security findings.
