@@ -19,6 +19,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Verify scanner tests
         run: node --test scripts/__tests__/audit-offgrid-imports.test.mjs
+      - name: Verify standalone progress contract
+        run: node --experimental-strip-types --test scripts/__tests__/progress-core.node.test.mjs
       - name: Generate complete source/config inventory
         run: node scripts/audit-offgrid-imports.mjs --output=ogam-import-audit.json
       - name: Upload audit evidence
