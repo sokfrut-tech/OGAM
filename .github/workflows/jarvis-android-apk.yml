@@ -1,0 +1,73 @@
+name: Jarvis Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jarvis-android-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build arm64 Android debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Check required private workspace access
+        env:
+          PRO_SUBMODULE_PAT: ${{ secrets.PRO_SUBMODULE_PAT }}
+        shell: bash
+        run: |
+          if [ -z "$PRO_SUBMODULE_PAT" ]; then
+            echo "::error::This fork needs the PRO_SUBMODULE_PAT Actions secret with read access to off-grid-ai/mobile-pro and off-grid-ai/shared. The upstream workspace uses private file: dependencies; the build cannot resolve them without this token."
+            exit 1
+          fi
+
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-mobile
+        with:
+          private-token: ${{ secrets.PRO_SUBMODULE_PAT }}
+          shared: 'true'
+          save-caches: 'false'
+
+      - name: Set up Android toolchain and native video runtime
+        uses: ./.github/actions/setup-android
+        with:
+          video: 'true'
+          save: 'false'
+
+      - name: Set up Android SDK tools
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Build arm64 debug APK
+        run: |
+          cd android
+          ./gradlew :app:assembleDebug --no-daemon -PreactNativeArchitectures=arm64-v8a
+
+      - name: Verify APK and write checksum
+        shell: bash
+        run: |
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          sha256sum "$APK" | tee android/app/build/outputs/apk/debug/app-debug.apk.sha256
+          ls -lh "$APK"
+
+      - name: Upload installable debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Jarvis-OGAM-Android-arm64-debug
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/app-debug.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
