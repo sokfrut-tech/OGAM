@@ -1,4 +1,4 @@
-import { isDraftModelFile, isMtpHeadFile } from '@offgrid/models';
+import { isCompanionFile, isImatrixFile } from '../../utils/modelCompanionFiles';
 import RNFS from 'react-native-fs';
 import { statFile } from '../../utils/fileStat';
 import {
@@ -50,7 +50,10 @@ export async function importLocalModel(opts: ImportLocalModelOpts): Promise<Down
   if (!fileName.toLowerCase().endsWith('.gguf') && !isLitert) {
     throw new Error('Only .gguf and .litertlm files can be imported');
   }
-  if (isMtpHeadFile(fileName) || isDraftModelFile(fileName)) {
+  if (isImatrixFile(fileName)) {
+    throw new Error('This file is calibration data for making a model, not a model. Choose one of the sizes instead.');
+  }
+  if (isCompanionFile(fileName)) {
     throw new Error('This file only speeds up another model. It cannot run on its own.');
   }
 
