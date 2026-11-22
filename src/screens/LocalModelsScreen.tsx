@@ -116,11 +116,11 @@ export const LocalModelsScreen: React.FC = () => {
         await modelManager.importLocalModel({
           sourceUri: uri,
           fileName: artifact.name,
-          sourceSize: artifact.fileSize,
+          sourceSize: artifact.fileSize > 0 ? artifact.fileSize : null,
           ...(mmProj && mmProjUri ? {
             mmProjSourceUri: mmProjUri,
             mmProjFileName: mmProj.name,
-            mmProjSourceSize: mmProj.fileSize,
+            mmProjSourceSize: mmProj.fileSize > 0 ? mmProj.fileSize : null,
           } : {}),
           onProgress: progress => setImportProgress(progress.fraction),
         });
