@@ -175,3 +175,45 @@ Qwen3-ASR is already integrated in OGAM's React Native app branch. The immediate
 5. retain the existing Whisper fallback and memory admission gate until those tests pass.
 
 This correction is important: Qwen3-ASR's integration work is already present in OGAM; only native/device validation remains unproven.
+
+
+## 2026-11-22 additional breakthrough: Qwen3-ASR through sherpa-onnx (Android + iOS)
+
+This is a second viable runtime route for the Qwen3-ASR model already present in OGAM. Do not duplicate the model in the product without a controlled comparison.
+
+### Confirmed upstream support
+- Official sherpa-onnx documentation has a dedicated Qwen3-ASR section and explicitly lists Android `arm64-v8a` and iOS `arm64` as supported platforms.
+- The project supplies a Kotlin API example (`kotlin-api-examples/test_offline_qwen3_asr.kt`), Java API model config, C/C++ APIs, and a Swift API example (`swift-api-examples/qwen3-asr.swift`).
+- The published model is `sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25`, converted from Qwen3-ASR using Wasser1462/Qwen3-ASR-onnx.
+- The documented package contains `conv_frontend.onnx` (~42 MB), `encoder.int8.onnx` (~174 MB), `decoder.int8.onnx` (~721 MB), tokenizer files (~4.2 MB), and test audio; reported total directory size is 1,954,552,000 bytes (~1.82 GiB).
+- The model supports Russian, German, English, Chinese and other languages plus the documented Chinese dialect set.
+- The Android microphone examples use Qwen3-ASR with CPU provider and optional Silero VAD. The documented "simulated streaming" path is VAD/chunked use of an offline recognizer; do not describe the model itself as a native token-streaming recognizer.
+- The upstream sherpa-onnx repository is Apache-2.0. Confirm exact AAR/ONNX Runtime notices and model export provenance before redistributing binaries.
+
+### Relevant primary sources
+- https://k2-fsa.github.io/sherpa/onnx/qwen3-asr/index.html
+- https://k2-fsa.github.io/sherpa/onnx/qwen3-asr/pretrained.html
+- https://github.com/k2-fsa/sherpa-onnx/blob/master/kotlin-api-examples/test_offline_qwen3_asr.kt
+- https://github.com/k2-fsa/sherpa-onnx/blob/master/swift-api-examples/qwen3-asr.swift
+- https://github.com/Wasser1462/Qwen3-ASR-onnx
+- https://github.com/k2-fsa/sherpa-onnx
+
+### What this means for OGAM / Jarvis
+OGAM already has Qwen3-ASR 0.6B as GGUF + mmproj via llama.rn. That route has app-level tests for language prompt, Russian language selection, checksummed two-file downloads and Whisper fallback, but native inference on PGEM10 is not proven.
+
+The sherpa-onnx route is a distinct implementation and format:
+- GGUF + mmproj + llama.rn (existing)
+- ONNX conv frontend + encoder + decoder + tokenizer + sherpa-onnx (alternative)
+Do not mix their artifacts, metadata, checksums, or model catalog IDs.
+
+### Proposed experiment (do not replace existing backend yet)
+1. Add a separate, opt-in benchmark flavor/branch only after confirming native integration boundaries. Do not silently add a second ~1.9 GB model to the standard install.
+2. For Android, use the official sherpa-onnx Kotlin API and the smallest supported arm64-v8a native package; confirm exact AAR artifact, ABI filters, license notices and resulting APK size.
+3. For iOS, evaluate the official Swift API / XCFramework and memory budget separately. Do not assume Android packaging works on iOS.
+4. Use CPU as the reproducible baseline; do not claim Qualcomm NPU/HTP acceleration from generic ONNX support. The official Qwen3 sherpa examples set provider=cpu.
+5. Benchmark both backends with identical Russian audio clips, same sample rate and decoding constraints: cold load, warm load, first-result latency, RTF, peak RSS, sustained thermal behavior, accuracy/WER/CER, punctuation, names/commands, noisy speech, cancellation and airplane mode.
+6. Use the same Whisper fallback contract and avoid simultaneous residency of both large ASR engines. Ensure model switching releases the prior native context before loading the next.
+7. Test on the actual OPPO Find X6 Pro / PGEM10 (SM8550), not just emulator or a different Snapdragon generation.
+
+### Decision
+Keep the existing llama.rn Qwen3-ASR as the production candidate because it is already integrated into OGAM. Promote sherpa-onnx to a controlled alternative benchmark because it has explicit Android/iOS APIs and a documented Qwen3-ASR ONNX model. No code, AAR, model weights or binary artifacts were added in this research update; no PGEM10 performance claim is made.
