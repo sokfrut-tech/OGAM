@@ -11,7 +11,8 @@ class JarvisSpeechChunkerTest {
 
     assertTrue(chunker.append("Привет, ").isEmpty())
     assertEquals(listOf("Привет, мир."), chunker.append("мир. Как "))
-    assertEquals(listOf("Как дела?"), chunker.append("дела?"))
+    assertTrue(chunker.append("дела?").isEmpty())
+    assertEquals(listOf("Как дела?"), chunker.flush())
   }
 
   @Test
@@ -30,8 +31,11 @@ class JarvisSpeechChunkerTest {
   fun keepsInitialsTogether() {
     val chunker = JarvisSpeechChunker()
 
-    assertTrue(chunker.append("А. С. Пушкин написал стихотворение. ").isNotEmpty())
-    assertEquals(listOf("А. С. Пушкин написал стихотворение."), chunker.flush())
+    assertEquals(
+      listOf("А. С. Пушкин написал стихотворение."),
+      chunker.append("А. С. Пушкин написал стихотворение. "),
+    )
+    assertTrue(chunker.flush().isEmpty())
   }
 
   @Test
