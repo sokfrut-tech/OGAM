@@ -63,8 +63,8 @@ Android references: [RoleManager](https://developer.android.com/reference/androi
 
 ## CI evidence and what it does not prove
 
-GitHub Actions run #200:
-https://github.com/sokfrut-tech/OGAM/actions/runs/45027808750
+Latest completed open-core audit for the current code snapshot: run #45038477079
+https://github.com/sokfrut-tech/OGAM/actions/runs/45038477079
 
 Passed:
 - 5 static Android-assistant contract tests;
@@ -72,17 +72,23 @@ Passed:
 - 2 one-shot voice invocation contracts (route wiring, safe auto-send, existing draft preservation, empty capture cleanup);
 - 1 assistant URI/route mapping test;
 - existing skill, task-plan, Russian model evaluation, locale-default and audit Node suites;
-- source/config audit: 1,975 files and 1,354 dependency references;
-- audit artifact \`ogam-import-audit\`, ID \`14755439565\`.
+- source/config audit: 1,976 files and 1,354 dependency references;
+- audit artifact \`ogam-import-audit\`, ID \`14760761900\`.
 
-These are open-core Node/static checks. They do **not** compile Kotlin, execute the five new Kotlin/JUnit snapshot tests, run Jest (including the composer/Qwen integration tests), run TypeScript, merge the Android manifest, install an APK, prove role eligibility on ColorOS, or validate mic invocation on OPPO Find X6 Pro. No release claim should be based on this run alone.
+These are open-core Node/static checks. They do **not** compile Kotlin, execute the five Kotlin/JUnit role-snapshot tests or eight Kotlin/JUnit PCM-player tests, run Jest (including composer/Qwen integration tests), run TypeScript, merge the Android manifest, install an APK, prove role eligibility on ColorOS, or validate mic invocation on OPPO Find X6 Pro. The PCM source-contract test additionally checks the two corrected Kotlin test declarations, but is not a substitute for Gradle. No release claim should be based on this run alone.
+
+## PCM playback groundwork
+
+- \`JarvisPcmStreamPlayer\` is an engine-neutral native primitive for mono Float32 chunks. It owns AudioTrack, AudioFocus, non-blocking ordered writes, generation-token invalidation, cancellation and resource release.
+- Eight Kotlin/JUnit cases cover ordered partial writes, immediate cancel, stale generations, invalid sample rates, focus denial/loss/duck/gain and a cancelled concurrent startup.
+- No production TTS backend currently calls this player. It is not yet audible Jarvis speech. Do not mark Russian TTS as implemented until a license-cleared model/runtime adapter streams real Russian PCM into this player and is measured on OPPO.
 
 ## Next gates
 
-1. Run Android Gradle compile / manifest merge / unit tests once the private \`shared\` and Pro dependencies are replaced or available in the authorized build environment.
-2. Install on OPPO Find X6 Pro, grant microphone permission and confirm Jarvis appears in Android's Digital Assistant App picker.
-3. Invoke from the system gesture with the app cold, warm, locked and after process recreation; verify a single recording start and that no assist/screenshot data arrives.
-4. Verify the no-model path leaves the microphone closed and provides a useful visible prompt.
-5. Add an in-app OEM-compatible role-picker entry and localized instructions.
-6. Implement and test a genuinely local legacy RecognitionService only if Android 7–11 system-assistant support remains a product requirement.
-7. Separately add opt-in wake word, Russian local TTS, duplex/barge-in and consented on-screen context. None of those is delivered by this system-service slice.
+1. Run Android Gradle compile / manifest merge / unit tests once the private \`shared\` and Pro dependencies are replaced or available in the authorized build environment; verify the two fixed Kotlin test cases actually compile and run.
+2. Install on OPPO Find X6 Pro, grant microphone permission and confirm Jarvis appears in Android's Digital Assistant App picker; verify Settings role status reflects an active service.
+3. Invoke from the system gesture with the app cold, warm, locked and after process recreation; verify a single recording start, existing drafts remain unsent, and no assist/screenshot data arrives.
+4. Verify the no-model path leaves the microphone closed and offers the speech-model screen.
+5. Select a Russian TTS runtime only after code/model/voice/dataset license review; implement its adapter to the PCM player, then measure first-audio latency, RTF, peak RAM, thermal and battery on OPPO.
+6. Add opt-in wake word, duplex/barge-in and consented on-screen context. These are not delivered by the current system-assistant slice.
+7. Implement a genuinely local legacy RecognitionService only if Android 7–11 system-assistant support remains a product requirement.
