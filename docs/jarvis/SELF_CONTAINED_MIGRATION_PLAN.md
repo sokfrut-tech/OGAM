@@ -433,3 +433,45 @@ The older standalone fork's 16-entry text/vision recommendation list cannot reco
 ## Global recovery policy
 
 This migration follows the mandatory cross-project rule in [Universal AI Factory — OPEN_SOURCE_GAP_RECOVERY_POLICY.md](https://github.com/sokfrut-tech/Universal-AI-Factory/blob/main/docs/OPEN_SOURCE_GAP_RECOVERY_POLICY.md): search, inspect, compare, verify licensing, adapt/integrate, test and document. An inaccessible original source is not a reason to abandon a required feature; a superficially similar but incomplete replacement is not acceptable either.
+
+
+## Automated OGAM-only dependency inventory (2026-11-22)
+
+The standalone audit workflow ran on commit `f706b86c9aab9021c8a4409bbf69bd060f8d7193` without checking out either private upstream repository and passed its scanner tests. Its artifact `ogam-import-audit` scanned 1,938 text/source/config files. This is a reference inventory, not proof that dependencies are resolved or that the app builds.
+
+Evidence:
+- [Successful audit run](https://github.com/sokfrut-tech/OGAM/actions/runs/45017008291)
+- [Audit artifact](https://github.com/sokfrut-tech/OGAM/actions/runs/45017008291)
+- [Main CI run for the same head](https://github.com/sokfrut-tech/OGAM/actions/runs/45017008304)
+
+### Measured counts
+
+| Evidence class | Count |
+| --- | ---: |
+| `@offgrid/*` import references (including tests) | 471 |
+| `../shared` workspace-path references | 76 |
+| Pro source-path references (including tests) | 787 |
+| Private checkout references | 37 |
+| Local `file:../shared/packages/*` dependencies in package.json | 9 |
+
+Import references by package (source / tests):
+- `@offgrid/models`: 94 / 37
+- `@offgrid/sync`: 44 / 104
+- `@offgrid/rag`: 19 / 4
+- `@offgrid/speech`: 8 / 1
+- `@offgrid/ui`: 3 / 0
+- `@offgrid/design`: 2 / 0
+- `@offgrid/notes`, `@offgrid/notes-editor`, `@offgrid/writing`, and `@offgrid/automation`: no direct package imports detected by this scanner; they still remain local file dependencies and may be referenced indirectly by workspace/build configuration.
+- Pro is referenced by two source files and extensively by tests. The two source files are `src/bootstrap/loadProFeatures.ts` and `src/services/demoSeed.ts`; removing Pro therefore needs an explicit supported open-core behavior and test policy, not an unreviewed blanket deletion.
+
+### Migration order derived from the evidence
+
+1. **models** — largest runtime surface (94 source references) and central to catalog, model selection, downloads, modality metadata, device picks, and generation. Build a full OGAM-owned contract and catalog; do not substitute the older 16-entry fork catalog.
+2. **sync** — 44 runtime references and security-sensitive pairing/mesh/membership/transport semantics. Preserve the existing OGAM adapters and contract tests; do not replace this with a simple HTTP or MCP transport.
+3. **rag** — 19 runtime references across documents, extraction, embeddings, project knowledge bases and retrieval. Port against the OGAM-owned ports and round-trip tests.
+4. **speech** — 8 runtime references; the voice session state machine and silence endpoint need race/regression tests.
+5. **design/ui** — only five runtime imports combined, but they affect shared palettes and download status/progress presentation. Inspect their actual exports and consumers before implementing small owned equivalents.
+6. **notes / notes-editor / writing / automation** — no direct package imports detected; investigate whether they are dead package links or dynamically loaded / indirect build inputs before removing dependencies.
+7. **pro** — isolate the two runtime references and determine the open-core behavior; keep Pro-only tests meaningful and do not silently skip tests to obtain green CI.
+
+The inventory shows the migration is not a one-package change: models and sync dominate the runtime surface. The next implementation work should start with exact export/consumer contracts for models, then split pure deterministic helpers from catalog data and native/runtime integrations. The full JSON artifact is the file/line evidence source for this count set.
