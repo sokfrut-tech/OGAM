@@ -57,11 +57,14 @@ test('native guard protects every assistant route spelling normalized by React N
   assert.match(packageLock, /"node_modules\/@react-navigation\/core":[\s\S]*?"version": "7\.24\.0"/);
 });
 
-test('system assistant is enabled only from Android 12 (API 31)', () => {
+test('both system-assistant services are enabled only from Android 12 (API 31)', () => {
   const base = read('android/app/src/main/res/values/bools.xml');
   const api31 = read('android/app/src/main/res/values-v31/bools.xml');
+  const manifest = read('android/app/src/main/AndroidManifest.xml');
   assert.match(base, /jarvis_voice_interaction_enabled">false/);
   assert.match(api31, /jarvis_voice_interaction_enabled">true/);
+  assert.match(manifest, /name="ai\.offgridmobile\.voice\.JarvisVoiceInteractionService"[\s\S]*?enabled="@bool\/jarvis_voice_interaction_enabled"/);
+  assert.match(manifest, /name="ai\.offgridmobile\.voice\.JarvisVoiceInteractionSessionService"[\s\S]*?enabled="@bool\/jarvis_voice_interaction_enabled"/);
 });
 
 test('the assistant session launches Chat through the documented URI without requesting screen context', () => {
