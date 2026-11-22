@@ -175,6 +175,15 @@ Verified OGAM files/tests:
 
 **Migration blocker:** the exact `@offgrid/speech` transition implementation and private Pro replay/playback callers are not available in this connected fork. The event names above are grounded in OGAM consumers/tests, but the complete replay state contract and all hidden Pro callers are not yet proven. Do not replace `voiceSession` with an inferred three-state boolean machine. The next safe migration step is to create a full caller/event inventory (including the Pro-side replay start/end seam), then implement a pure OGAM-owned transition table with tests for initial hands-free, userStart idempotency, speechHeard phase-only notification, turnCaptured, userStop, one/two nothingHeard, dictationFinished, replay return and stale capture ownership.
 
-## 8. Scope note for the Russian locale correction
+## 8. Russian-first default in the primary ChatInput path
+
+The current main `ChatInput/Voice` path reads `useWhisperStore.transcriptionLanguage` and passes it to:
+- Whisper live recognition (`startRealtimeTranscription`);
+- Whisper final recorded-file transcription (`transcribeFile`);
+- Qwen3-ASR (`QwenAsrEngine.transcribe`), which maps the selected code to a language-name prefill such as `language Russian<asr_text>`.
+
+The old store default was hard-coded to `en`. On 2026-11-22 the new-profile default was changed to the app/device locale: Russian → `ru`, English/unsupported locales → `en`. The setting is persisted; existing values are deliberately not overwritten during upgrade, to preserve a person's explicit choice. A unit Node test verifies the pure locale mapping. A Qwen ChatInput integration test for the Russian code has been added but has not yet run in Jest or on OPPO. Therefore this is a code-level default fix, not a measured ASR quality result.
+
+## 9. Scope note for the legacy Russian locale correction
 
 The 2026-11-22 change to `voiceService.ts` corrects the separate `react-native-voice` wrapper and its `useVoiceRecording` hook. Repository code search found no production call site for that legacy hook. The current main ChatInput flow instead uses `audioRecorderService` plus Whisper/Qwen transcription and `useWhisperStore.transcriptionLanguage`. Therefore the RU/EN wrapper fix is useful maintenance, but it is **not** proof that the primary ChatInput pipeline or offline ASR defaults are already Russian. Verify the actual selected Whisper/Qwen language and model on OPPO before release.
