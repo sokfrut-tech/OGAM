@@ -1003,3 +1003,11 @@ The current source-derived feature inventory and Siri parity status are maintain
 ### Russian-first voice stack research
 
 The detailed, license-aware voice study is now in `docs/jarvis/VOICE_STACK_RESEARCH_RU_2026-11-22.md`. It compares MIT/Apache/BSD speech runtimes, Russian ASR/TTS/VAD candidates, measured server results versus unverified mobile performance, the private OGAM Pro audio feature contracts, and the OPPO device test plan. No Russian TTS default is selected until exact model revision/provenance and on-device quality/performance are verified.
+
+
+### Verification update — planner and voice research (2026-11-22)
+
+- Standalone Node audit run `45022345489` succeeded on commit `bbc12323401f30f278f7af592c46867c4a0d24c7`. It includes the skill-contract tests and task-plan graph/run-transition tests.
+- Earlier split-module test runs failed because Node ESM could not resolve an extensionless TypeScript import. The planner was split into `taskPlan.ts` and `taskPlanRun.ts`, the import was corrected to `.ts`, and the latest audit passed.
+- The new Zustand task-plan store has Jest tests in the repository, but the standalone audit does not run Jest. Do not treat those store tests, TypeScript typecheck, full Jest suite, Android build or device runtime as verified.
+- PR #1 remains open/draft. The APK workflow still depends on private Pro checkout; no APK build or release is claimed.
