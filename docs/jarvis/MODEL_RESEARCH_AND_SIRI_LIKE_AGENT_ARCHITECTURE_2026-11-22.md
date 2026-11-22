@@ -147,3 +147,18 @@ Recommended evaluation profiles:
 Do not rank these by "uncensored" labels alone. Evaluate Russian language quality, factual accuracy, reasoning, tool-call validity and refusal behaviour separately. Keep the action broker outside the model so even the unrestricted research profile cannot directly grant itself Android permissions or silently execute privileged actions.
 
 Dynamic discovery sources such as https://abliteratedmodels.org/ and https://aiunzipped.com/models/uncensored are useful for finding candidates, but are indexes, not provenance authorities. Verify each candidate against its upstream model card, exact files, license and checksums.
+
+
+## 11. Runtime compatibility gate for Qwen3.5 GGUF
+
+The OGAM package manifest currently pins llama.rn as npm alias @ogai/llama.rn at 0.13.0-b12560. Public llama.cpp evidence indicates the qwen35 architecture support landed in build b7990 and Qwen3.5 MTP support in/after b9180. This makes the pinned build number look sufficiently recent, but it is not proof that the exact OGAM native binary supports every tensor, hybrid SSM layer, vision projector or MTP path.
+
+Before adding Qwen3.5-family files to the production catalog:
+- inspect the exact @ogai/llama.rn source revision and bundled llama.cpp commit, not just the package version string;
+- run a real GGUF metadata parse and load smoke test on Android arm64;
+- test prompt-template/tool-call parsing with --jinja-equivalent runtime configuration;
+- test Q4_K_M text-only first, then matching mmproj, then MTP as an optional performance path;
+- confirm cancellation, unload/reload, memory reporting and app background recovery;
+- keep the official Qwen3.5 model available as a non-abliterated control in all comparative tests.
+
+References: llama.cpp qwen35 architecture requirements are documented by the Qwen3.5 GGUF conversion pages, including https://huggingface.co/axteam/Qwen3.5-2B-GGUF; upstream implementation discussion: https://github.com/ggml-org/llama.cpp/issues/31551. A reported version threshold is not a substitute for testing OGAM's exact native build.
