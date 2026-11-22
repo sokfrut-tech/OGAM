@@ -17,7 +17,9 @@ This document records **offline, read-only static analysis** of **26 owner-suppl
   - ZIP container integrity and `classes*.dex`, `lib/`, `assets/`, and `res/xml/` inventories.
   - X.509 signing certificate SHA-256 fingerprints extracted from APK Signature Scheme v2/v3/v3.1 blocks and v1 PKCS#7 blocks (`META-INF/*.RSA|DSA|EC`).
   - Binary `AndroidManifest.xml` (AXML) decoding: package, versionName/versionCode, min/target/compile SDK, `<uses-permission>`, `<permission>`, `<queries>`, `<application>` metadata, and exported/internal activities, services, receivers, and ContentProviders.
-  - DEX structural header/table extraction (`class_defs`, package namespaces, AIDL `$Stub` interfaces, `content://` URIs, `.db` filename strings, deduplicated HTTPS hostnames, and runtime framework markers) on all 20 OPPO/ColorOS/Breeno/Search system APKs, plus class/manifest/native inventory on the 6 third-party companion APKs.
+  - DEX structural header/table extraction (`class_defs`, package namespaces, AIDL `$Stub` interfaces, `content://` URI strings, `.db` filename strings, HTTPS hostnames, and framework markers) on 19 OPPO/ColorOS/Breeno core-system APKs plus the separately classified third-party `reactivephone.msearch` APK; class/manifest/native inventory was also collected for the 6 other companion/third-party APKs.
+- **Evidence interpretation:** Manifest fields prove what an APK declares, not whether a component is actually invoked at runtime. DEX class/package names, AIDL stub names, provider URI strings, database filename strings, hostnames, assets and native-library filenames are structural indicators only; they do not prove a working call path, data flow, cloud use, model execution or user-visible feature. Descriptions below use “suggests”, “consistent with” or “candidate subsystem” where method/call-graph or runtime evidence is absent. Runtime claims require JADX method tracing/call graphs and, where relevant, controlled device traces.
+- **Size units:** JSON `apks[].size_bytes` is the exact compressed APK archive length in bytes. JSON `notable_native_libs[].size` is the exact uncompressed ZIP-entry length in bytes for that `.so` file. Human-readable MB values in this report use decimal MB (1 MB = 1,000,000 bytes); do not compare an APK archive size directly with an uncompressed library-entry size. No MiB values are implied unless explicitly labeled MiB.
 - **Explicit limitations (not performed / not claimed):**
   - JDK `apksigner` full-body cryptographic signature verification and full JADX Java/Smali decompilation were **not** run because JDK, `apksigner`, `aapt2`, and `jadx` are not installed in this workstation environment.
   - No APK was installed, launched, executed on Android/Find X6 Pro, or dynamically instrumented. No native `.so` binary was executed.
@@ -27,15 +29,15 @@ This document records **offline, read-only static analysis** of **26 owner-suppl
 
 ## 2. Exact-Build Verification Gate (Section 3 Check)
 
-Manifest `<meta-data>` embeds `versionCommit` and `versionDate` fields in several ColorOS/HeyTap APKs, allowing exact build verification against the previously captured OPPO Find X6 Pro screenshots (`OPPO_FIND_X6_PRO_DEVICE_EVIDENCE_2026-11-22.md`):
+Manifest `<meta-data>` embeds `versionCommit` and `versionDate` fields in several local ColorOS/HeyTap APKs. These can be compared with the version strings visible in screenshots, but a screenshot does not prove that the local APK file has the same hash or signer as the installed package. The Breeno and Memory screenshot records are in `OPPO_FIND_X6_PRO_DEVICE_EVIDENCE_2026-11-22.md`; the Instructions 17.7.2 record is separately in `OPPO_BREENO_INSTRUCTIONS_PERMISSIONS_2026-11-22.md`.
 
-| Component | Package | Phone Screenshot Build | Analyzed Local APK | Decoded Manifest `versionName` (`versionCode`) + `versionCommit_versionDate` | SHA-256 & Signer Verification | Gate Result |
+| Component | Package | Device screenshot version evidence | Analyzed local APK | Decoded manifest `versionName` (`versionCode`) + `versionCommit_versionDate` | Local APK SHA-256 / extracted cert fingerprints | Evidence conclusion |
 |---|---|---|---|---|---|---|
-| **Breeno / 小布助手** | `com.heytap.speechassist` | `13.4.3_08c04e4_261110` | `Breeno-13.4.3.apk` | `13.4.3` (`130403`), metadata `commit=08c04e4`, `date=261110` | APK SHA-256 `cf547e47328383823caacb28f8abd634260b783453fd93848e98d7d5d79c4940`; v2 cert `4b9095b0b71b...`, v3.1 `a7e23cceb52c...` | **Exact build match** |
-| **Breeno (older reference)** | `com.heytap.speechassist` | *(diff baseline)* | `Breeno-13.3.2.apk` | `13.3.2` (`130302`), metadata `commit=c9e44b3`, `date=260923` | APK SHA-256 `d4df69617da25ba8b87b1ea400d1c5cb32ab6dca3eabf123b46b81d8d5ffeda6`; v2 cert `4b9095b0b71b...` | Valid older reference |
-| **Breeno Memory / 小布记忆** | `com.oplus.aimemory` | `16.11.5_008719b_260901` | `Breeno Memory-16.11.5.apk` | `16.11.5` (`16011005`), metadata `commit=008719b`, `date=260901` | APK SHA-256 `b9646e41186717bf0d59e6d8815d587f547fa503900978731d670454f9ae3e7e` (**exact match** to APKMirror catalog SHA-256); cert `b0a9bbfc05eee5e7d0a2c97c030586e15bb3301152078f54473bb82df6d8c818` (**exact match** to APKMirror catalog cert) | **Exact build match** |
-| **Breeno Instructions / 小布指令** | `com.coloros.shortcuts` | `17.7.2_91aa93e_261102` | `Инструкции Breeno-17.2.4.apk` | `17.2.4` (`17002004`), metadata `commit=468698a`, `date=260701` | APK SHA-256 `fb26a5990a067156e7c456d956a8586a002f4a41cc77fea7e1cdb6c9beda9304`; v2 cert `64aafaf1d5bc...`, v3.1 `159e6f37c336...` | **Older reference build** (not exact `17.7.2`) |
-| **SearchService (`com.oplus.dmp`)** | `com.oplus.dmp` | `16.16.80_2f5f245_260902` | `SearchService-16.16.80_2f5f245_260902.apk` | `16.16.80_2f5f245_260902` (`16016080`) | APK SHA-256 `6a14874985e1ea6ea69827c41908e6abb5b4a8ccda19b5100b0e9fcf0bdd15b2`; cert `b0a9bbfc05ee...` | Exact filename/version match |
+| **Breeno / 小布助手** | `com.heytap.speechassist` | `13.4.3_08c04e4_261110` | `Breeno-13.4.3.apk` | `13.4.3` (`130403`), metadata `commit=08c04e4`, `date=261110` | APK SHA-256 `cf547e47328383823caacb28f8abd634260b783453fd93848e98d7d5d79c4940`; extracted v2 cert `4b9095b0b71b...`, v3.1 cert `a7e23cceb52c...` | Screenshot version string and local APK build metadata match; installed APK hash/signer not independently verified. |
+| **Breeno (older reference)** | `com.heytap.speechassist` | No; comparison baseline only | `Breeno-13.3.2.apk` | `13.3.2` (`130302`), metadata `commit=c9e44b3`, `date=260923` | APK SHA-256 `d4df69617da25ba8b87b1ea400d1c5cb32ab6dca3eabf123b46b81d8d5ffeda6`; extracted v2 cert `4b9095b0b71b...` | Older diff baseline only; not the target-device version. |
+| **Breeno Memory / 小布记忆** | `com.oplus.aimemory` | `16.11.5_008719b_260901` | `Breeno Memory-16.11.5.apk` | `16.11.5` (`16011005`), metadata `commit=008719b`, `date=260901` | APK SHA-256 `b9646e41186717bf0d59e6d8815d587f547fa503900978731d670454f9ae3e7e` (also listed by APKMirror); extracted cert `b0a9bbfc05eee5e7d0a2c97c030586e15bb3301152078f54473bb82df6d8c818` | Screenshot version string and local APK build metadata match; installed APK hash/signer not independently verified. |
+| **Breeno Instructions / 小布指令** | `com.coloros.shortcuts` | `17.7.2_91aa93e_261102` (separate screenshot evidence; see [Instructions permissions](OPPO_BREENO_INSTRUCTIONS_PERMISSIONS_2026-11-22.md)) | `Инструкции Breeno-17.2.4.apk` | `17.2.4` (`17002004`), metadata `commit=468698a`, `date=260701` | APK SHA-256 `fb26a5990a067156e7c456d956a8586a002f4a41cc77fea7e1cdb6c9beda9304`; extracted v2 cert `64aafaf1d5bc...`, v3.1 cert `159e6f37c336...` | Local 17.2.4 APK is an older reference only; installed 17.7.2 APK is not in the analyzed set. |
+| **SearchService (`com.oplus.dmp`)** | `com.oplus.dmp` | Not visible in supplied device screenshots | `SearchService-16.16.80_2f5f245_260902.apk` | `16.16.80_2f5f245_260902` (`16016080`) | APK SHA-256 `6a14874985e1ea6ea69827c41908e6abb5b4a8ccda19b5100b0e9fcf0bdd15b2`; extracted cert `b0a9bbfc05ee...` | Local APK filename and manifest metadata agree; installed device version is unverified. |
 
 > Note: Signing certificate comparison against the live phone still requires read-only on-device package dump (`pm list packages -f` / `apksigner` or PackageInfo signatures) if exact device-installed verification is needed for system apps.
 
@@ -53,7 +55,7 @@ Manifest `<meta-data>` embeds `versionCommit` and `versionDate` fields in severa
 | `Инструкции Breeno-17.2.4.apk` | `com.coloros.shortcuts` | `17.2.4` (`17002004`) | `31→37` | OPPO ColorOS `64aafaf1d5bc` | 19,034 | 2 | 48 | Shortcut rules/triggers/chains, `shortcut.db`, SceneService AIDL consumer |
 | `Быстрый поиск Breeno-16.12.2.apk` | `com.coloros.colordirectservice` | `16.12.2` (`161202`) | `29→36` | OPPO ColorOS `64aafaf1d5bc` | 40,074 | 22 | 713 | Screen reading, Flash Notes, Copywriting/Smart Sidebar, NCNN text classifier |
 
-### 3.2 ColorOS 16 AI Engine, Search, Suggestions & SystemUI Ecosystem (15 APKs)
+### 3.2 ColorOS 16 AI Engine, Search, Suggestions & SystemUI Ecosystem (14 APKs)
 
 | File | Package | Version (Code) | SDK min→target | Cert cluster (prefix) | DEX Classes | Native `.so` | Primary observed capability |
 |---|---|---|---|---|---:|---:|---|
@@ -71,9 +73,8 @@ Manifest `<meta-data>` embeds `versionCommit` and `versionDate` fields in severa
 | `Глоб.поиск-11.64.3.20.apk` | `com.heytap.quicksearchbox` | `11.64.3.20` (`1164003`) | `26→34` | HeyTap `ee7e8a883d03` | 51,750 | 37 | Global/Dock search, 142 MB custom WebView, FFmpeg media, `GlobalSearchProvider` |
 | `Базовые сервисы на основе данных-5.9.17.01.apk` | `com.oplus.statistics.rom` | `5.9.17.01` (`530901701`) | `29→37` | Oplus OS `b0a9bbfc05ee` | 19,439 | 15 | DCS analytics (`DcsContentProvider`, `TrackContentProvider`) + local ML (`libcpythonapp.so` + `libMNN.so` + `libpredictor.so`) |
 | `Сервис умных рекомендаций-5.5.6.apk` | `com.opos.ads` | `5.5.6` (`556`) | `22→31` | HeyTap `3e02e48baf4a` | 18,872 | 11 | **Advertising / commercial coupon & app-preload service** (`MobAdService`, desk widgets for commercial apps, `adx.ads.heytapmobi.com`) |
-| `Поиск-6.0.apk` | `reactivephone.msearch` | `6.0` (`221`) | `23→36` | Reactive Phone RU `53d2a5e09c30` | 9,113 | 4 (all ABIs) | Third-party Russian search app (`ACTION_ASSIST` + AppMetrica) |
 
-### 3.3 Companion & Third-Party APKs (6 APKs, lightweight inspection)
+### 3.3 Companion, OEM-adjacent & Third-Party APKs (7 APKs; lighter inspection)
 
 - `Browser-40.10.25.2.apk` (`com.heytap.browser`, v`40.10.25.2` / `10250200`, SDK `29→33`, cert `aff8a749cf0e`, 132,982 classes, 88 `.so`)
 - `阅读-9.17.0.apk` (`com.heytap.reader`, v`9.17.0` / `91700`, SDK `24→33`, cert `ad51ac3a0a38`, 33 stub/wrapper DEX classes, 39 `.so`)
@@ -81,21 +82,24 @@ Manifest `<meta-data>` embeds `versionCommit` and `versionDate` fields in severa
 - `百度地图-22.1.20.apk` (`com.baidu.BaiduMap`, v`22.1.20` / `1665`, SDK `24→33`, cert `a6ef817bfd6c`, 141,242 classes, 101 `.so`)
 - `文件随心开WPS定制版-2.8.2.apk` (`cn.wps.moffice.lite`, v`2.8.2` / `282`, SDK `24→30`, cert `643990878d3c`, 26,519 classes, 2 `.so`)
 - `签变时光-v1.1.2-20260725-8fc53dd.apk` (`io.github.bszapp.dzjq42`, v`v1.1.2-20260725-8fc53dd` / `6`, SDK `24→37`, cert `e62740c10d88`, 6,784 classes, 3 `.so`)
+- `Поиск-6.0.apk` (`reactivephone.msearch`, v`6.0` / `221`, SDK `23→36`, Reactive Phone RU cert `53d2a5e09c30`, 9,113 classes, 4 `.so` across ABIs) — third-party Russian search companion, not an OPPO system package.
 
 ---
 
 ## 4. Certificate Trust Clusters & Privilege Boundary
 
-Across the 19 OPPO/Oplus/ColorOS/HeyTap APKs, manifests and v2/v3 signing certificates form **two main privileged clusters** plus several independent HeyTap certs:
+Across 26 APK files, the inventory contains 21 OPPO/Oplus/ColorOS/HeyTap-supplied APK records (including non-core Browser and Reader companions) and 5 unrelated third-party app records. Within these, 19 records belong to the core Breeno/ColorOS/AI system analysis set; Browser and Reader are classified as OEM-adjacent companions rather than core assistant/system services. Four main OEM trust groupings are listed below. This is a grouping of extracted signing metadata, not a claim that all packages share one signing identity. A package can expose different certificate fingerprints for different APK signature schemes or signing-lineage records; these are not counted as separate apps or assumed to prove separate organizational owners. Full `apksigner` verification and installed-device signer comparison were not performed:
 
-1. **Oplus Platform / SystemUI Cluster (`fc98dae63ad3...`, `CN=AndroidTeam, OU=OSTeam, O=Oplus`):**
+1. **Oplus Platform / SystemUI trust group (`fc98dae63ad3...`, `CN=AndroidTeam, OU=OSTeam, O=Oplus`):**
    - `com.android.systemui` (`sharedUserId=android.uid.systemui`), `com.oplus.linker`, `com.oplus.aiwriter`, `com.oplus.aicall`, `com.coloros.accessibilityassistant`, `com.oplus.aiwidgets`.
-2. **Oplus Core Data & AI Cluster (`b0a9bbfc05ee...`, `CN=AndroidTeam, OU=OSTeam, O=Oplus`):**
+2. **Oplus Core Data & AI trust group (`b0a9bbfc05ee...`, `CN=AndroidTeam, OU=OSTeam, O=Oplus`):**
    - `com.oplus.aimemory`, `com.oplus.aiunit`, `com.oplus.dmp`, `com.oplus.statistics.rom`.
-3. **OPPO ColorOS UX Cluster (`64aafaf1d5bc...`, `OU=ColorOS, O=OPPO`):**
+3. **OPPO ColorOS UX trust group (`64aafaf1d5bc...`, `OU=ColorOS, O=OPPO`):**
    - `com.coloros.colordirectservice`, `com.coloros.shortcuts`, `com.coloros.ocrscanner`, `com.oplus.pantanal.ums`.
-4. **HeyTap SpeechAssist Cert (`4b9095b0b71b...` / v3.1 `a7e23cceb52c...`):**
+4. **HeyTap SpeechAssist trust group (v2 cert `4b9095b0b71b...`; v3.1 cert `a7e23cceb52c...`):**
    - `com.heytap.speechassist` (`13.3.2` & `13.4.3`). Its manifest also includes a signed `OplusPermissionKey` and OCS `AUTH_CODE` entries explicitly bound to `com.heytap.speechassist` + its certificate digests, authorizing Epona/Tingle IPC and `com.oplus.permission.safe.*` / `oppo.permission.OPPO_COMPONENT_SAFE` permissions even without sharing the SystemUI platform key.
+
+Additional OEM-adjacent HeyTap products have separate extracted fingerprints: Browser (`aff8a749cf0e...`, `b29aa0bbdc9f...`), Reader (`ad51ac3a0a38...`, `dce1bd1f38d5...`), Global Search (`ee7e8a883d03...`, `5adde71a3a8c...`) and Ads (`3e02e48baf4a...`, `d9a36156a72a...`). These are product-specific certificate records, including multiple signing-scheme/lineage entries in the supplied APKs; do not infer that every fingerprint is a separate company or trust root. The third-party apps also have their own fingerprints (Reactive Phone RU, AMap, Baidu Maps, WPS and the Dzjq app).
 
 **Critical implication for OGAM / Jarvis:** Inter-app ContentProviders and services across Breeno, Memory, AIUnit, DMP, Pantanal UMS, and SystemUI are protected by OEM `signature` / `signatureOrSystem` permissions (`com.oplus.permission.safe.ASSISTANT`, `PRIVATE`, `PROTECT`, `SECURITY`, `AI_APP`, `PHONE`, `SETTINGS`, `oplus.permission.OPLUS_COMPONENT_SAFE`, `oppo.permission.OPPO_COMPONENT_SAFE`) and Epona/Tingle permission tokens. An unprivileged third-party app (OGAM/Jarvis) **cannot and must not attempt** to bind to these OEM internal IPC endpoints.
 
@@ -137,20 +141,20 @@ Across the 19 OPPO/Oplus/ColorOS/HeyTap APKs, manifests and v2/v3 signing certif
 
 ### 5.2 Breeno Memory (`com.oplus.aimemory` — `16.11.5_008719b_260901`)
 
-- **Role split discovery:** `com.oplus.aimemory` (`41,978` DEX classes, SDK `35→36`) is the **UI, capture client, bill/collection organizer, and CloudKit sync app**, while **encrypted vector/document/RAG indexing lives in companion package `com.oplus.dmp` (`SearchService`)**:
+- **Role split hypothesis from static indicators:** `com.oplus.aimemory` (`41,978` DEX classes, SDK `35→36`) has the manifest/DEX/assets expected of a UI and capture-oriented companion with local database and CloudKit-related markers. The `com.oplus.dmp` APK separately contains SQLCipher/vector-library names, database strings, provider declarations and RAG-like configuration filenames. This is consistent with a split Memory + search/index architecture, but the exact data flow and division of responsibilities are not proven without method-level tracing:
   - **Local Databases in `aimemory`:** `com.oplus.aimemory.db` (Room), `cloud_kit_private.db`, `cloud_kit_public.db`, `cloud_kit_share.db`, `cloud_kit_ck_special.db`, `com.heytap.cloudkit.libcommon.db`, `net_okhttp_v3.db`, `usetrace.db`.
   - **On-device Native/ML in `aimemory` (11 `.so` libs):** Document/barcode scan & TFLite (`libscan_engine_decode.so` 3.99 MB, `libscan_engine_detect.so` 3.07 MB, `libtensorflowlite.so` 3.14 MB, `CodeEdgeDetect_0324_BCHW.tflite`, `Codet_Nano_20230101.tflite`, `Deblurring_0209_BCHW.tflite`), QUIC (`libquiche.so`), AIUnit SDK stub (`libaiunit_sdk_core.so`), Senz (`libsenz.so`), TapConnect cipher.
-  - **Local vs Cloud:** Hybrid — local Room SQLite persistence + local scan/edge-detection + local AIUnit calls (`content://com.oplus.aiunit.authority.open`) and local DMP Persona/search queries (`content://com.oplus.dmp.personax.data`), combined with HeyTap CloudKit sync (`cloud_kit_*.db`) and Bot HTTP endpoints (`i.bot.heytapmobi.com`, `id.heytap.com`) plus WebView/SSE streaming (`text/event-stream`, WebSocket).
-  - **Cross-app Integration:** Receives flash captures/auto-notes via `ColorDirect` (`AUTO_BILL_MEMORY`, `AUTO_NOTES`), exposes `DataShareProvider` (`/datacollectmemory`, `/recommendCollections`), `BillCardWidgetProvider`, `FluidCloudHostProvider`, `KitSdkProvider` (`aiwriter`), `MemoryPluginService` / `MemoryPluginSecureService` (`BACKUP`), and consumes `com.oplus.dmp.SearchProvider` / `IndexProvider` + `com.oplus.metis.factdata.permission.DATABASE`.
+  - **Local vs Cloud indicators:** Room-related class/DB strings, scan-model assets, AIUnit/DMP provider URI strings, CloudKit-related database names, HTTP hostnames and SSE/WebSocket markers appear in the inspected artifacts. These markers indicate a hybrid-capable dependency surface; they do not prove which individual operation uses local vs cloud execution or that every flow reaches those endpoints.
+  - **Cross-app manifest/DEX indicators:** Component declarations, provider authority/path strings, action names and permission labels are present for the named integration surfaces. They describe declared interfaces and static references; successful calls, direction of data transfer and actual invocation paths remain unverified.
 
 ---
 
 ### 5.3 Deep Discovery: `com.oplus.dmp` (`SearchService-16.16.80_2f5f245_260902`)
 
-Static inspection revealed that **`SearchService` (`com.oplus.dmp`) is the core on-device personal-knowledge RAG, SQLCipher database, document parser, and Persona AI engine** supporting Breeno Memory, Global Search, and AI Ask:
+Static inspection found indicators consistent with a **candidate on-device search/personal-knowledge subsystem** in `com.oplus.dmp`: SQLCipher/vector native-library names, database filename strings, document-parser namespaces, RAG-like chunk/index configuration files, provider declarations, and Persona-related strings. These are consistent with search/RAG and document-indexing responsibilities associated with Memory/Global Search/AI Ask, but do not prove a complete runtime pipeline, exact feature ownership or use by each client.
 - **Native Libraries:** **`libsqlcipher.so` (3.53 MB — encrypted storage)**, **`libvector_utils.so` (250 KB — vector embeddings math)**, `libdalib.so` (2.61 MB), `libaiunit_sdk_core.so`, `libmmkv.so`, `libclaw_jni.so`.
-- **Document Extraction & Chunking in DEX/Assets:** Bundles Apache POI / XMLBeans (`org.openxmlformats.schemas`, `org.apache.poi`) and PDFBox resources alongside structured RAG chunking/indexing configs (`assets/file/100/ChunkConfig.json`, `IndexConfig.json`, `com.oplus.aimemory#donate_aimemory/0/ChunkConfig.json`, `com.oplus.deepthinker#donate_lifelogging/...`, `gallery/100/ChunkConfig.json`, `calendar/100/ChunkConfig.json`, `assets/config/persona_config.json`, `assets/bypass#*#picture/LLMRequest.json`).
-- **Databases & Providers:** `donate_AIMemory-mini-search.db`, `gallery-mini-search.db`, `note-mini-search.db`, `album_mining.db`, `memory_impress.db`, `dt_chat.db`, `persona_data_mask.db`; exports `SearchProvider`, `IndexProvider`, `PersonaAICommandProvider` (`content://com.oplus.persona.command`), `ControlSwitchProvider`, `PersonalizationProvider` (all `OPLUS_COMPONENT_SAFE` / `AI_APP` protected), plus `odin-inference-cn.allawntech.com` and `xiaobu.heytapimage.com` cloud inference hosts.
+- **Document extraction and chunking indicators in DEX/assets:** Apache POI / XMLBeans namespaces (`org.openxmlformats.schemas`, `org.apache.poi`) and PDFBox resources occur alongside structured RAG-like chunking/index configuration filenames (`assets/file/100/ChunkConfig.json`, `IndexConfig.json`, `com.oplus.aimemory#donate_aimemory/0/ChunkConfig.json`, `com.oplus.deepthinker#donate_lifelogging/...`, `gallery/100/ChunkConfig.json`, `calendar/100/ChunkConfig.json`, `assets/config/persona_config.json`, `assets/bypass#*#picture/LLMRequest.json`).
+- **Database/provider/host indicators:** Strings include `donate_AIMemory-mini-search.db`, `gallery-mini-search.db`, `note-mini-search.db`, `album_mining.db`, `memory_impress.db`, `dt_chat.db`, `persona_data_mask.db`; manifest declarations include `SearchProvider`, `IndexProvider`, `PersonaAICommandProvider` (`content://com.oplus.persona.command`), `ControlSwitchProvider` and `PersonalizationProvider` with OEM-protected permissions; static hostname strings include `odin-inference-cn.allawntech.com` and `xiaobu.heytapimage.com`. Provider invocation, DB usage and actual cloud requests remain unverified.
 
 ---
 
