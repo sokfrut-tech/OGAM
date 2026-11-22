@@ -128,3 +128,22 @@ These are architectural references, not dependencies selected for OGAM. Inspect 
 - Simon — https://github.com/damyan-deshev/simon — README describes local STT/TTS, SQLite FTS memory, Android client and a pre-response reasoning/checking phase. A root LICENSE file was not found in the inspected repository paths; no code copying or dependency until a valid license is confirmed.
 
 Selection rule: MIT/Apache-2.0 projects are candidates for deeper component-level inspection, but the license of every bundled dependency, model, asset and copied file still governs. GPL/AGPL projects remain reference-only unless the project explicitly chooses the corresponding obligations. No license means no copying.
+
+
+## 10. Additional uncensored/abliterated model comparison (2026-11-22)
+
+A second pass over Hugging Face model cards found two materially different Qwen3.5-4B derivatives. They should not be collapsed into one "uncensored" category:
+
+- **Huihui-Qwen3.5-4B-abliterated** — https://huggingface.co/huihui-ai/Huihui-Qwen3.5-4B-abliterated. The author describes it as a refusal-reduced fine-tune of Qwen3.5-4B, and notes that the text weights were processed, the image side was not, and the MTP head is no longer included. The GGUF packaging page https://huggingface.co/privastudio/qwen3.5-abliterated lists Q4_K_M around 2.71 GB and requires a Hugging Face access/terms acknowledgement at the time inspected. This is a candidate, but the access gate, provenance chain and missing MTP head must be recorded.
+- **Qwen3.5-4B-Uncensored-v2** — https://huggingface.co/InterpreticAI/Qwen3.5-4B-Uncensored-v2-GGUF. The card describes a narrower change: political censorship reduction. Its published evaluation reports a political-censorship rate of 13.7% (7/51) versus 92.2% (47/51) for the base model, while its BF16 evaluation reports that 93/100 harmful-request prompts were still refused. These are author-reported results, not independent validation. Q4_K_M is listed around 2.78 GB; a matching vision projector is listed separately. This is a useful "less over-refusal while retaining many harmful-request refusals" comparison profile, not a no-refusal model.
+- **Aurum 4B Uncensored** — https://huggingface.co/2Beyes/Aurum-4B-Uncensored-GGUF. Its author claims 0/100 refusals on a harmful-request set and Q4_K_M around 2.8 GB. This is the most unrestricted candidate found in this pass, and therefore requires the strongest adversarial, prompt-injection and tool-boundary tests before any default selection.
+
+Recommended evaluation profiles:
+1. Baseline: official Qwen3.5-4B.
+2. Reduced-over-refusal: Qwen3.5-4B-Uncensored-v2.
+3. Abliterated research: Huihui-Qwen3.5-4B-abliterated.
+4. Unrestricted research: Aurum 4B Uncensored.
+
+Do not rank these by "uncensored" labels alone. Evaluate Russian language quality, factual accuracy, reasoning, tool-call validity and refusal behaviour separately. Keep the action broker outside the model so even the unrestricted research profile cannot directly grant itself Android permissions or silently execute privileged actions.
+
+Dynamic discovery sources such as https://abliteratedmodels.org/ and https://aiunzipped.com/models/uncensored are useful for finding candidates, but are indexes, not provenance authorities. Verify each candidate against its upstream model card, exact files, license and checksums.
