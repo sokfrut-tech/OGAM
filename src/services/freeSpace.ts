@@ -1,5 +1,5 @@
 import RNFS from 'react-native-fs';
-import { formatFileSize } from '@offgrid/models';
+import { formatFileSize } from '../utils/formatFileSize';
 
 /** Room kept free past a download, so the phone itself never runs out mid-write. */
 const FREE_SPACE_MARGIN_BYTES = 500 * 1024 * 1024;
