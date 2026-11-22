@@ -138,3 +138,40 @@ A separate GitHub project called `rounma/mobile-agent` describes Qwen3-ASR + she
 - https://aihub.qualcomm.com/mobile/models/qwen3_asr_0_6b
 - https://aihub.qualcomm.com/mobile/models/qwen3_asr_1_7b
 - https://github.com/rounma/mobile-agent
+
+
+## Correction after inspecting the active OGAM implementation branch
+
+The previous section understated OGAM's Qwen3-ASR progress. On branch `feature/jarvis-step-2-storage-privacy` (head `b193ad969dc45e17d1a142fe42bc4fa8e98bf454`), Qwen3-ASR 0.6B is already implemented in the existing transcription service; it is not merely a future candidate.
+
+Verified by reading:
+- `src/services/qwenAsrEngine.ts`
+- `src/services/qwenAsrModel.ts`
+- `src/services/whisperService.ts`
+- `src/services/whisperModelFiles.ts`
+- `src/services/whisperModelDownloads.ts`
+- `__tests__/integration/audio/qwen3AsrTranscription.rendered.test.tsx`
+
+### Existing integration behavior
+- Model ID: `ggml-org/Qwen3-ASR-0.6B-GGUF`.
+- Two artifacts: `Qwen3-ASR-0.6B-Q8_0.gguf` and `mmproj-Qwen3-ASR-0.6B-Q8_0.gguf`; both are catalog-managed, separately downloaded, and the integration test checks SHA-256 metadata for both.
+- Android uses `llama.rn` with explicit CPU device selection (`n_gpu_layers: 0`); iOS has a separate Metal path.
+- Audio projector is loaded through llama.cpp multimodal `initMultimodal`; the engine rejects loading if the projector cannot initialize.
+- Transcription supports auto language detection and pinned language prompts, including a dedicated Russian prompt test.
+- Existing fallback path: if Qwen3-ASR fails and a Whisper model is downloaded, Whisper handles the recording; user sees a one-line notice. If no Whisper model is available, a clear failure notice is shown.
+- Device admission is memory-gated. The rendered integration test explicitly says the model's catalog memory requirement is 3 GB and tests that it is not listed on a 2 GB phone.
+- The Qwen model uses the same Whisper/transcription model management surface and disk folder, not a separate ad-hoc downloader.
+
+### What the tests do and do not prove
+The rendered integration tests fake the native `llama.rn` boundary and its completion output. They verify app wiring, catalog admission, two-file checksummed download orchestration, Russian prompt construction, composer delivery and Whisper fallback. They do NOT prove that the real Qwen3-ASR GGUF + mmproj pair successfully loads, recognizes real Russian speech, or performs acceptably on OPPO Find X6 Pro / SM8550.
+No PGEM10-specific native inference evidence was located in the reviewed branch. Do not describe it as device-validated.
+
+### Revised ASR decision
+Qwen3-ASR is already integrated in OGAM's React Native app branch. The immediate task is not to add it again. It is to:
+1. verify the exact catalog entry and model checksums/URLs from the authorized shared catalog source;
+2. confirm the shipped llama.rn Android build has the required `qwen3a` multimodal support and model minimum build;
+3. run native Android smoke/load/transcription tests on a real device, prioritizing PGEM10 / SM8550;
+4. benchmark Russian speech quality, CPU time, peak RSS, thermal behavior, long audio and cancellation;
+5. retain the existing Whisper fallback and memory admission gate until those tests pass.
+
+This correction is important: Qwen3-ASR's integration work is already present in OGAM; only native/device validation remains unproven.
