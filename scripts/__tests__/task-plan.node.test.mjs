@@ -1,6 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateTaskPlan, getReadyTaskSteps } from '../../src/services/planner/taskPlan.ts';
+import {
+  createTaskPlanRun,
+  claimNextTaskStep,
+  resolveTaskStepApproval,
+  completeTaskStep,
+  failTaskStep,
+  retryFailedTaskStep,
+  pauseTaskPlanRun,
+  resumeTaskPlanRun,
+  cancelTaskPlanRun,
+} from '../../src/services/planner/taskPlanRun.ts';
 
 const makePlan = () => ({
   id: 'plan-1',
@@ -61,17 +72,7 @@ test('refuses to schedule a draft or malformed plan', () => {
   assert.deepEqual(getReadyTaskSteps(plan, []), []);
 });
 
-import {
-  createTaskPlanRun,
-  claimNextTaskStep,
-  resolveTaskStepApproval,
-  completeTaskStep,
-  failTaskStep,
-  retryFailedTaskStep,
-  pauseTaskPlanRun,
-  resumeTaskPlanRun,
-  cancelTaskPlanRun,
-} from '../../src/services/planner/taskPlanRun.ts';
+
 
 test('claims dependency-ready steps and waits for approval when required', () => {
   const plan = makePlan();
