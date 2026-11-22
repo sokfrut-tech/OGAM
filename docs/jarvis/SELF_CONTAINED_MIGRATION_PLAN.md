@@ -276,3 +276,48 @@ Before changing production imports:
 2. Specify the full catalog schema and publish a versioned, license-audited catalog owned by `sokfrut-tech/OGAM`.
 3. Port the proven helpers with parity tests, then migrate consumers one helper at a time.
 4. Keep the complete bundled catalog and the offline fallback; test offline startup and remote catalog failure.
+
+
+## External open-source implementation survey — reusable alternatives (2026-11-22)
+
+The migration policy is clarified: third-party libraries and projects are allowed. A dependency is acceptable when it is publicly accessible, maintained enough for our needs, compatible with OGAM's architecture/device targets, and has a usable licence. If an original Off Grid source package is inaccessible, inspect other public implementations and either (a) add a suitable licensed dependency, (b) vendor/adapt code with required notices, or (c) independently implement the behavior from documented contracts and tests. Do not treat an inaccessible upstream as a reason to abandon the feature.
+
+### Repositories inspected
+
+| Project | Verified repository licence | Relevant implementation areas observed in its public tree / README | OGAM use |
+|---|---|---|---|
+| [OfflineMate](https://github.com/KingPegasus/OfflineMate) | MIT in LICENSE.md (GitHub metadata says NOASSERTION; the actual file contains MIT terms) | React Native local LLM engine/model registry, RAG pipeline and grounding, long-term memory, voice hooks, tool schemas and Android device tools; architecture docs for RAG, speech and agent tool flow | High-value reference for replacing unavailable shared React Native packages, subject to per-file and dependency notice audit |
+| [Vesta](https://github.com/RisorseArtificiali/vesta) | MIT | React Native llama engine and model registry/download manager; MCP tool registry/server; Android native system actions, calendar, contacts, reminders, voice activity and service; memory orchestration and confirmation tests | High-value source for tool/action orchestration and Android integration patterns |
+| [ToolNeuron](https://github.com/vapordude/ToolNeuron-cai) | Apache-2.0 | Kotlin native implementation: GGUF engine, embedding engine, RAG activities/reader, Room DAO for memory and knowledge, plugin models, AIDL service interfaces, encrypted storage modules | High-value native Android reference for RAG, model engine/service boundaries and persistent memory |
+| [Offline AI Assistant](https://github.com/its-hazratbilal/offline-ai-assistant) | MIT | Kotlin/Compose/JNI llama.cpp app with model download/switching and persistent local inference | Useful reference for the native inference and model-management boundary; narrower feature scope |
+| [NIDO](https://github.com/Nido007-cmyk/Nido) | MIT | Offline local agent, encrypted memory, action confirmation, reminders/calendar/notes, document/image ingestion and local knowledge packs; explicit privacy/threat-model documentation | Useful reference for memory safety, offline actions and confirmation UX; inspect module-level third-party notices before reuse |
+| [Local AI](https://github.com/smartworldarafath/Local-AI) | AGPL-3.0 | Kotlin memory search/planning, RAG vector engine, local tools/workspace tools, VoiceInteractionService and assistant overlay | Study architecture and tests only by default. Do not copy/link its AGPL code into OGAM unless we deliberately accept AGPL obligations for the combined distribution |
+| [OffHand](https://github.com/MRDarshan7/OffHand) | No repository licence was confirmed in this inspection | Kotlin voice-to-action pipeline, grammar-constrained JSON parsing, independent validation, human confirmation and durable offline outbox | Architecture/test ideas only until an explicit compatible licence is confirmed |
+| [Fieldkit AI](https://github.com/bth0mp/fieldkit-ai) | Licence details require a separate review; README describes free/non-commercial use | Local GGUF chat, PDF knowledge base, embeddings and citations, Whisper transcription, vision and image generation | Research reference only; non-commercial terms may conflict with OGAM distribution goals |
+
+### First mapping to unavailable packages
+
+- `@offgrid/models`: compare OfflineMate and Vesta model registries/catalogues/download managers, then preserve OGAM's already documented model-catalog, RAM-fit, quantization, GGUF split and projector contracts with direct tests.
+- `@offgrid/rag`: compare OfflineMate RAG pipeline/grounding, Vesta memory orchestration, and ToolNeuron embedding/RAG implementation. Keep document extraction, chunking, embedding, retrieval, citations and failure behavior as separately tested seams.
+- `@offgrid/speech`: inspect OfflineMate voice hooks/docs and Vesta voice activity/service; select an on-device ASR/TTS stack separately and preserve the existing voice-turn state-machine behavior.
+- `@offgrid/sync`: no equivalent should be adopted blindly. Vesta's MCP/server and local storage code may inform transport boundaries, but OGAM peer sync requires its own protocol, compatibility and security audit.
+- `@offgrid/design` / `@offgrid/ui`: use OGAM's own existing screens/components as the source of truth; extract reusable tokens/components from accessible MIT/Apache sources only where it improves consistency and does not import a whole unrelated UI.
+- `@offgrid/notes`, `@offgrid/notes-editor`, `@offgrid/writing`: compare OfflineMate notes/memory and ToolNeuron's local document workflows; preserve OGAM data formats and editor behavior instead of copying an unrelated product wholesale.
+- Pro-only paths: keep optional Pro activation isolated. Do not let unavailable commercial/private Pro code block the free OGAM runtime.
+
+### Licence and integration rules
+
+1. The repository's top-level licence does not automatically cover dependencies, model weights, datasets, native binaries, fonts or bundled assets. Audit each separately and keep THIRD_PARTY_NOTICES and upstream copyright headers.
+2. MIT and Apache-2.0 sources are generally suitable candidates when their notice/attribution and Apache NOTICE/patent requirements are preserved. Verify the exact file and its dependency tree before copying.
+3. AGPL-3.0 is not an automatic source for code reuse in OGAM; use it as an architectural/test reference unless the project explicitly chooses the corresponding copyleft obligations.
+4. A public GitHub repository is not automatically open-licensed. Do not copy code from repositories without a confirmed licence.
+5. Prefer small, behavior-focused ports over importing an entire assistant application. Preserve OGAM's React Native architecture unless a specific native Android module is justified.
+6. Before integrating any candidate, record the exact commit SHA, file paths, licence, notices, transitive dependencies, and the OGAM tests that prove the behavior. Add regression tests before removing the old import path.
+
+### Next execution order
+
+1. Finish a full OGAM importer/consumer map for all nine `@offgrid/*` packages and `@offgrid/automation`, with call sites and runtime paths.
+2. Inspect the exact candidate source files and tests in OfflineMate, Vesta and ToolNeuron (not just README claims), starting with model registry, RAG, memory and tool dispatch.
+3. Select the smallest useful MIT/Apache implementation for the first missing contract; record provenance and notices.
+4. Port one vertical slice into OGAM, update package aliases/lockfile only for that slice, and run focused tests plus a clean install/build.
+5. Repeat package-by-package. Do not skip feature tests or claim independence until the clean OGAM-only build and APK gates pass.
