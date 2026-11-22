@@ -34,7 +34,7 @@ import {
   toolLimitFinalAnswerInstruction,
   toolPromptChars,
   toolResultCharBudget,
-} from '@offgrid/models';
+} from '../utils/toolLoopBudget';
 const currentMaxToolSteps = (): number => {
   const configured = useAppStore.getState().settings.maxToolCalls;
   return normalizeMaxToolCalls(configured);
