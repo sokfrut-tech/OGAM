@@ -573,3 +573,22 @@ The current OGAM branch was re-read directly. The model package is consumed by t
 7. Regression suite: all existing model screen, scanner, download, model selection, device-pick, video, vision/projector, licensing and onboarding tests.
 
 Implementation order: first create independent, fixture-backed tests for the pure helpers and model-catalog contract; then port pure helpers; only after the full catalog provenance is resolved, migrate the catalog and remote cache layer. Do not point the package name at a partial stub or move model screens to an incomplete catalogue.
+
+
+## Automated repository-wide dependency inventory — 2026-11-22
+
+The new OGAM-only audit workflow was run against a clean checkout at PR head `6a2bdd05690be4bd86bb63c73480550bc8061aa4`.
+
+- Workflow: [OGAM external dependency audit, run 36](https://github.com/sokfrut-tech/OGAM/actions/runs/45017809784) — **success**.
+- The job checked out OGAM only; no private upstream checkout or token was used.
+- Scanner covered **1,941 files** and recorded **1,365 references** across source, tests and build configuration.
+- The workflow artifact [ogam-import-audit](https://github.com/sokfrut-tech/OGAM/actions/runs/45017809784/artifacts/14752273907) contains the full JSON file/line inventory (14-day retention).
+- Scanner unit tests: **3 passed, 0 failed**.
+- Standalone progress-core Node tests: **7 passed, 0 failed**. Node emitted a non-fatal module-type warning; this is not a full application test.
+- The workflow success is limited to the audit and progress-core checks. It does **not** mean the app's Jest/typecheck/Android build passed.
+
+The previous message's link to run 45017758354 is an external-dependency-audit workflow, not the full app CI. The latest full CI at this checkpoint is [run 43](https://github.com/sokfrut-tech/OGAM/actions/runs/45017809822): queued, with all ten main jobs queued and no completed application verification yet. The preceding CI attempts were cancelled during repeated pushes. No APK artifact is present.
+
+### Next safe slice
+
+Use the uploaded JSON inventory as the authoritative per-file/per-line map. Extract the exact `@offgrid/models` imports by scope, then implement only the pure, license-independent model contract functions in an OGAM-owned module, one contract at a time. Keep catalog data, network URL policy, model RAM estimator, GGUF multipart behavior and runtime load gate unchanged until their contracts have dedicated regression coverage. Do not remove the remaining shared dependency links or change Metro/Jest mappings based only on package-level counts.
