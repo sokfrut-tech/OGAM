@@ -664,3 +664,12 @@ Added source-only implementation on this branch:
 - Current PR #1 head at check: `7b399c5261e09f365ca44d81fb053dbe68af8c08`; PR remains draft/open/unmerged.
 - External dependency audit run 45059622374 passed on that head: https://github.com/sokfrut-tech/OGAM/actions/runs/45059622374
 - Full CI run 45059622387 remained in progress at last check; three Jest shards already failed broadly due missing private `@offgrid/models` and `pro/sync` modules. Android Gradle job had no completed result. Do not claim full CI, Kotlin/JUnit, APK or device success.
+
+
+## Chinese/Indian open model scan — major new LiteRT lead (2026-11-22)
+
+- Research scan saved at `research/china-india/CHINESE_INDIAN_ON_DEVICE_SPEECH_SCAN_2026-11-22.md` on research branch, commit `33589c0b30e55ccdf7a568a72f268834875c62c3`.
+- Qwen3-ASR-0.6B now has a documented LiteRT Android route; model docs list an AOT NPU graph for Qualcomm SM8550 (the PGEM10 SoC). 960 MB INT8 .litertlm supports Russian; separate SM8550 AOT graph family is 1.88–2.19 GB. Exact artifact/hash/I/O and actual ColorOS NPU execution remain unverified. Preserve current llama.rn route and Whisper fallback.
+- Qwen3-TTS 0.6B LiteRT-LM supports Russian and has Android NDK / OmniSession audio output path. INT8 bundle ~2.44 GB; published Galaxy S26 RTF 1.24 GPU / 1.29 CPU, RSS ~1.44/1.90 GB. Not an OPPO benchmark. Optional expressive tier; tiny-voca-ru remains compact fallback.
+- Indian models reviewed: Indic-Speak 3B / ~6.6 GB, custom gated license, 22 Indic languages + English; IndicF5 0.4B/11 languages; IndicConformer 600M/22 languages and newer Indic-Transcribe/25 languages. None supports Russian; no verified PGEM10 path. Keep for future Indic expansion only.
+- Next: pin exact LiteRT artifacts/hashes, build isolated PGEM10 smoke test, verify actual NPU selection and compare Qwen3-ASR against current GGUF backend; then benchmark Qwen3-TTS. No production dependency changes yet.
