@@ -162,3 +162,85 @@ Before adding Qwen3.5-family files to the production catalog:
 - keep the official Qwen3.5 model available as a non-abliterated control in all comparative tests.
 
 References: llama.cpp qwen35 architecture requirements are documented by the Qwen3.5 GGUF conversion pages, including https://huggingface.co/axteam/Qwen3.5-2B-GGUF; upstream implementation discussion: https://github.com/ggml-org/llama.cpp/issues/31551. A reported version threshold is not a substitute for testing OGAM's exact native build.
+
+
+## 12. Expanded feature study: Siri AI (2026) and OGAM source audit
+
+### Current Siri AI product capabilities confirmed from Apple's public 2026 material
+
+Apple's September 14, 2026 release describes Siri AI as conversational, with personal-context understanding across messages/email/photos, broad world knowledge, on-screen awareness, and systemwide app actions such as drafting email and editing/sharing photos. The June 2026 announcement additionally describes a dedicated Siri app with conversation history, continuity across Apple devices, web answers, and Visual Intelligence expansion.
+
+For Jarvis, turn these into independently implemented Android capabilities:
+- Continuous conversation history and contextual follow-up across voice and text.
+- Local personal-context connectors with per-source permission and provenance.
+- Explicit screen/image context supplied by the user or a visible, enabled capture feature.
+- Search/research with current sources and reliable attribution.
+- Typed actions exposed through a skill registry.
+- Draft-first communication and editing workflows, with explicit approval before sending/sharing.
+- Optional multi-device conversation continuity using OGAM's encrypted local mesh, after security review.
+
+Apple developer guidance now points new Siri/Apple Intelligence integrations toward App Intents rather than legacy SiriKit. App Intents expose typed actions and entities to Siri, Spotlight, Shortcuts, widgets and other system surfaces. Its current updates include long-running actions, progress reporting, cancellation, undoable actions and execution-mode selection. Jarvis should implement analogous platform-neutral contracts and Android executors; no Apple framework dependency is appropriate for the Android target.
+
+Sources:
+- https://www.apple.com/newsroom/2026/09/siri-ai-a-profoundly-more-capable-and-personal-assistant-is-here/
+- https://www.apple.com/newsroom/2026/06/apple-unveils-next-generation-of-apple-intelligence-siri-ai-and-more/
+- https://developer.apple.com/documentation/appintents
+- https://developer.apple.com/documentation/updates/appintents
+- https://developer.apple.com/documentation/sirikit
+
+### OGAM upstream capabilities confirmed in architecture and codebase guide
+
+The upstream architecture and codebase guide document the following feature groups, all of which must be represented in the parity matrix and preserved where useful:
+- Local GGUF inference, streaming, context truncation/continuation, KV cache controls, OpenCL GPU offload, performance instrumentation, project prompts and model loading lifecycle.
+- Vision/multimodal models, image inputs, mmproj companion files and runtime discovery.
+- Local image generation on Android (MNN/QNN) and iOS (Core ML), previews, background generation, prompt enhancement and media gallery.
+- Local Whisper speech transcription, partial results, model choices and recording UI.
+- Document attachments, persistent file storage, PDF extraction, system document viewer and project RAG.
+- Remote OpenAI-compatible providers (Ollama/LM Studio/LocalAI/vLLM style), model discovery, SSE streaming and secure keychain storage.
+- Tool calling, schema conversion, model-aware tool loop, web search, URL reading, calculator, date/time, device info and knowledge-base retrieval.
+- Projects, project-scoped chats, settings, passphrase lock, onboarding, model browser/download manager, storage management, diagnostics and help/guide.
+- Background downloads and local-network Personal Mesh, including encrypted blob transfer, device discovery/pairing, file/clipboard/screenshot sharing and model residency.
+
+Sources:
+- https://github.com/off-grid-ai/OGAM/blob/main/docs/ARCHITECTURE.md
+- https://github.com/off-grid-ai/OGAM/blob/main/docs/standards/CODEBASE_GUIDE.md
+- https://github.com/off-grid-ai/OGAM
+
+### OGAM fork source audit observations (current branch)
+
+- The fork already contains an extensive implementation surface: 3,349 tracked tree entries; 122 screen files, 244 service files, 146 component files, 31 hook files and 26 store files (nested-file counts, not screen counts).
+- Android native code includes download workers, device-memory and LiteRT modules, screenshot watcher, clipboard/PROCESS_TEXT handoff, PDF extraction, image-generation bridge and Personal Mesh sync services.
+- The app manifest includes microphone, camera, calendar, media, network and foreground-service permissions. Permissions are not considered active capability until runtime request paths and denial/error cases are tested.
+- Core tool registry currently exposes video generation/film, web search, calculator, date/time, device information, knowledge-base search and URL reading. Tool execution is currently dispatched by a central switch. Tool definitions do not yet constitute a full Siri-like skill catalogue with typed permissions, risk levels, progress, cancellation and undo.
+- The visible Tools screen currently describes email/calendar/MCP as "Pro tools". Email/calendar extension implementation is not in the standalone tree; tests dynamically load the absent Pro submodule and skip when unavailable. Therefore do not claim these capabilities are independently implemented in OGAM core. Build OGAM-owned free local Android equivalents where useful, using platform APIs and explicit approval, rather than relying on the private Pro module or bypassing its licensing.
+- voiceSession.ts imports initialVoiceSession, nextVoiceSession and predicates from private @offgrid/speech. GitHub code search did not find the package implementation or its tests in public repositories. Do not invent a state machine and replace it blindly; recover exact event/state contracts or build a separately specified, fully tested OGAM-owned state machine with explicit migration.
+- voiceService.ts currently uses react-native-voice and hardcodes en-US in startListening(). AudioRecorderService has PCM sample and RMS callbacks that can support local VAD/realtime ASR. The current audio-session code explicitly reports echo cancellation unavailable on Android; hands-free full-duplex must not be claimed until shared capture/playback voice processing is implemented and tested.
+- generationToolLoop.ts still imports shared tool-loop budget/prompt helpers from @offgrid/models. These are additional extraction candidates, but require exact contracts and tests before replacement.
+- nativeScreenshot.ts observes screenshots through a permission-gated native module; nativeClipboard.ts exposes user-originated PROCESS_TEXT handoff and explicitly notes Android blocks ambient clipboard reads while another app has focus. These are useful foundations for on-screen awareness and selected-text actions, but must remain visible and consent-driven.
+- nativeSync.ts / engine.ts still depend on @offgrid/sync. Personal Mesh is a substantial feature, not a simple utility; preserve it while recovering protocol contracts, cryptography and tests before removing that dependency.
+
+### New architecture decision: Skill contract v1
+
+Every Jarvis action should be described with:
+- stable skill ID and version;
+- user-facing title/summary and model-facing instructions;
+- JSON input schema and validated output schema;
+- required capabilities/Android permissions;
+- risk class (read-only, reversible write, external communication, destructive, financial);
+- network/data-egress declaration;
+- confirmation policy and preview text;
+- foreground/background mode, progress events and cancellation;
+- idempotency key and execution timeout;
+- undo/compensation handler where possible;
+- audit event with actual executor result.
+
+Model output only proposes a skill call. A deterministic broker validates schema, permissions, risk, confirmation and current app state before execution. The assistant must never report a successful action unless the executor returns a verified success result.
+
+### Next code-level work
+
+1. Build a source-level inventory report mapping each OGAM screen/service/native module to imports, tests, dependency and parity category.
+2. Migrate the tool loop's shared helper contracts only after extracting their exact upstream tests/behaviour; add OGAM-owned skill contract tests.
+3. Recover or replace the private voice state machine through a separately tested contract; then add Russian ASR, local TTS, VAD, wake-word provider and interruption support.
+4. Implement OGAM-owned Calendar read/create/update and email/message draft flows using Android platform intents/calendar APIs, with preview and approval; no send action by default.
+5. Build personal-context connectors and screen awareness behind explicit per-source consent.
+6. Preserve and verify every OGAM capability before changing the main navigation to the JARVIS HUD.
