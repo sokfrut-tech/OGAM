@@ -517,3 +517,15 @@ The single remaining M2 symbol still imported from `@offgrid/models` is `reasoni
 - Source commit: `ab9ef929df6d4223b9faf82c4201cacc177ba186`.
 - This remains a low-level player only: no production TTS backend is connected, and audio routing/ducking/latency must be measured on PGEM10. No performance claim is made from source inspection alone.
 - No workflow run was returned for this commit at the time of this handoff update. Require Android compile + unit tests before considering this slice verified; then test assistant routing, ducking, focus loss, barge-in and sustained streaming on the target device.
+
+
+## Latest continuation — Gemini audit hardening and PCM source-contract coverage (2026-11-22)
+
+- Gemini's independent B1–B5 findings are reconciled in the PR #2 research branch document. B4 route normalization was already fixed; this continuation adds the missing 10-second monotonic-clock expiry to the one-use private bridge token, with deterministic Kotlin tests for expired tokens, exact expiry boundary, clock rollback and one-use semantics.
+- PCM assistant playback now uses `AudioAttributes.USAGE_ASSISTANT` for both AudioTrack and AudioFocusRequest, with `CONTENT_TYPE_SPEECH`. A zero-progress non-blocking write parks for 5 ms rather than 100 μs to avoid a tight wake-up loop.
+- Added a source-contract test to `scripts/__tests__/jarvis-pcm-playback.node.test.mjs` pinning both assistant usage attributes and the 5 ms retry backoff. The pre-existing source-contract suite still checks mono Float32 stream ordering, focus handling and generation cancellation.
+- Latest commits on PR #1 branch: `794bdadf327beee7925755b43fb28395ad1f59bb`, `da23c21ba5d76eedbaae99973635d183e8587d6d`, `ab9ef929df6d4223b9faf82c4201cacc177ba186`, `88413302d962297ee9b53d6624f3987c0e48e056`, followed by this handoff update.
+- Verification status: no PR-triggered workflow run was returned for the latest test commit at lookup time; neither Kotlin/JUnit nor the new Node assertion is claimed green. Recheck Actions on the PR head and run Android unit tests before accepting these changes.
+- The correct dependency-migration order remains: (1) M2 remote-vision `reasoningBudgetPayload` only after its exact wire contract is recovered; (2) M3 SD/video policy only after exact source and consumer contracts; (3) M4 naming/classification; then M5–M7. The private sibling workspace `../shared/packages/models` is not readable through the current GitHub integration, so no guessed payload, SD threshold, checkpoint rule or video/RAM policy may be substituted.
+- The prior `@offgrid/sync` Half A and `@offgrid/rag` work is already completed and documented; do not repeat it. `@offgrid/sync` Half B is the separate Personal Mesh/crypto/networking workstream and remains deferred until the Android Jarvis MVP and safety gates.
+- PR #1 remains open/draft; PR #2 remains open/draft. No merge, APK release or PGEM10 runtime pass is claimed.
