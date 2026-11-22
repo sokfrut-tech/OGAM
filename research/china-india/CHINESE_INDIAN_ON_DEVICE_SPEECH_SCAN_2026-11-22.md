@@ -95,3 +95,42 @@ Implementation gates:
 Evidence labels:
 - Verified in source/model cards: language support, published artifact sizes, declared architecture, documented Android build path, declared SoC variants.
 - Not verified: OPPO PGEM10 runtime, actual NPU selection, battery/thermal behavior, end-to-end UX, quality on this Jarvis corpus.
+
+
+## Additional China scan: MiniCPM-V 4.7 and MiniCPM5 for the Jarvis brain/eyes
+
+Sources:
+- https://github.com/OpenBMB/MiniCPM-V
+- https://github.com/OpenBMB/MiniCPM-V-Apps
+- https://github.com/OpenBMB/MiniCPM
+- https://modelscope.cn/models/OpenBMB/MiniCPM-V-4.7-1B
+
+### MiniCPM-V 4.7 1B — candidate for Jarvis camera / screenshot / document understanding
+- OpenBMB's October 2026 release includes a 1B dense variant and a 35B-A3B MoE variant.
+- 1B variant supports single-image, multi-image, document and video understanding, with Android/iOS/HarmonyOS deployment and GGUF/llama.cpp/Ollama paths.
+- Official Android app repository has Kotlin/Gradle Android demo, using a local llama.cpp-omni fork. It also supports model downloads and local inference.
+- ModelScope card identifies 1.55B parameters and Apache-2.0; full BF16 model is about 3.13 GB. Quantized variants are available; exact GGUF quant file and runtime compatibility need pinning.
+- Good candidate for visual Jarvis skills: camera scene description, screenshot reading, object/context questions, document OCR-like understanding, UI assistance. It is not an audio assistant and not a replacement for ASR/TTS.
+- No OPPO Find X6 Pro / SM8550 benchmark found. The published phone demos include iPhone 17 Pro Max and platform support statements; do not assume performance on PGEM10. Validate Android build, RAM, heat, image size and Russian visual-language prompts.
+
+### MiniCPM5-2B — candidate for local text reasoning / planner
+- OpenBMB MiniCPM repo changelog says MiniCPM5-2B released 2026-09-07 as a dense 2B model for on-device/resource-constrained use; 1B version released 2026-05-19. Hybrid Think/No Think reasoning and deployment Agent Skills are advertised.
+- A separate open-source mLLM project reports Android ARM CPU support for MiniCPM5-2B, but that is a community runtime integration, not proof of official OpenBMB Android APK support.
+- Candidate for offline planner/secondary brain evaluation against existing Qwen/Gemma small models; must benchmark Russian reasoning, tool-call reliability, token throughput, memory and license. Do not replace current main model without head-to-head task set.
+
+### MiniCPM-o 4.5 — capable but not phone-default
+- OpenBMB's 9B end-to-end omni model combines vision, speech and text with full-duplex real-time interaction.
+- ModelScope lists about 9.37B parameters and ~20.05 GB weights, Apache-2.0.
+- Valuable architecture/reference for Jarvis multimodal conversation, but too large for the current phone as a default local model. Treat as desktop/server research, not a PGEM10 target.
+
+### India: Bharat-Tiny-LLM v3 — interesting but language-specific
+- https://huggingface.co/eulogik/Bharat-Tiny-LLM-v3
+- 1.7B Hindi/Hinglish/English model adapted from Qwen3-1.7B, with a Q4_K_M claim around 1.0 GB and offline phone/laptop/browser usage.
+- Model card reports only 29% on a pinned 100-example GSM8K-Hindi subset and retracts an earlier higher figure. Treat benchmark claims carefully.
+- Not Russian-capable by declared target; no reason to displace Russian-first OGAM planner. Could be a useful reference for future multilingual tokenization / India language pack.
+
+Decision:
+- Add MiniCPM-V 4.7 1B to the Jarvis visual-model shortlist for an Android prototype; it is more immediately actionable than MiniCPM-o 4.5.
+- Add MiniCPM5-2B to offline planner benchmark candidates, not a production replacement.
+- Keep MiniCPM-o 4.5 as architecture reference only due ~20 GB weights.
+- India scan remains language-specific; the strongest discovered small model Bharat-Tiny-LLM v3 is Hindi/Hinglish/English, not Russian.
