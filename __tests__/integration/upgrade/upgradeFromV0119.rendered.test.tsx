@@ -325,7 +325,7 @@ async function leaveAsV0119Did(
   const pdfSize = (await fs.module.stat(KEPT_PDF)).size;
 
   // The PDF as v0.0.119's ingest left it: read, split, embedded by MiniLM, mapped.
-  const rag = require('@offgrid/rag/documents');
+  const rag = require('../../../src/utils/ragDocumentsCore');
   const pages = [{ page: 1, text: PDF_TEXT }];
   expect(rag.pageNeedsOcr(PDF_TEXT)).toBe(false);
   const { chunks } = await rag.splitPages(documentId, 'pdf', rag.cleanPages(pages));

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import type { RemoteSearchOutcome } from '@offgrid/rag';
+import type { RemoteSearchOutcome } from '../utils/remoteComputerSearch';
 import { useRemoteServerStore } from '../stores';
 import { pairedComputer, searchPairedComputer } from '../services/pairedComputerSearch';
 import type { RemoteServer } from '../types';

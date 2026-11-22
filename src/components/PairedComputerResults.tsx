@@ -2,7 +2,7 @@ import React from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { TouchableOpacity } from './Touchable';
 import Icon from 'react-native-vector-icons/Feather';
-import { withoutChatsOnDevice, type RemoteSearchOutcome, type RemoteSearchResult } from '@offgrid/rag';
+import { withoutChatsOnDevice, type RemoteSearchOutcome, type RemoteSearchResult } from '../utils/remoteComputerSearch';
 import { Button } from './Button';
 import { useTheme, useThemedStyles } from '../theme';
 import type { ThemeColors } from '../theme';

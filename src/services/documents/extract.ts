@@ -2,7 +2,7 @@
 // batches, so a long book never crosses the bridge at once; text files and pasted text as parts.
 
 import RNFS from 'react-native-fs';
-import { textParts, type DocumentPage, type ExtractPort } from '@offgrid/rag/documents';
+import { textParts, type DocumentPage, type ExtractPort } from '../../utils/ragDocumentsCore';
 import { pdfExtractor } from '../pdfExtractor';
 import { localPath } from './project';
 

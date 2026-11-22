@@ -17,7 +17,7 @@ describe('search_knowledge_base — real document-index round-trip (guard)', () 
     const engine = installDocumentEngine(boundary.fs!);
     const { knowledgeBase } = require('../../../src/services/rag');
     const { executeToolCall } = require('../../../src/services/tools/handlers');
-    const { parseSearchBlock } = require('@offgrid/rag/documents');
+    const { parseSearchBlock } = require('../../../src/utils/ragDocumentsCore');
 
     engine.seedPdf('/docs/Downloads/zenland.pdf', [
       'Bananas are a yellow fruit. Weather is mild.',

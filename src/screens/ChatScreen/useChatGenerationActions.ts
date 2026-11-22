@@ -55,7 +55,7 @@ import logger from '../../utils/logger';
 import { featureUsed, messageSent, track } from '../../services/analytics/analytics';
 import { deleteChatImages, imagesNotDeletedAlert } from '../../services/chatImageCleanup';
 import { ModelReadyOutcome, ensureReadyOrAlert } from './modelReadiness';
-import { describeTurnStatus } from '@offgrid/rag/documents';
+import { describeTurnStatus } from '../../utils/ragDocumentsCore';
 import {
   prepareTurnDocuments,
   turnSources,

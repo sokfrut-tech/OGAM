@@ -472,3 +472,27 @@ The single remaining M2 symbol still imported from `@offgrid/models` is `reasoni
 2. Continue M3 through image/video model settings and image parameter policy only after locating the real consumer contracts and tests.
 3. Do not change trained-resolution / RAM admission thresholds while migrating M5.
 4. Restore full workspace dependencies in CI or provide a reproducible public OGAM-only workspace build before treating the main RN Jest/type/lint gates as meaningful.
+
+---
+
+## Slice 5 completed — `@offgrid/rag` + `@offgrid/rag/documents` 100% eliminated (`3 → 2` local deps, 2026-11-22)
+
+- **Added self-contained modules (zero external deps, Node `--experimental-strip-types` clean):**
+  - `src/utils/remoteComputerSearch.ts`: `searchRemoteComputer`, `withoutChatsOnDevice`, `RemoteSearchOutcome`, `RemoteSearchResult`, `SearchRemoteComputerOptions`. Migrated all `3` `src/` consumers (`pairedComputerSearch.ts`, `PairedComputerResults.tsx`, `usePairedComputerSearch.ts`).
+  - `src/utils/ragDocumentsCore.ts`: `DOCUMENT_SCHEMA_VERSION`, `CHUNK_CHARS`, `estimateTokens`, `textParts`, `pageNeedsOcr`, `cleanPages`, `splitPages`, `indexedText`, `contentTerms`, `documentMap`, `splitCitations`, `searchBlock`, `parseSearchBlock`, `describeTurnStatus`, `DocumentIngestService`, `DocumentTurnService`, and all 18 typed port interfaces (`DocumentIndexStore`, `KeywordSearchPort`, `ExtractPort`, `EmbedPort`, `ConversationDocumentsPort`, `ProjectDocumentsPort`, `Scheduler`, etc.). Migrated all `16` `src/` files + all `4` `__tests__/` files (`ChatMessageCitations.test.tsx`, `turnDocuments.integration.test.ts`, `searchKnowledgeBaseRoundtrip.test.ts`, `upgradeFromV0119.rendered.test.tsx`).
+- **Build config & CI:** Removed `@offgrid/rag` from `package.json` and removed `ragPackagePath`, its `watchFolders` entry, stale RAG comments, and `@offgrid/rag` + `@offgrid/rag/documents` aliases from `metro.config.js` (`package-lock.json` kept untouched). Added `scripts/__tests__/remote-computer-search.node.test.mjs` (`4/4`) and `scripts/__tests__/rag-documents-core.node.test.mjs` (`4/4`) and wired both into `.github/workflows/ogam-external-dependency-audit.yml`.
+- **Local Node verification (`v26.13.1`):** All **29** workflow Node test suites (**131/131** test cases: `13/13` plain Node + `118/118` `--experimental-strip-types`) passed; `node scripts/audit-offgrid-imports.mjs` measured `2,008` files scanned, `1,283` total refs (`packageImports: 396`, `@offgrid/rag` `src/`: `0`, `test`: `0`, `build-config`: `0`), `localFileDependencies: 2` (`@offgrid/models`, `@offgrid/sync`).
+- **Honest verification limits:** Local checks cover pure contracts via Node only; TypeScript `tsc`, full Jest suite, APK assembly, and OPPO Find X6 Pro PGEM10 runtime tests remain unexecuted here.
+
+## Android CI verification milestone & test clash fix (2026-11-22)
+
+- Inspection of GitHub Actions `CI` run [#45052196801](https://github.com/sokfrut-tech/OGAM/actions/runs/45052196801) (`a65dbca1`, job `137300347889`) confirmed `:app:processDebugMainManifest`, `:app:processDebugManifest`, `:app:processDebugResources`, **`:app:compileDebugKotlin`** (validating B1 main-source fixes `53ef299f` & `20650c13`), and `:app:compileDebugJavaWithJavac` all **succeeded**.
+- `:app:compileDebugUnitTestKotlin` failed strictly on a JVM signature clash inside test fake `JarvisPcmStreamPlayerTest.FakeTrack` (`var volume = 1f` + `override fun setVolume(volume: Float)` both compile to `setVolume(F)V`). Renamed the fake backing field to `currentVolume` so `:app:compileDebugUnitTestKotlin` and `:app:testDebugUnitTest` can proceed cleanly on the next CI run.
+
+## Reconciled technical caveats across today's 7 ChatGPT sessions (do not regress)
+
+- **Silero VAD/TTS license split:** `v5_5_ru` carries non-commercial terms whereas `v5_cis_base` is **MIT** — keep license provenance explicit before any default bundling.
+- **`k2-fsa/sherpa-onnx` Android AAR (~52 MB):** Verify slim arm64-v8a-only packaging before adding to APK size budget.
+- **`egnch/tiny-voca-ru` (~21.4 MB ONNX, Apache 2.0):** Requires Python-to-Kotlin phonetics/stress frontend port + ONNX Runtime Android + PGEM10 real-device latency benchmark.
+- **Breeno APK inventory:** `26` ColorOS/Breeno local APKs have been audited (`research/breeno/`, PR #2 `3c4bf87c`), including `Breeno 13.4.3`, `Breeno Memory 16.11.5`, and `Инструкции Breeno 17.2.4`; `Breeno Instructions 17.7.2` remained unavailable due to external Chinese catalog download failures.
+

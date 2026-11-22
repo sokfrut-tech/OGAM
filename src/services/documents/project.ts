@@ -3,7 +3,7 @@
 // knowledge-base rows (rag.db) directly: the knowledge-base service sits above this layer.
 
 import RNFS from 'react-native-fs';
-import type { DocumentSource, ProjectDocumentsPort } from '@offgrid/rag/documents';
+import type { DocumentSource, ProjectDocumentsPort } from '../../utils/ragDocumentsCore';
 import { useChatStore } from '../../stores/chatStore';
 import { ragDatabase, type KnowledgeDocument } from '../rag/database';
 import logger from '../../utils/logger';

@@ -26,7 +26,7 @@ function setup(options: DocumentEngineOptions = {}) {
   const { prepareTurnDocuments, turnSources } = require('../../../src/services/documents/chatTurn') as ChatTurn;
   const { executeToolCall } = require('../../../src/services/tools/handlers');
   const { useChatStore } = require('../../../src/stores/chatStore');
-  const { parseSearchBlock } = require('@offgrid/rag/documents');
+  const { parseSearchBlock } = require('../../../src/utils/ragDocumentsCore');
   return {
     boundary,
     engine,

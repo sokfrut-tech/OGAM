@@ -3,7 +3,7 @@
 This document resolves the core blocker in `sokfrut-tech/OGAM` PR #1 (`feature/jarvis-step-2-storage-privacy`): **what lived inside the two external/private directories (`pro/` and `../shared/packages/*`), what open-source MIT source already exists in OGAM's own git history, what must be ported vs kept gated/dropped, and exact consumer-pinned TypeScript contracts.**
 
 Evidence base:
-- Automated audit JSONs (`ogam-import-audit.json` baseline `1,976` files / `1,354` refs → post-Slice 3A–3D `1,983` files / `1,339` refs → post-`@offgrid/speech` `1,987` files / `1,335` refs → post-`@offgrid/sync` Half A `1,996` files / `1,320` refs).
+- Automated audit JSONs (`ogam-import-audit.json` baseline `1,976` files / `1,354` refs → post-Slice 3A–3D `1,983` files / `1,339` refs → post-`@offgrid/speech` `1,987` files / `1,335` refs → post-`@offgrid/sync` Half A `1,996` files / `1,320` refs → post-`@offgrid/rag` `2,008` files / `1,283` refs).
 - Full AST/regex symbol parse of all **240** importing `src/` and `__tests__/` files on PR #1.
 - `package.json`, `package-lock.json`, `metro.config.js`, `jest.config.js`, `tsconfig.json`, `.dependency-cruiser.js`, and `docs/SYNC_INTEGRATION_PLAN.md`.
 - Local git history of `sokfrut-tech/OGAM` (`LICENSE`: **MIT License**).
@@ -12,20 +12,22 @@ Evidence base:
 
 ---
 
-## 1. Measured Audit Delta After Slice 4 (`@offgrid/sync` Half A, 2026-11-22)
+## 1. Measured Audit Delta After Slice 5 (`@offgrid/rag` 100% Eliminated, 2026-11-22)
 
-| Metric | Baseline (`b7c06988`) | After `@offgrid/speech` | After `@offgrid/sync` Half A | Total Change |
-|---|---:|---:|---:|---|
-| Files scanned | 1,976 | 1,987 | **1,996** | `+20` (`+5` OGAM TS modules + `4` Node test suites in Slice 4) |
-| `localFileDependencies` (`package.json`) | 8 | 3 | **3** | **`-5`** (`design`, `notes`, `notes-editor`, `writing`, `speech` removed) |
-| Total external refs | 1,354 | 1,335 | **1,320** | **`-34`** |
-| `packageImports` | 457 | 447 | **432** | **`-25`** |
-| `sharedWorkspacePaths` | 73 | 64 | **64** | **`-9`** |
-| `@offgrid/design` imports | 2 | 0 | **0** | **100% eliminated** (`src/theme/designTokens.ts`) |
-| `@offgrid/speech` imports | 9 | 1 | **1** *(0 in `src/`, 1 test fixture)* | **100% eliminated from `src/`, `package.json`, `metro.config.js`** |
-| `@offgrid/sync` imports (`src/` / total) | 44 / 148 | 44 / 148 | **29 / 133** | **`-15` source imports across `14` files (Half A 100% DONE; Half B Personal Mesh only left)** |
-| `@offgrid/notes`, `@offgrid/notes-editor`, `@offgrid/writing` | 0 / 0 / 0 | 0 / 0 / 0 | **0 / 0 / 0** | Removed from `package.json`, `metro.config.js`, `jest.config.js` |
-| Remaining `localFileDependencies` | — | 3 | **3** (`@offgrid/models`, `@offgrid/rag`, `@offgrid/sync`) | Remaining migration targets mapped below |
+| Metric | Baseline (`b7c06988`) | After `@offgrid/speech` | After `@offgrid/sync` Half A | After Slice 5 (`@offgrid/rag`) | Total Change |
+|---|---:|---:|---:|---:|---|
+| Files scanned | 1,976 | 1,987 | 1,996 | **2,008** | `+32` (`+2` OGAM TS modules + `2` Node test suites in Slice 5, after M2/M3) |
+| `localFileDependencies` (`package.json`) | 8 | 3 | 3 | **2** | **`-6`** (`design`, `notes`, `notes-editor`, `writing`, `speech`, `rag` removed) |
+| Total external refs | 1,354 | 1,335 | 1,320 | **1,283** | **`-71`** |
+| `packageImports` | 457 | 447 | 432 | **396** | **`-61`** |
+| `sharedWorkspacePaths` | 73 | 64 | 64 | **63** | **`-10`** |
+| `@offgrid/design` imports | 2 | 0 | 0 | **0** | **100% eliminated** (`src/theme/designTokens.ts`) |
+| `@offgrid/speech` imports | 9 | 1 | 1 *(0 `src/`, 1 test fixture)* | **1** *(0 `src/`, 1 test fixture)* | **100% eliminated from `src/`, `package.json`, `metro.config.js`** |
+| `@offgrid/rag` (`+ /documents`) imports (`src/` / `__tests__/`) | 19 / 4 | 19 / 4 | 19 / 4 | **0 / 0** | **100% eliminated** (`remoteComputerSearch.ts` + `ragDocumentsCore.ts`, `package.json`, `metro.config.js`) |
+| `@offgrid/models` imports (`src/` / total) | 87 / 118 | 87 / 118 | 87 / 118 | **74 / 107** | **M1 + M2 partial + M3 style catalog landed** |
+| `@offgrid/sync` imports (`src/` / total) | 44 / 148 | 44 / 148 | 29 / 133 | **29 / 133** | **`-15` source imports across `14` files (Half A 100% DONE; Half B Personal Mesh only left)** |
+| `@offgrid/notes`, `@offgrid/notes-editor`, `@offgrid/writing` | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 | **0 / 0 / 0** | Removed from `package.json`, `metro.config.js`, `jest.config.js` |
+| Remaining `localFileDependencies` | — | 3 | 3 | **2** (`@offgrid/models`, `@offgrid/sync`) | Remaining migration targets mapped below |
 
 ---
 
@@ -68,8 +70,8 @@ All packages below carry `"license": "AGPL-3.0-only"` in `package-lock.json`. Co
 | **`@offgrid/writing`** | **Removed (this PR)** | `tsup`, `typescript` (dev) | `0 → 0` | `0` | — | **PRO-ONLY / REMOVED** |
 | **`@offgrid/automation`** | Not in `package.json` | Used internally by `@offgrid/sync` | `0 → 0` | `0` | Added in `8741abb5` (Metro-only) | **TRANSITIVE OF `@offgrid/sync`** (keep Metro alias until `@offgrid/sync` Half B is migrated/removed) |
 | **`@offgrid/speech`** | **Removed (this PR)** | *(cleared from `package.json` & `metro.config.js`; `package-lock.json` left untouched per `340c80e2`)* | `8 → 0` | `0` *(+1 synthetic fixture in audit test)* | `aaf68870:src/services/speechEndpoint.ts` (`94f8f714^`); `9fc50207` / `a6cd8033` Qwen3-ASR language map | **DONE (100% eliminated)**: `wavTrimPlan.ts`, `speechEndpoint.ts`, `voiceTurnSettings.ts`, `transcriptionLanguages.ts`, `voiceSessionMachine.ts` |
-| **`@offgrid/rag`** (`+ /documents`) | Remains (`file:../shared/packages/rag`) | `@langchain/textsplitters ^1.0.2` (dev) | `19` | `4` | `6ba7d5cb:src/services/rag/{chunking,retrieval,vectorMath}.ts` (`5c12cc2f^`) | **KEEP & PORT NEXT** (19 `src/` + 4 `__tests__/`, 31 unique symbols) |
-| **`@offgrid/models`** | Remains (`file:../shared/packages/models`) | `minisearch ^7.2.0` (dev) | `87` | `31` *(+2 scripts)* | Partial (`ggufSplitFiles`, `modelCompanionFiles`, `formatFileSize` already ported in PR #1) | **KEEP & PORT BY SLICES `M2..M7`** (`148` unique symbols across `src/` & `__tests__/`) |
+| **`@offgrid/rag`** (`+ /documents`) | **Removed (this PR)** | *(cleared from `package.json` & `metro.config.js`; `package-lock.json` left untouched)* | `19 → 0` | `4 → 0` | `6ba7d5cb:src/services/rag/{chunking,retrieval,vectorMath}.ts` (`5c12cc2f^`) | **DONE (100% eliminated)**: `src/utils/remoteComputerSearch.ts` + `src/utils/ragDocumentsCore.ts` (`8/8` Node tests pass) |
+| **`@offgrid/models`** | Remains (`file:../shared/packages/models`) | `minisearch ^7.2.0` (dev) | `87 → 74` | `33` *(incl. scripts)* | Partial (`ggufSplitFiles`, `modelCompanionFiles`, `formatFileSize`, `toolResultBudget`, `reasoningBudget`, `toolLoopBudget`, `mediaStyles`) | **KEEP & PORT REMAINING SLICES** (`M2` remote-vision `reasoningBudgetPayload` + `M3..M7`) |
 | **`@offgrid/sync`** (`+ /rn, /rn-discovery, /portable`) | Remains (`file:../shared/packages/sync`) | `@noble/hashes 1.8.0`, `@offgrid/automation`, `@offgrid/models`, `bonjour-service`, `js-sha512`, `tweetnacl` | `44 → 29` | `104` | `25276231^:src/utils/messageContent.ts` + `src/components/MarkdownText.tsx`; `docs/SYNC_INTEGRATION_PLAN.md` (`c06b2211`) | **HALF A 100% DONE** (`14` `src/` files cleared via `messageContent.ts`, `chatMarkdown.ts`, `chatThreadCore.ts`, `chatQueue.ts`, `chatStreamHelpers.ts`, `chatSyncPrimitives.ts`); **HALF B (Personal Mesh) REMAINS** |
 
 ---
@@ -85,19 +87,11 @@ All packages below carry `"license": "AGPL-3.0-only"` in `package-lock.json`. Co
 
 ---
 
-### 3.3 Package Detail: `@offgrid/rag` and `@offgrid/rag/documents` (`31` Unique Symbols)
+### 3.3 Package Detail: `@offgrid/rag` and `@offgrid/rag/documents` — **100% Eliminated (`19/19` `src/` + `4/4` `__tests__/`)**
 
-**MIT Reference Commit Inside OGAM:** `6ba7d5cb:src/services/rag/{chunking.ts,retrieval.ts,vectorMath.ts}` (deleted in `5c12cc2f`).
-
-- **`@offgrid/rag` (`4` symbols — Remote Desktop Search):**
-  - `src/services/pairedComputerSearch.ts`: `searchRemoteComputer`, `RemoteSearchOutcome`
-  - `src/components/PairedComputerResults.tsx`: `withoutChatsOnDevice`, `RemoteSearchOutcome`, `RemoteSearchResult`
-  - `src/hooks/usePairedComputerSearch.ts`: `RemoteSearchOutcome`
-- **`@offgrid/rag/documents` (`27` symbols — Local Document Ingest & Retrieval):**
-  - **Services/Classes (`2`):** `DocumentIngestService`, `DocumentTurnService` (`src/services/documents/index.ts`)
-  - **Pure Functions (`6`):** `estimateTokens`, `textParts`, `contentTerms`, `indexedText`, `describeTurnStatus`, `parseSearchBlock`, `splitCitations` *(plus `searchBlock` in `ChatMessageCitations.test.tsx`)*
-  - **Types/Ports (`18`):** `CitedSource`, `ConversationDocumentsPort`, `DocumentChunk`, `DocumentIndexStore`, `DocumentPage`, `DocumentProgress`, `DocumentScope`, `DocumentSource`, `DocumentTurnStatus`, `EmbedPort`, `ExtractPort`, `FoundPassage`, `KeywordHit`, `KeywordSearchPort`, `ProjectDocumentsPort`, `Scheduler`, `StoredDocument`
-  - *Recommended order:* First extract pure helpers (`estimateTokens`, `textParts`, `contentTerms`, `indexedText`, `splitCitations`, `parseSearchBlock`) + interfaces, then implement `DocumentIngestService` & `DocumentTurnService` using `6ba7d5cb` MIT chunking/vector math.
+**Self-Contained Implementations:**
+- **`src/utils/remoteComputerSearch.ts`** (`@offgrid/rag`, tested by `scripts/__tests__/remote-computer-search.node.test.mjs`, `4/4` pass): `searchRemoteComputer`, `withoutChatsOnDevice`, `RemoteSearchOutcome`, `RemoteSearchResult`, `SearchRemoteComputerOptions`. Migrated `src/services/pairedComputerSearch.ts`, `src/components/PairedComputerResults.tsx`, `src/hooks/usePairedComputerSearch.ts`.
+- **`src/utils/ragDocumentsCore.ts`** (`@offgrid/rag/documents`, tested by `scripts/__tests__/rag-documents-core.node.test.mjs`, `4/4` pass): `DOCUMENT_SCHEMA_VERSION`, `CHUNK_CHARS`, `estimateTokens`, `textParts`, `pageNeedsOcr`, `cleanPages`, `splitPages`, `indexedText`, `contentTerms`, `documentMap`, `splitCitations`, `searchBlock`, `parseSearchBlock`, `describeTurnStatus`, `DocumentIngestService`, `DocumentTurnService`, plus all 18 TypeScript port/store contracts (`CitedSource`, `ConversationDocumentsPort`, `DocumentChunk`, `DocumentIndexStore`, `DocumentPage`, `DocumentProgress`, `DocumentScope`, `DocumentSource`, `DocumentTurnStatus`, `EmbedPort`, `ExtractPort`, `FoundPassage`, `KeywordHit`, `KeywordSearchPort`, `ProjectDocumentsPort`, `Scheduler`, `StoredDocument`). Migrated all `16` `src/` files + all `4` `__tests__/` files; removed `@offgrid/rag` from `package.json` and `metro.config.js` (`package-lock.json` kept untouched per `340c80e2`).
 
 ---
 
@@ -161,6 +155,6 @@ Zero TCP/NaCl/mDNS dependency; migrated into OGAM-owned self-contained modules a
 
 1. ~~Finish `@offgrid/speech` (`transcriptionLanguages` + `voiceSession` state machine)~~ → **DONE (`4 → 3` `localFileDependencies`, `0` `@offgrid/speech` imports in `src/`).**
 2. ~~Extract `@offgrid/sync` **Half A** pure chat/reasoning/markdown/queue helpers into `src/utils/`~~ → **DONE (`44 → 29` `@offgrid/sync` `src/` imports across `14` files).**
-3. Port `@offgrid/rag/documents` + `@offgrid/rag` starting from MIT commit `6ba7d5cb:src/services/rag/*` → removes `@offgrid/rag` (`3 → 2`).
-4. Port `@offgrid/models` slices `M2` → `M3` → `M4` → `M5` → `M6` → `M7` with strict parity against Jest specs → removes `@offgrid/models` (`2 → 1`).
+3. ~~Port `@offgrid/rag/documents` + `@offgrid/rag` starting from MIT commit `6ba7d5cb:src/services/rag/*`~~ → **DONE (`3 → 2` `localFileDependencies`, `0` `@offgrid/rag` imports in `src/`, `__tests__/`, or build config).**
+4. Finish `@offgrid/models` slices (`M2` remote-vision `reasoningBudgetPayload` → `M3` → `M4` → `M5` → `M6` → `M7`) with strict parity against Jest specs → removes `@offgrid/models` (`2 → 1`).
 5. Port or scope `@offgrid/sync` **Half B** (Personal Mesh) + `@offgrid/automation` → reaches **`0` `localFileDependencies` and clean standalone Android/Jest/TSC builds without `../shared` or `pro/`**.

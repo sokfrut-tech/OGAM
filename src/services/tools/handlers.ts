@@ -1,7 +1,7 @@
 import { videoSeam } from '../../bootstrap/videoSeam';
 import { Platform } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
-import { describeTurnStatus } from '@offgrid/rag/documents';
+import { describeTurnStatus } from '../../utils/ragDocumentsCore';
 import { ToolCall, ToolResult } from './types';
 import { useDocumentTurnStatusStore } from '../documents/progressStore';
 import type * as DocumentChatTurn from '../documents/chatTurn';

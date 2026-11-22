@@ -20,7 +20,6 @@ const sharedRoot = (() => {
 })();
 const syncPackagePath = path.resolve(sharedRoot, 'packages/sync');
 const automationPackagePath = path.resolve(sharedRoot, 'packages/automation');
-const ragPackagePath = path.resolve(sharedRoot, 'packages/rag');
 // @offgrid/models: cross-platform model contracts (catalog, reasoning-budget rule) shared
 // with desktop. Out-of-root like rag, prebuilt CJS in dist/.
 const modelsPackagePath = path.resolve(sharedRoot, 'packages/models');
@@ -46,7 +45,6 @@ const config = {
   watchFolders: [
     syncPackagePath,
     automationPackagePath,
-    ragPackagePath,
     modelsPackagePath,
     sharedNodeModulesPath,
     ...linkedNodeModulesPaths,
@@ -66,12 +64,6 @@ const config = {
       // Exposes src/ as @offgrid/core so @offgrid/pro can import the design system,
       // stores, and registries without a circular package dependency.
       '@offgrid/core': path.resolve(__dirname, 'src'),
-      // Shared, pure-TS RAG decisions. Point Metro at the built CommonJS entry directly:
-      // resolving the external package directory can fail in an already-running dev server
-      // after the file dependency is added, even though Node can resolve the package.
-      '@offgrid/rag': path.resolve(ragPackagePath, 'dist/index.js'),
-      // Documents attached to chat (ingest, retrieval, prompt shape); its splitter is bundled in.
-      '@offgrid/rag/documents': path.resolve(ragPackagePath, 'dist/documents/index.js'),
       '@offgrid/models': path.resolve(modelsPackagePath, 'dist/index.js'),
       // @offgrid/sync owns this dependency in its package manifest. Metro still needs the
       // out-of-root file dependency mapped to a watched, built CommonJS entry.

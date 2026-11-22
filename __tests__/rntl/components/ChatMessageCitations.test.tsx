@@ -11,7 +11,7 @@
  */
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { searchBlock } from '@offgrid/rag/documents';
+import { searchBlock } from '../../../src/utils/ragDocumentsCore';
 import { ChatMessage } from '../../../src/components/ChatMessage';
 import { createMessage } from '../../utils/factories';
 import type { DocumentCitation, Message } from '../../../src/types';
