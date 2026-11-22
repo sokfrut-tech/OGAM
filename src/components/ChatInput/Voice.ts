@@ -179,6 +179,9 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
     // The capture closed itself (whisper.rn's length cap). The session must leave "listening", or every
     // later tap is refused. Dictation ends as a stop ends it; voice mode gets no reply from this, so it
     // ends the session the way an empty turn does instead of handing the floor to an assistant.
+    onCaptureSettled: hasTranscript => {
+      if (!hasTranscript) onAssistantVoiceInputConsumedRef.current?.();
+    },
     onCaptureEnded: () => {
       logger.log('[TURN] capture ended by itself');
       if (isInAudioInterfaceMode()) {
@@ -311,14 +314,17 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
         // (llama) model's hold-to-talk has. Transcribe the recording and drop the text into the composer
         // for the user to review/edit/send; do NOT build a voice-note attachment (that was the litert-only
         // divergence). The temp recording file is transient there.
-        const autoSend = !!onAutoSendRef.current && isInAudioInterfaceMode();
+        const autoSend = !!onAutoSendRef.current;
         const { whisperReady, transcript } = await transcribeRecordedFile(
           path,
           autoSend ? '[Voice] transcription error:' : '[Voice] chat-mode dictation transcription error:',
         );
         // NEVER dispatch an empty transcript — that misroutes to the text model.
         const outcome = resolveTranscription(whisperReady, transcript);
-        if (!stillOwned()) turnResult.drop();
+        if (!stillOwned()) {
+          turnResult.drop();
+          onAssistantVoiceInputConsumedRef.current?.();
+        }
         // Nothing to send. Hands-free must NOT re-open the mic: on device that spun - record, hear the
         // room, transcribe to nothing, arm again - three turns in eight seconds with no output. Two
         // verdicts end the session; a person tapping the mic resumes it.
@@ -330,6 +336,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
     } catch (err) {
       setIsDirectRecording(false);
       logger.error('[Voice] Failed to stop direct recording:', err);
+      onAssistantVoiceInputConsumedRef.current?.();
     }
   };
 
@@ -358,6 +365,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
       const outcome = resolveTranscription(whisperReady, transcript);
       if (!stillOwned()) {
         turnResult.drop();
+        onAssistantVoiceInputConsumedRef.current?.();
       } else if (!outcome.dispatch) {
         reportNothingHeard(outcome.message, 1);
       } else if (onAutoSendRef.current) {
@@ -370,6 +378,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
       setIsAudioModeRecording(false);
       setIsTranscribingFile(false);
       logger.error('[Voice] Failed to stop audio mode recording:', err);
+      onAssistantVoiceInputConsumedRef.current?.();
     }
   };
 
@@ -420,6 +429,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
       // A user cancellation ends the manual turn. A replay cancellation is
       // different: replayStarted already owns the floor and replayEnded returns it.
       if (!isReplayCancellation) voiceSession.dispatch('dictationFinished');
+      onAssistantVoiceInputConsumedRef.current?.();
     }
   };
 
