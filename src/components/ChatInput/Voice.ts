@@ -21,6 +21,7 @@ interface UseVoiceInputParams {
   onAudioAttachment?: (audio: { uri: string; format: 'wav' | 'mp3'; durationSeconds?: number; transcription?: string }) => void;
   /** Called in Audio Mode to auto-send. Includes audio info so caller can build attachment atomically. */
   onAutoSend?: (text: string, audio: { uri: string; format: 'wav' | 'mp3'; durationSeconds: number }) => void;
+  onAssistantVoiceInputConsumed?: () => void;
 }
 
 /** Stop the recorder and produce the note the person MEANT - dead air cut from both ends. The one
@@ -127,7 +128,7 @@ function useTurnResultOwnership(
   };
 }
 
-export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onAudioAttachment, onAutoSend }: UseVoiceInputParams) {
+export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onAudioAttachment, onAutoSend, onAssistantVoiceInputConsumed }: UseVoiceInputParams) {
   const recordingConversationIdRef = useRef<string | null>(null);
   const turnResult = useTurnResultOwnership(conversationId, recordingConversationIdRef);
   const onTranscriptRef = useRef(onTranscript);
@@ -136,6 +137,8 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
   onAudioAttachmentRef.current = onAudioAttachment;
   const onAutoSendRef = useRef(onAutoSend);
   onAutoSendRef.current = onAutoSend;
+  const onAssistantVoiceInputConsumedRef = useRef(onAssistantVoiceInputConsumed);
+  onAssistantVoiceInputConsumedRef.current = onAssistantVoiceInputConsumed;
   const downloadedModelId = useWhisperStore(state => state.downloadedModelId);
   const transcriptionLanguage = useWhisperStore(state => state.transcriptionLanguage);
   const remoteTranscriptionAvailable = useRemoteTranscriptionAvailable();
@@ -238,6 +241,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
         const msg = err instanceof Error ? err.message : 'Recording failed';
         logger.error('[Voice] Direct audio recording error:', err);
         setDirectError(msg);
+        onAssistantVoiceInputConsumedRef.current?.();
       }
       return;
     }
@@ -252,6 +256,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
         const msg = err instanceof Error ? err.message : 'Recording failed';
         logger.error('[Voice] Audio mode recording error:', err);
         setDirectError(msg);
+        onAssistantVoiceInputConsumedRef.current?.();
       }
       return;
     }
@@ -265,6 +270,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
   const reportNothingHeard = (message: string, strikes: number) => {
     for (let i = 0; i < strikes; i++) voiceSession.dispatch('nothingHeard');
     setDirectError(message);
+    onAssistantVoiceInputConsumedRef.current?.();
     setTimeout(() => setDirectError(null), 3000);
   };
 
