@@ -117,7 +117,7 @@ internal class JarvisSpeechChunker(
   private fun isSpacedRussianAbbreviationPeriod(index: Int): Boolean {
     val prefix = pending.substring(0, index)
     val suffix = pending.substring(index + 1)
-    val lastToken = prefix.substringAfterLast(Regex("\\s+"), prefix).trim()
+    val lastToken = prefix.trim().split(Regex("\\s+")).lastOrNull().orEmpty()
 
     if (lastToken.equals("т", ignoreCase = true)) {
       return Regex("^\\s*[дпек]\\.", RegexOption.IGNORE_CASE).containsMatchIn(suffix)
