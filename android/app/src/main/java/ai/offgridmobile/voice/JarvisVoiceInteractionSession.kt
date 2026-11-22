@@ -5,7 +5,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.service.voice.VoiceInteractionSession
-import ai.offgridmobile.MainActivity
+import ai.offgridmobile.voice.JarvisAssistantBridgeActivity
 
 /**
  * Hands the system invocation to OGAM's existing ChatScreen / ChatInput voice pipeline.
@@ -27,7 +27,7 @@ class JarvisVoiceInteractionSession(context: android.content.Context) :
   override fun onShow(args: Bundle?, showFlags: Int) {
     super.onShow(args, showFlags)
 
-    val launchIntent = Intent(getContext(), MainActivity::class.java).apply {
+    val launchIntent = Intent(getContext(), JarvisAssistantBridgeActivity::class.java).apply {
       action = Intent.ACTION_VIEW
       data = Uri.parse(JARVIS_VOICE_URI)
       addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
