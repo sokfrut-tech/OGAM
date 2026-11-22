@@ -653,3 +653,14 @@ Added source-only implementation on this branch:
 - CosyVoice3-MNN is therefore not batch-only: it remains a promising high-quality/high-resource experimental track. It still needs ~2.25 GB PSS, ~1.3 GiB model storage, ~10–15 s cold startup, and only SM8850 device validation. No transfer to OPPO SM8550 may be assumed.
 - tiny-voca-ru remains the leading compact prototype due ~21.4 MB ONNX model and permissive code/weights, but it also has no Android/SM8550 performance proof.
 - See the latest correction appended to `LOCAL_RUSSIAN_TTS_RUNTIME_EVALUATION.md` and `TINY_VOCA_RU_ANDROID_PORT_PLAN.md`.
+
+
+## Verification snapshot — 2026-11-22 (latest PR #1 head)
+
+- tiny-voca-ru dataset card documents 20,287 clips / 23.82 h / CC BY 4.0, and F/M voices generated with Qwen3-TTS 1.7B VoiceDesign. Reference speaker provenance/consent is not fully established by the public summary and remains a release gate.
+- Model card's 81x ONNX RT is Ryzen 5 3600X / 4 threads only; no SM8550 performance inference is allowed. `lite` homograph score is 56.0%; do not attribute the 91.6% ruaccent reference score to tiny-voca-ru `full`.
+- Exact ONNX file hash and immutable model revision are still not verified. English tiny-voca hashes must not be reused.
+- Official ORT docs: Android NNAPI supported API 27+; mobile guide recommends CPU baseline and device-specific accelerator benchmarking; R8 keep rule required for minified apps. This is generic Android NNAPI, not proof of Qualcomm QNN/HTP use.
+- Current PR #1 head at check: `7b399c5261e09f365ca44d81fb053dbe68af8c08`; PR remains draft/open/unmerged.
+- External dependency audit run 45059622374 passed on that head: https://github.com/sokfrut-tech/OGAM/actions/runs/45059622374
+- Full CI run 45059622387 remained in progress at last check; three Jest shards already failed broadly due missing private `@offgrid/models` and `pro/sync` modules. Android Gradle job had no completed result. Do not claim full CI, Kotlin/JUnit, APK or device success.
