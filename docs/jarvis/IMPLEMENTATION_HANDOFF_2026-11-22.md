@@ -529,3 +529,17 @@ The single remaining M2 symbol still imported from `@offgrid/models` is `reasoni
 - The correct dependency-migration order remains: (1) M2 remote-vision `reasoningBudgetPayload` only after its exact wire contract is recovered; (2) M3 SD/video policy only after exact source and consumer contracts; (3) M4 naming/classification; then M5–M7. The private sibling workspace `../shared/packages/models` is not readable through the current GitHub integration, so no guessed payload, SD threshold, checkpoint rule or video/RAM policy may be substituted.
 - The prior `@offgrid/sync` Half A and `@offgrid/rag` work is already completed and documented; do not repeat it. `@offgrid/sync` Half B is the separate Personal Mesh/crypto/networking workstream and remains deferred until the Android Jarvis MVP and safety gates.
 - PR #1 remains open/draft; PR #2 remains open/draft. No merge, APK release or PGEM10 runtime pass is claimed.
+
+
+## New Qwen3-ASR runtime alternative — sherpa-onnx audit (2026-11-22)
+
+- Discovered official sherpa-onnx support for Qwen3-ASR 0.6B, with Android arm64-v8a and iOS arm64 support listed in upstream docs.
+- Read upstream Kotlin example `kotlin-api-examples/test_offline_qwen3_asr.kt`, Java model config `OfflineQwen3AsrModelConfig.java`, Swift example `swift-api-examples/qwen3-asr.swift`, and C++ Qwen3 ASR example.
+- Published INT8 ONNX model: `sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25`; package directory reports 1,954,552,000 bytes (~1.82 GiB): conv frontend ~42 MB, encoder.int8 ~174 MB, decoder.int8 ~721 MB, tokenizer files ~4.2 MB, plus tests.
+- Russian is explicitly listed. Kotlin/Swift APIs are available. Android examples use CPU provider and optional Silero VAD.
+- Important: Qwen3-ASR is an offline recognizer. sherpa's microphone "simulated streaming" is VAD/chunked use; do not promise native incremental token streaming.
+- OGAM already integrates the GGUF+mmproj variant through llama.rn. The sherpa ONNX model is a distinct artifact set and must never share catalog files/checksums/IDs with the GGUF variant.
+- Next engineering step: a separate opt-in benchmark only; no duplicate model in normal app install. Compare on identical Russian clips, measure cold/warm load, RTF, peak RSS, CPU/thermal, WER/CER, noisy speech and cancellation on PGEM10. Avoid simultaneous residency and preserve Whisper fallback.
+- Before adding sherpa native dependency, confirm official Kotlin AAR coordinates/version, arm64-only packaging, exact transitive ONNX Runtime license notices and APK-size impact; use Swift XCFramework separately for iOS.
+- Generic ONNX support is not Qualcomm NPU proof; upstream Qwen3 sherpa examples specify CPU provider. No SM8550 hardware test is yet established.
+- Research details: [Chinese model evaluation](https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/china/CHINESE_OPEN_MODELS_EVALUATION_2026-11-22.md).
