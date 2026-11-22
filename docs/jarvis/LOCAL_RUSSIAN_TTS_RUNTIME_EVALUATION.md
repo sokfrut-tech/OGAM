@@ -21,6 +21,7 @@ A Jarvis voice-output backend must:
 
 | Candidate | Russian support | Runtime / integration | Distribution / licensing | Decision |
 |---|---|---|---|---|
+| tiny-voca-ru (4.5M Russian ONNX) | Russian-only; fixed female/male voices; 24 kHz mono | 21.4 MB ONNX; upstream inference uses ONNX Runtime; current Python 3.11 frontend must be ported to Kotlin; sentence-at-a-time synthesis can feed the existing PCM player, but the reference API is not streaming | Model/code Apache-2.0; bundled ruaccent assets MIT; training dataset CC BY 4.0 with attribution; two synthetic voices, no voice cloning | **Top compact prototype candidate**. Pin model/assets and port the exact 61-symbol frontend; benchmark OPPO before adoption. Model-card 81x CPU result is desktop-only. |
 | Sherpa-ONNX Android 2.0.3 + Supertonic-3 | 31 languages including `ru`; G2P-free Unicode frontend | Android Kotlin API exposes `OfflineTts` and callback PCM generation. Official Android sample pins Maven `com.github.k2-fsa.sherpa-onnx:sherpa-onnx:v2.0.3`. | Sherpa code Apache-2.0. Supertonic-3 weights use OpenRAIL-M with use-based restrictions and downstream notice/redistribution requirements. HF repository currently reports 415 MB total. Soniqo's selected deployment notes say ~380 MB download and ~832 MB peak memory; these are vendor measurements, not OGAM/OPPO measurements. | **First runtime prototype candidate**, opt-in model download only, pending licence review and OPPO profiling. Do not put the model in the APK. |
 | GarAlex/local-tts — Vosk 0.7 Russian | Native Russian Vosk multi-speaker model; five speaker IDs F01/F02/F03/M01/M02; native dictionary and explicit-stress frontend | MIT Rust project, native Rust inference, C ABI and cancellable synthesis. No Piper/eSpeak runtime; no Python at inference. Android NDK/Rust/ORT packaging, ABI size and latency have not been measured in OGAM. Unknown Russian words require manual stress annotation. | Code is MIT. The Vosk model card declares Apache-2.0, but the source documentation explicitly leaves dictionary/data licensing and detailed rights lineage for the training voices unresolved. | **Keep as a second candidate**. Do not ship voice assets until the dictionary/data/voice rights chain is resolved and a revision/hash is pinned. |
 | TeraTTSv2 ONNX | Russian and English, ten styles; Russian stress annotation is automatic by default | ONNX Runtime, selectable diffusion samplers, streamed Float32 audio. Repository currently reports ~1.17 GB. Its model interface uses custom code; the HF guide currently requires `trust_remote_code=True`. No audited Android-native integration path has been demonstrated. | Custom OpenRAIL-M commercial-attribution licence. Commercial products must credit/link TeraTTSv2 publicly; redistribution must pass on both license files and use restrictions. | **Research-only**. Too large for the first OPPO prototype; custom-code and licence review required before any use. |
@@ -29,6 +30,18 @@ A Jarvis voice-output backend must:
 | JokobeeTTS / Kokoro | The inspected supported voice packs do not provide Russian. | Kotlin Android modules exist; separate language packs. | Project/engine code Apache-2.0; voice/model packs still need their own audit. | Not a Russian-first candidate. |
 
 ## Evidence and source pins
+
+### tiny-voca-ru
+
+- Model: https://huggingface.co/egnch/tiny-voca-ru
+- Source/frontend: https://github.com/yilbegan/tiny-voca-ru
+- Dataset/provenance: https://huggingface.co/datasets/egnch/tiny-voca-ru-dataset
+- The model card reports 4,534,411 parameters, 21.4 MB ONNX, 24 kHz mono output and two voices (F/M). Its ONNX inference inputs are tokens, stress, voice, speed, pitch_shift and pitch_range; outputs are waveform audio and durations.
+- The ONNX graph is an upstream export at opset 17. Android ONNX Runtime operator support and Snapdragon 8 Gen 2 performance have not been verified.
+- The current text frontend is Python 3.11+: Russian normalization, numbers/dates/currency, stress dictionary + accent.onnx, optional full homograph disambiguation, G2P and a 61-symbol IPA/token inventory. A Kotlin port needs parity fixtures; do not replace it with a simple transliteration shortcut.
+- The model card's CPU speed (81x real-time on a four-thread Ryzen 5 3600X) is not an Android measurement. The reference API concatenates sentence outputs before returning; OGAM can synthesize sentence chunks independently to start playback earlier, but TTFA must be measured.
+- Model/source license: Apache-2.0; bundled ruaccent assets: MIT; dataset: CC BY 4.0. The dataset card attributes synthetic audio to Qwen3-TTS 1.7B VoiceDesign and includes CC0 Common Voice plus generated/template text. Preserve all attribution and pin hashes before downloading.
+- Evaluation in the model card: 2.03% WER / 0.46% CER on 696 test clips against Whisper large-v3-turbo; 98.5% CTC top-1 stress accuracy on dictionary words; lite/full homograph figures 56.0% / 91.6%. These are upstream figures, not independent OPPO results.
 
 ### Sherpa-ONNX
 
@@ -81,10 +94,11 @@ A Jarvis voice-output backend must:
 1. Keep a vendor-neutral OGAM interface: `JarvisTtsBackend` loads a downloaded package, reports language/speaker/sample-rate metadata, streams Float32 PCM sentence chunks, supports `cancel(jobId)` and releases native resources deterministically.
 2. Keep playback in an OGAM-owned Android audio component, not inside the model backend. The player owns AudioTrack, AudioFocus, ordered writes, output-route errors, cancellation and resource release. Barge-in and a newer answer must be able to stop it without waiting for the whole TTS generation.
 3. Use model packages managed by the existing model catalogue/downloader: manifest, exact revision, SHA-256, licence record, voice card and size. Never bundle large model weights in the base APK.
-4. Prototype Sherpa-ONNX 2.0.3 + Supertonic-3 as the first technical candidate only after OpenRAIL-M product restrictions are reviewed. Use CPU first and compare RTF/TTFA/RAM/thermal/battery before considering Qualcomm acceleration.
-5. Keep local-tts/Vosk as a second Russian candidate; it may be lighter, but the dataset/voice rights caveat blocks redistribution until cleared.
-6. TeraTTSv2 remains a quality/latency comparison option, not a default mobile candidate, because of its reported size, custom-code path and additional attribution condition.
-7. Do not add Piper/eSpeak-GPL to the current OGAM binary unless a deliberate project licensing decision is made.
+4. Prototype tiny-voca-ru as the first compact Russian model: pin exact ONNX/frontend assets, port its 61-symbol Kotlin frontend with Python parity fixtures, and compare lite/full stress. Use sentence chunks with JarvisPcmStreamPlayer; no release claim until OPPO TTFA/RTF/RAM/thermal/battery and listening checks pass.
+5. Keep Sherpa-ONNX 2.0.3 + Supertonic-3 as the first streaming-oriented alternative, but only after OpenRAIL-M product restrictions are reviewed. Use CPU first and compare RTF/TTFA/RAM/thermal/battery before considering Qualcomm acceleration.
+6. Keep local-tts/Vosk as another Russian candidate; it may be lighter, but the dataset/voice rights caveat blocks redistribution until cleared.
+7. TeraTTSv2 remains a quality/latency comparison option, not a default mobile candidate, because of its reported size, custom-code path and additional attribution condition.
+8. Do not add Piper/eSpeak-GPL to the current OGAM binary unless a deliberate project licensing decision is made.
 
 ## Required OPPO Find X6 Pro measurements
 
