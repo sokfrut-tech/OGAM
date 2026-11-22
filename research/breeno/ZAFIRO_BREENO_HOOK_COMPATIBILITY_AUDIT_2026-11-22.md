@@ -221,3 +221,78 @@ Keep the existing no-root `RoleManager` + `VoiceInteractionService` implementati
 - [BreenoCardRenderer.kt](https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/app/src/main/java/com/niki914/zafiro/mod/feat/oppo/BreenoCardRenderer.kt)
 - [Breeno adaptation guide](https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/.agents/skills/assistant-add-support/docs/BREENO.md)
 - [Assistant support skill / REA gate](https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/.agents/skills/assistant-add-support/SKILL.md)
+
+
+## 11. Deeper Android VoiceInteraction lifecycle and metadata review
+
+Inspected the PR #1 source files at commit `67159e2f821b14616eebcaf0e6da997633cd7aa4`:
+- `JarvisVoiceInteractionService.kt`
+- `JarvisVoiceInteractionSessionService.kt`
+- `JarvisVoiceInteractionSession.kt`
+- `JarvisAssistantBridgeActivity.kt`
+- `JarvisAssistantLaunchGuard.kt`
+- `JarvisAssistantRoleModule.kt`
+- `JarvisAssistantRoleSnapshot.kt`
+- `android/app/src/main/res/xml/jarvis_voice_interaction.xml`
+- `scripts/__tests__/android-assistant-contract.node.test.mjs`
+- `JarvisAssistantRoleSnapshotTest.kt`
+
+### Confirmed lifecycle
+
+1. The system-selected `JarvisVoiceInteractionService` is intentionally lightweight. Its current `onReady()` only disables assist-data and screenshot context.
+2. A separate `:jarvis_voice` process hosts `JarvisVoiceInteractionSessionService`; each new session constructs a short-lived `JarvisVoiceInteractionSession`.
+3. On invocation, the session starts the private bridge Activity via `startAssistantActivity()` on Android O+ and then immediately calls `finish()`.
+4. The bridge Activity mints a random one-use token with a 10-second TTL and starts MainActivity using the protected assistant URI.
+5. MainActivity consumes the token through `JarvisAssistantLaunchGuard`; URL normalization checks are deliberately aligned with the React Navigation route parser to prevent alternate URI spellings bypassing the native gate.
+6. ChatScreen then requests the existing shared recording controller. Recording is allowed only if a compatible transcription backend is available; otherwise the user is directed to speech-model setup.
+
+### Important capability boundary
+
+Android's official VoiceInteractionService reference says the selected service is kept running by the system to support features including background hotword listening. OGAM's current service does not implement a hotword detector, keyphrase enrollment, DSP/hardware trigger handling, or a persistent local wake-word state machine. It only disables assist/screenshot context in `onReady()` and hands an explicit system invocation to the app.
+
+Therefore the code proves a system-assistant invocation/handoff path, **not** an always-listening wake-word assistant. It also does not prove that voice capture starts on the lock screen or continues without showing the app's visible Chat UI. Those require separate design, Android/OEM policy review, explicit user consent and real-device tests.
+
+### Metadata compatibility issue to track
+
+The current `jarvis_voice_interaction.xml` declares:
+
+```xml
+android:recognitionService="ai.offgridmobile/ai.offgridmobile.voice.JarvisVoiceInteractionService"
+```
+
+Android's platform `VoiceInteractionService` metadata documentation states:
+- On Android 11 and earlier, `recognitionService` must identify a valid `RecognitionService`.
+- From Android 12 onward, this attribute does nothing, but the XML field is still required to be set; an unspecified value can cause the system to reset the selected assistant.
+- OGAM currently disables this VoiceInteractionService below API 31 via `values/bools.xml`, so the present configuration is not evidence of a current Android 12+ failure.
+- However, the configured component is a `VoiceInteractionService`, not a `RecognitionService`. If OGAM ever enables this integration on Android 11 or earlier, it must add/register a real compatible `RecognitionService` and point the metadata to it before enabling the component. Do not merely lower the API gate.
+
+This is a **forward-compatibility blocker**, not a claim that current Android 16 devices fail because of this field.
+
+### Lock-screen affordance metadata
+
+The platform metadata schema includes `supportsLaunchVoiceAssistFromKeyguard`, distinct from `supportsAssist`. OGAM currently sets `supportsAssist=true`, but does not declare `supportsLaunchVoiceAssistFromKeyguard` or override `onLaunchVoiceAssistFromKeyguard()`. This is not proof of a bug: the current product path deliberately avoids requesting screen context and does not yet promise lock-screen operation. If lock-screen invocation is added, evaluate this capability explicitly and test it on ColorOS; do not infer it from holding `ROLE_ASSISTANT`.
+
+### Test coverage confirmed
+
+- The JS/Node source-contract suite verifies manifest protection, non-exported bridge, one-shot token path, API 31 enablement, disabled assist/screenshot context, RoleManager flow and shared recorder preconditions.
+- `JarvisAssistantRoleSnapshotTest` verifies the readiness conjunction: supported API + available role + held role + active service. It also covers false-ready combinations.
+- No dedicated `JarvisVoiceInteractionSessionTest.kt` was found at the inspected path. The session/handoff is therefore covered mainly by source-contract assertions and the launch-guard unit tests, not by a full Android framework lifecycle instrumentation test.
+- These are repository test sources inspected at a pinned commit. This audit did not execute Gradle/Node tests and did not validate Android framework behavior on ColorOS.
+
+### ColorOS evidence and limits
+
+A public issue for the third-party MiCTS project documents an OPPO Pad Mini running ColorOS V16.1 / Android 16 where the selected Google VoiceInteractionService is active, and discusses invocation latency/launch behavior. This is useful evidence that the Android voice-assistant pathway is present on at least one ColorOS 16 device. It is **not** evidence that OGAM's implementation works on the OPPO Find X6 Pro / PGEM10, nor that the same behavior applies across regions/firmware variants.
+
+### Recommended next implementation gates
+
+1. Preserve the API 31+ gate until a genuine legacy `RecognitionService` exists and is tested.
+2. Add a static metadata contract test that checks the pre-31 recognition service is real before any future gate change.
+3. Treat wake word as its own subsystem: local VAD + wake-word model/runtime + microphone/foreground-service policy + battery/thermal measurement + explicit opt-in + lock-screen UX.
+4. Keep system invocation, wake-word detection, transcription, conversation, and device-action execution as independently observable states; never report "always listening" just because `ROLE_ASSISTANT` is held.
+5. Before claiming ColorOS compatibility, run a signed debug/release build on PGEM10 and capture: assistant role availability/held/active status, actual invocation path, lock/unlock behavior, microphone start, cancellation, process recreation, battery/thermal impact and native fallback behavior.
+
+### Android platform references
+
+- [Android VoiceInteractionService API](https://developer.android.com/reference/android/service/voice/VoiceInteractionService)
+- [AOSP VoiceInteractionService XML metadata schema](https://android.googlesource.com/platform/frameworks/base/+/master/core/res/res/values/attrs.xml) — documents the Android 11-and-earlier requirement and Android 12+ ignored-but-required metadata behavior.
+- [ColorOS 16 third-party assistant invocation report (OPPO Pad Mini)](https://github.com/parallelcc/MiCTS/issues/139) — anecdotal device evidence only; not an OGAM test.
