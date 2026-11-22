@@ -28,6 +28,36 @@ Make `sokfrut-tech/OGAM` build and test from its own checkout, without credentia
    - `.github/workflows/build-android-apk.yml` currently requires `PRO_SUBMODULE_PAT` and passes it to the shared setup action.
    - This secret requirement is a consequence of the two external source dependencies above, not a desired permanent OGAM configuration.
 
+## Public fork research (2026-11-22)
+
+Inspected two public forks rather than assuming how other developers solved unavailable private repositories.
+
+### `wednesday-solutions/off-grid-mobile-ai`
+
+- Public fork, created 2026-03-17; repository metadata reports its last push on 2026-03-17.
+- Its `package.json` is version `0.0.81`.
+- The inspected tree has no `.gitmodules` and no `pro` directory.
+- Its package manifest does not declare the newer `@offgrid/*` sibling-workspace dependencies.
+- This is a useful example of a standalone earlier open-core snapshot, but it does **not** prove that the maintainer removed current private dependencies: it predates the newer Pro/shared split and is not current parity with this OGAM branch.
+- Potential use: compare its self-contained open-core implementation and tests for features that remain relevant. Do not replace our current branch wholesale with this old snapshot.
+
+### `cristiannegru/off-grid-mobile-ai`
+
+- Public fork of OGAM; current inspected tree contains `pro` as a submodule pinned to `ff0d874`.
+- Its `.gitmodules` still points `pro` to `https://github.com/off-grid-ai/mobile-pro.git`; it has not made Pro self-contained.
+- Its `package.json` still declares sibling `../shared` dependencies (including application, models, rag, speech, sync and ui).
+- Its CI workflow documents a fork mode: when `PRO_SUBMODULE_PAT` is absent, private-source checkout steps are skipped and Pro-dependent test suites are skipped in favor of the open-core suite. When the secret is present, CI checks out matching Pro/shared branches with main fallback.
+- This is a practical CI workaround for contributors without private-source access, **not** a full dependency migration. It does not satisfy OGAM's goal of a clean self-contained checkout.
+
+### Research conclusion
+
+There are two distinct approaches visible in public forks:
+
+1. Earlier standalone core snapshot: omit Pro and newer shared-workspace integration; retain only features whose source is actually present in the fork.
+2. Contributor CI fallback: conditionally skip private Pro/shared integration and run open-core checks; useful temporarily, but does not make the project independent.
+
+For our stated goal, use the first approach as architectural evidence and the second only as a temporary test strategy. The target remains a real, fully tested OGAM-owned implementation with no private checkout token. Do not claim full independence while Pro or shared code is absent.
+
 ## Access finding
 
 The connected GitHub integration can read `sokfrut-tech/OGAM`, but requests for `off-grid-ai/mobile-pro` and `off-grid-ai/shared` return 404. Their source contents therefore have not been inspected or copied. Do not create empty placeholder directories, fake packages, or no-op Pro implementations to make CI appear green.
