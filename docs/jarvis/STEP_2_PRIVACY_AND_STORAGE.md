@@ -1,34 +1,36 @@
 # Jarvis — Step 2: privacy and Android storage access
 
-Status: implementation started on `feature/jarvis-step-2-storage-privacy`.
+Status: implementation on `feature/jarvis-step-2-storage-privacy`; draft PR #1 remains unmerged.
 
 ## Verified upstream facts
 
-- The app already persists settings with Zustand + AsyncStorage in `src/stores/appStore.ts`.
-- Analytics consent defaults are already false: `analyticsUsage: false` and `analyticsCrashes: false`. The existing schema also has consent-prompt bookkeeping fields.
-- `posthog-react-native` is still a dependency in `package.json`; removing the dependency alone is unsafe until all imports, initialization paths, consent UI and tests have been located.
-- `AndroidManifest.xml` already declares `MANAGE_EXTERNAL_STORAGE`, as well as media permissions and legacy storage permissions.
-- The manifest already includes SAF-oriented directory integration. `SyncDirectorySourceModule.kt` enumerates a user-granted document tree and can stage a selected document into app-private storage.
+- Settings are persisted with Zustand + AsyncStorage in `src/stores/appStore.ts`.
+- Analytics consent defaults are false: `analyticsUsage: false` and `analyticsCrashes: false`.
+- Analytics has an explicit Settings consent section and a consent prompt. The SDK is isolated behind `src/services/analytics/client.ts`; `startAnalytics` starts only after settings hydration.
+- `posthog-react-native` remains a dependency because this fork has an established opt-in analytics implementation. This step does not silently remove the consent UI or Pro-related analytics hooks.
+- `AndroidManifest.xml` already declares `MANAGE_EXTERNAL_STORAGE`, media permissions and legacy storage permissions.
+- `SyncDirectorySourceModule.kt` and Android's system document picker support user-selected folder access.
+- `SyncDownloadsModule.kt` already exposes `accessState()` and `requestAllFilesAccess()`, including a foreground-safe settings launch and fallback. It is the single native owner used by this step.
 - `MainApplication.kt` manually registers native React Native packages.
 - `android/app/build.gradle` already has `useLegacyPackaging = true`; Step 2 does not change packaging.
 
-## Privacy decision
+## Privacy decisions
 
-Jarvis will not silently request broad storage access. Use the Storage Access Framework for user-selected folders/files wherever possible. All-files access is a special permission and should only be opened after a clear user action and an explanation of the model-scanning use case. Do not claim Play Store approval is guaranteed; distribution policy must be reviewed separately.
+- Analytics stays opt-in. Both usage analytics and crash reports default off. The existing consent flow is preserved rather than creating a second or conflicting consent store.
+- No chat prompts, responses, transcripts, file contents or personal content are added to telemetry.
+- Use SAF for user-selected files/folders. All-files access is optional and only opened after a user taps Manage and sees an explanation.
+- The Storage settings screen displays the current all-files access state and rechecks it when the app returns to the foreground.
+- Do not claim Play Store approval is guaranteed; distribution policy must be reviewed separately.
 
-## Native bridge added
+## Implementation
 
-- `StoragePermissionModule`: checks `Environment.isExternalStorageManager()` on Android 11+ and opens the app-specific `Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION` screen only when called explicitly.
-- `StoragePermissionPackage`: React Native package wrapper.
-- The module does not prompt on startup and does not claim that the user granted permission merely because settings opened. The caller must check again when the app resumes.
-
-## Telemetry disposition
-
-The fork currently has analytics disabled by default, but the PostHog SDK remains in dependencies. Full removal is deliberately not performed until all call sites, consent UI, crash handling and tests are audited. No chat prompts, responses, transcripts, model names, file paths or personal content may be introduced into telemetry during this work.
+- `src/services/storagePermissionService.ts` wraps the existing `SyncDownloadsModule` API. It does not create another Android permission implementation.
+- `src/screens/StorageSettingsScreen.tsx` adds the optional model-folder access explanation and explicit Settings action.
+- The temporary duplicate `StoragePermissionModule` / `StoragePermissionPackage` was removed after discovering the existing Downloads bridge already provides the same native capability.
+- `__tests__/unit/services/storagePermissionService.test.ts` covers granted/denied state, explicit settings invocation, non-Android behavior and a missing native bridge.
 
 ## Verification still required
 
-- Run Android Kotlin compilation and unit tests in CI.
-- Add a JS wrapper that checks permission and exposes the settings action.
-- Verify the permission flow on Android 14/15 on the target OPPO device.
-- Audit all PostHog references before removing SDK and consent UI.
+- GitHub CI must run TypeScript/lint, Jest and Android unit tests for the draft PR.
+- The permission flow still needs a real Android 14/15 device check, including returning from Settings and confirming the refreshed state.
+- Keep PR #1 draft and do not merge until the checks and target-device verification are reviewed.
