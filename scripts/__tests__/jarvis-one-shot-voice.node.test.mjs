@@ -24,4 +24,9 @@ test('Whisper reports empty and non-empty completion without changing ordinary c
   assert.ok(whisper.includes('onCaptureSettled?: (hasTranscript: boolean) => void'));
   assert.ok(whisper.includes('onCaptureSettledRef.current?.(Boolean(result.text && cleanTranscription(result.text)))'));
   assert.ok(whisper.includes('onCaptureEndedRef.current?.()'));
+  assert.ok(whisper.includes('onCaptureStartFailedRef.current?.()'));
+  const voice = read('src/components/ChatInput/Voice.ts');
+  assert.ok(voice.includes('onCaptureStartFailed: settleFailedCaptureStart'));
+  assert.ok(voice.includes("voiceSession.dispatch('turnCaptured')"));
+  assert.ok(voice.includes("voiceSession.dispatch('dictationFinished')"));
 });
