@@ -122,25 +122,24 @@ class JarvisAssistantRoleModule(
     }
   }
 
-  private fun readStatus() = Arguments.createMap().apply {
-    val supported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    val roleManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+  private fun readStatus() = JarvisAssistantRoleSnapshot.from(
+    androidApi = Build.VERSION.SDK_INT,
+    roleAvailable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
       reactContext.getSystemService(RoleManager::class.java)
+        ?.isRoleAvailable(ROLE_ASSISTANT) == true
     } else {
-      null
-    }
-    val available = supported && roleManager?.isRoleAvailable(ROLE_ASSISTANT) == true
-    val held = available && roleManager?.isRoleHeld(ROLE_ASSISTANT) == true
-    val activeService = supported && VoiceInteractionService.isActiveService(
-      reactContext,
-      ComponentName(reactContext, JarvisVoiceInteractionService::class.java),
-    )
-
-    putBoolean("supported", supported)
-    putBoolean("roleAvailable", available)
-    putBoolean("roleHeld", held)
-    putBoolean("activeService", activeService)
-    putBoolean("ready", supported && available && held && activeService)
-    putInt("androidApi", Build.VERSION.SDK_INT)
-  }
+      false
+    },
+    roleHeld = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      reactContext.getSystemService(RoleManager::class.java)
+        ?.isRoleHeld(ROLE_ASSISTANT) == true
+    } else {
+      false
+    },
+    activeService = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+      VoiceInteractionService.isActiveService(
+        reactContext,
+        ComponentName(reactContext, JarvisVoiceInteractionService::class.java),
+      ),
+  ).toWritableMap()
 }
