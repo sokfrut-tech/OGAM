@@ -94,7 +94,9 @@ internal class JarvisPcmStreamPlayer(
 
     if (!accepted) {
       safeRelease(candidate, immediate = true)
-      audioFocus.abandon()
+      // Abandon only if this generation still owns the failed start. If cancel()
+      // already ran and a newer reply acquired focus, never release that newer focus.
+      abandonFailedStart(token)
       return null
     }
 
@@ -193,9 +195,13 @@ internal class JarvisPcmStreamPlayer(
 
   private fun abandonFailedStart(token: Long) {
     val shouldAbandon = synchronized(lock) {
-      if (generation != token || !starting) false
-      else {
+      if (generation != token) {
+        false
+      } else {
         starting = false
+        active = false
+        track = null
+        generation += 1
         true
       }
     }
