@@ -151,3 +151,26 @@ The later Android workflow was inspected directly, including the Android job log
 
 ### Correct next action
 Fix the test fake by renaming its backing property (for example, `currentVolume`) so it no longer generates `setVolume(F)V`; rerun the Android unit-test job. Separately diagnose the Jest and static-analysis gates rather than treating the Android main-source compile as overall success. Keep PR #1 draft and do not merge until the user's independent-APK and PGEM10 verification gates are satisfied.
+
+
+## CI follow-up — run #45060169581 (2026-11-22, same PR #1 head)
+
+The latest inspected PR #1 workflow run is still on `67159e2f821b14616eebcaf0e6da997633cd7aa4`. It confirms the earlier private-workspace problem and adds a distinct Android unit-test runtime failure:
+
+- Android production source reached `:app:compileDebugKotlin` and `:app:compileDebugJavaWithJavac`; the job then executed 196 Android unit tests, with 3 failures and 4 skipped. The three failures are all in `JarvisAssistantLaunchGuardTest`:
+  - `acceptsTheTokenMintedByThePrivateBridgeExactlyOnce` at test line 11;
+  - `rejectsMissingAndForgedTokens` at line 18;
+  - `aNewLaunchInvalidatesThePreviousPendingToken` at line 25.
+- The test calls without an explicit time argument invoke `SystemClock.elapsedRealtime()` through the default parameters of `issue()` and `consume()`. This is a strong source-level candidate for the JVM `RuntimeException`, but the downloaded test XML/stack trace was not available in the log response; treat the exact exception cause as **not yet confirmed**. Next diagnostic: inspect the `android-test-results` artifact or run these tests under the intended Robolectric/framework test runner; alternatively inject a monotonic clock so pure unit tests do not call Android framework stubs.
+- The Jest run reports 90 failed suites, 16 passed (106 total), and 192 failed tests / 229 passed (421 total). Many suite failures explicitly say `Cannot find module '@offgrid/models'`; sync tests also cannot resolve `@offgrid/sync` / its mapped `shared/packages/sync/src/index.ts`. This is consistent with the unavailable private `../shared` workspace and `pro` submodule, not a clean test of the changed code.
+- TypeScript/static-analysis output also contains widespread missing `@offgrid/models` and `@offgrid/sync` errors and consequent implicit-any/type-shape cascades. Do not classify every cascade as a real independent source defect until the private workspace is present.
+- Coverage merged only partial shard data: global statement coverage 13.37%, branch 12.77%, line 13.7%, function 11.59%; coverage for `./pro` was not found. This is an incomplete-run artifact, not a meaningful coverage result.
+- The independent OGAM external dependency audit for this head passed (run #45060169357), but it is a separate static contract workflow and does not replace CI.
+- The iOS test job passed. Android test job and overall CI failed. No APK artifact or PGEM10 runtime verification is established.
+
+### Revised next action
+
+1. Restore authorized read access to the exact private `off-grid-ai/shared` and `off-grid-ai/mobile-pro` revisions in CI (the workflow expects `PRO_SUBMODULE_PAT`).
+2. Retrieve the Android JUnit XML from artifact `android-test-results` (run 45060169581) and confirm the three launch-guard stack traces before changing code.
+3. Rerun the full workflow on the same commit with private dependencies present; separate genuine failures from missing-module cascades.
+4. Keep PR #1 Draft and unmerged. Do not treat a main-source compile or the external dependency audit as a passing application build.
