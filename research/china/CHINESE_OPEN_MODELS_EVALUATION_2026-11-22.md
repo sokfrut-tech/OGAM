@@ -217,3 +217,48 @@ Do not mix their artifacts, metadata, checksums, or model catalog IDs.
 
 ### Decision
 Keep the existing llama.rn Qwen3-ASR as the production candidate because it is already integrated into OGAM. Promote sherpa-onnx to a controlled alternative benchmark because it has explicit Android/iOS APIs and a documented Qwen3-ASR ONNX model. No code, AAR, model weights or binary artifacts were added in this research update; no PGEM10 performance claim is made.
+
+
+## 2026-11-22 React Native bridge discovery: an even closer integration route
+
+A public React Native TurboModule exists:
+- Repository: https://github.com/XDcobra/react-native-sherpa-onnx
+- Current main package.json reports SDK version 0.4.4.
+- It exposes offline STT, TTS, and multiple native speech features through TypeScript, with Android and iOS native implementations.
+- It explicitly lists Qwen3-ASR ONNX as a supported STT model type (`qwen3_asr`).
+- SDK peer requirements include React Native >=0.70; OGAM is already on a recent React Native branch, so the technology stack is compatible in principle. This is not proof that dependency integration/build succeeds in OGAM.
+- Its package uses codegen TurboModule (`SherpaOnnxSpec`), Android Gradle native dependencies and iOS XCFramework; no hand-written Kotlin module would be needed if the library integrates cleanly.
+- SDK's pinned prebuilt tag files currently report sherpa-onnx Android/iOS 1.12.35-1 and ONNX Runtime Android QNN build `1.24.4-qnn2.43.1.260218-1`. The SDK's own README describes bundled sherpa-onnx 1.12.35.
+- The README documents Android/iOS production-ready CI and Qwen3 ASR support; its source/package docs should be version-pinned before relying on this claim.
+
+### QNN / SM8550 caveat
+The SDK's execution-provider documentation explicitly lists Qualcomm SM8xxx, including SM8550, as a supported QNN SoC family. However:
+- QNN requires QNN-compatible ONNX files or a context binary; the ordinary public INT8 ONNX Qwen model is not demonstrated as QNN-compiled for SM8550.
+- `getQnnSupport()` without the actual model only validates a minimal test session; it does not prove the Qwen model graph initializes or accelerates.
+- The SDK docs say QNN performance must be measured with the specific model. A maintainer issue asks for external QNN testing because the maintainer cannot test locally.
+- Therefore first use CPU/XNNPACK as baseline. Only test QNN after model-specific `canInit`, full graph execution, output parity and thermal/latency measurement on PGEM10.
+- The app already has its own QNN runtime asset handling. Adding another SDK's QNN runtime may duplicate or conflict with existing QNN/ORT native libraries. Audit exact .so names, versions, load paths and Gradle packaging before enabling QNN.
+
+### SDK capability gaps / licensing
+- The SDK's Qwen3 options expose hotwords and decode limits but currently no per-request language hint in its TypeScript model options. The current OGAM llama.rn backend does have language-prefill prompts. The model can still auto-detect Russian, but this difference must be tested.
+- Qwen3-ASR in sherpa is offline. The SDK's streaming STT APIs are for streaming-capable transducer/paraformer/other models; Qwen3-ASR should be treated as utterance/file decode, potentially with VAD segmentation, not token-by-token streaming.
+- SDK MIT license; sherpa-onnx Apache-2.0; ONNX Runtime MIT. SDK's third-party inventory also includes FFmpeg and Shine under LGPL, Opus BSD, and libarchive/Zstd BSD-family notices. Review the actual package build flags and notices; if FFmpeg is not needed, investigate `sherpaOnnxDisableFfmpeg` before adding.
+- Android SDK Gradle currently supports arm64-v8a, armeabi-v7a, x86, x86_64; OGAM should restrict release packaging to required ABIs if safe, to avoid multiplying native library size.
+- iOS XCFramework is downloaded at pod install (SDK README says roughly 80 MB); CI and offline reproducibility must account for that.
+
+### Revised engineering recommendation
+This React Native TurboModule is the best integration candidate for a short, isolated spike because it fits OGAM's architecture better than writing a new bridge. Do not add it to production dependencies yet.
+1. Pin a specific SDK release/tag and inspect that exact source, not moving main.
+2. Check whether SDK 0.4.4 is published and whether the source tag/lockfile pins match the repository's package.json; resolve the documentation/source version mismatch.
+3. Build a throwaway branch with only the STT subpath and Qwen3-ASR model, no TTS/VAD extras; disable unused FFmpeg/libarchive features where possible.
+4. Compare existing llama.rn Qwen GGUF backend against sherpa ONNX backend on same WAV files and same PGEM10.
+5. Check native memory and library collisions, including existing QNN libs/ORT.
+6. Test model-specific QNN with the actual Qwen ONNX model only after CPU baseline; do not infer QNN support from SoC detection.
+7. Keep Whisper fallback, deterministic unload, and avoid co-resident ASR contexts.
+
+### Source references
+- https://github.com/XDcobra/react-native-sherpa-onnx
+- https://github.com/XDcobra/react-native-sherpa-onnx/blob/main/package.json
+- https://github.com/XDcobra/react-native-sherpa-onnx/blob/main/docs/stt.md
+- https://github.com/XDcobra/react-native-sherpa-onnx/blob/main/docs/execution-providers.md
+- https://github.com/XDcobra/react-native-sherpa-onnx/blob/main/android/prebuilt-versions.gradle
