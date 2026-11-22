@@ -15,6 +15,20 @@ test('voice interaction components are protected by BIND_VOICE_INTERACTION', () 
   assert.match(manifest, /android:name="android\.voice_interaction"/);
 });
 
+test('system-assistant route cannot be triggered by an external browsable deep link', () => {
+  const manifest = read('android/app/src/main/AndroidManifest.xml');
+  const session = read('android/app/src/main/java/ai/offgridmobile/voice/JarvisVoiceInteractionSession.kt');
+  const bridge = read('android/app/src/main/java/ai/offgridmobile/voice/JarvisAssistantBridgeActivity.kt');
+  const guard = read('android/app/src/main/java/ai/offgridmobile/voice/JarvisAssistantLaunchGuard.kt');
+  const activity = read('android/app/src/main/java/ai/offgridmobile/MainActivity.kt');
+  assert.doesNotMatch(manifest, /<category android:name="android.intent.category.BROWSABLE" \/>[\s\S]*?<data android:scheme="offgrid" android:host="assistant"/);
+  assert.match(manifest, /name="ai\.offgridmobile\.voice\.JarvisAssistantBridgeActivity"[\s\S]*?android:exported="false"/);
+  assert.ok(session.includes('JarvisAssistantBridgeActivity::class.java'));
+  assert.ok(bridge.includes('JarvisAssistantLaunchGuard.issue()'));
+  assert.ok(guard.includes('fun consume(candidate: String?): Boolean'));
+  assert.ok(activity.includes('JarvisAssistantLaunchGuard.consume(token)'));
+});
+
 test('system assistant is enabled only from Android 12 (API 31)', () => {
   const base = read('android/app/src/main/res/values/bools.xml');
   const api31 = read('android/app/src/main/res/values-v31/bools.xml');
