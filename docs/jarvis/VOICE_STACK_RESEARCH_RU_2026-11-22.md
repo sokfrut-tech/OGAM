@@ -99,3 +99,22 @@ Run on OPPO Find X6 Pro (Android/ColorOS build recorded):
 - model cancellation/unload/reload, incoming call, Bluetooth headset and permission revocation.
 
 No TTS model has been selected as the default. No large model or voice pack has been downloaded by this research step.
+
+
+## sherpa-onnx Android integration feasibility (v2.0.3)
+
+The official Android source was inspected, not just the README:
+- Kotlin/JNI wrappers include `Vad` with Silero VAD configuration and `OfflineTts` with VITS, Kokoro and other model families.
+- The Android AAR module declares minSdk 21 and exposes Kotlin APIs; the JNI library is loaded from `sherpa-onnx-jni`.
+- The official v2.0.3 release publishes a full Android AAR (52,411,426 bytes; SHA-256 `4c766e2e74c9d33d595338c21fe3b305c73ba45d47e96a235675c33142a2ec50`) and an Android native archive (47,988,767 bytes; SHA-256 `2a30b222abae6d5cf544df4a1c27944279449c25dbb9c755097189cb45db1df0`). This is too large to add casually just for VAD.
+- The AAR project README shows how to build a local AAR from the release's native libraries. A slim arm64-only build or a custom static/shared runtime may reduce size, but must be measured and reproduced in CI; do not assume the full AAR is the right package.
+- The library is Apache-2.0. The model and phonemizer assets remain separately licensed.
+- The upstream sample system TTS engine demonstrates that a proper Android `TextToSpeechService` is possible; Jarvis can first call the library directly for its own speech and later optionally expose a system TTS engine.
+
+Integration decision: **candidate only, not yet added to OGAM dependencies**. First prove an arm64-only package build, ABI compatibility with OGAM's NDK/CMake settings, release APK delta, cold-start and model performance. Do not bundle model weights in the APK; download selected assets only after explicit user confirmation, with exact size, SHA-256, license and storage/RAM disclosure.
+
+Official source paths inspected:
+- `android/SherpaOnnxAar/README.md`
+- `android/SherpaOnnxAar/sherpa_onnx/src/main/java/com/k2fsa/sherpa/onnx/Vad.kt`
+- `android/SherpaOnnxAar/sherpa_onnx/src/main/java/com/k2fsa/sherpa/onnx/Tts.kt`
+- Release: https://github.com/k2-fsa/sherpa-onnx/releases/tag/v2.0.3
