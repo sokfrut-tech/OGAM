@@ -203,3 +203,20 @@ Not part of P0. After public Android assistant role works:
 ## Status
 
 Research-backed implementation brief only. No runtime code has been changed in this step. Build compatibility, current Android SDK baseline and test commands must be checked against the active OGAM branch before implementation.
+
+
+## Target-device baseline update (user screenshot, 2026-11-22)
+
+Implementation target is no longer a generic OPPO/ColorOS device. The user supplied Settings > Version evidence for:
+- OPPO Find X6 Pro / PGEM10
+- ColorOS 16.0.5
+- Build PGEM10_16.0.5.1201(CN01C20P01)
+- Android 16
+- Firmware Q_V1_P14,Q_V1_P14
+- SOTA C20P01(BRA1CN01)
+- Kernel 5.15.180-android13-8-o-01179-g408877dae2c9
+- Android security update 2026-08-01
+- Breeno 13.4.3_08c04e4_261110
+- Breeno Memory 16.11.5_008719b_260901
+
+The full ro.build.fingerprint, API level, package names/versionCodes/signers and exported component/service metadata are still unknown. Do not assume a generic Android 16 behavior is identical on this China ROM. The device-specific compatibility test matrix must use this exact build and separately test Breeno and Breeno Memory. OEM/private adapter remains optional and disabled until exact dispatch/service evidence is collected.
