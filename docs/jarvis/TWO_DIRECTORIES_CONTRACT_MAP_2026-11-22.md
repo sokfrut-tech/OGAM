@@ -114,13 +114,14 @@ All packages below carry `"license": "AGPL-3.0-only"` in `package-lock.json`. Co
 | **M6: Catalog Schema & Remote Refresh** | `CATALOG`, `MOBILE_CATALOG_URL`, `mobileCatalogKey`, `parseMobileCatalogSections`, `mergeCatalogEntries`, `diffMergedCatalog`, `loadCachedCatalog`, `refreshRemoteCatalog`, `MobileTextCatalogModel`, `MobileWhisperCatalogModel`, `MobileLiteRTCatalogEntry`, `MobileCoreMLCatalogRepo`, `MobileCatalogSections`, `CatalogCache`, `CatalogFetch` | `src/constants/models.ts`, `modelCatalogStore.ts`, `ModelsScreen/*` | **MEDIUM — note PR #1 must verify model-catalog invariants before changing catalog rows.** |
 ### M2 Clean-Room Port Checkpoint — 2026-11-22
 
-**Status: partial, first pure tool-output contract migrated.**
+**Status: substantial partial port; all three independent contracts pass.**
 
-- OGAM-owned implementation: src/utils/toolResultBudget.ts.
-- MAX_TOOL_RESULT_CHARS remains 24,000 characters; boundToolResult(name, content, maxChars) preserves the head and appends a clear truncation notice with retained and original character counts.
-- src/services/tools/toolResult.ts now imports and re-exports this contract from OGAM's own utility instead of @offgrid/models.
-- Standalone test: scripts/__tests__/tool-result-budget.node.test.mjs; wired into the OGAM external dependency audit.
-- Scope intentionally remains limited: reasoning budget payloads, max tool-call policy, tool-loop prompt accounting and the remaining M2 symbols are still to be migrated. Do not mark @offgrid/models removed or M2 complete.
+- Tool output sizing: `src/utils/toolResultBudget.ts` owns `MAX_TOOL_RESULT_CHARS = 24,000` and `boundToolResult`. `src/services/tools/toolResult.ts` now uses this local helper.
+- Reasoning policy: `src/utils/reasoningBudget.ts` owns `REASONING_BUDGET_AUTO`, fixed budget options, labels, local llama.rn payload and OpenRouter payload. Consumers migrated: `textGenAdvancedSections.tsx`, `llmHelpers.ts`, `appStore.ts`, and OpenRouter request construction in `openAICompatibleProvider.ts`.
+- Tool-loop policy: `src/utils/toolLoopBudget.ts` owns default/min/max call counts, normalizer, per-turn call slicing, prompt character estimate, conservative result-budget calculation, tool-limit instruction, and completed-result recovery formatter. Consumers migrated: `generationToolLoop.ts`, `useTextGenerationSettings.ts`, and `appStore.ts`.
+- The only remaining M2 symbol still imported from `@offgrid/models` is `reasoningBudgetPayload` in `openAICompatibleProvider.ts`; it is a separate remote-vision wire-format contract and needs a verified consumer contract before porting.
+- Standalone suites: `tool-result-budget.node.test.mjs`, `reasoning-budget.node.test.mjs`, and `tool-loop-budget.node.test.mjs`. All passed in [OGAM external dependency audit #45051550585](https://github.com/sokfrut-tech/OGAM/actions/runs/45051550585) on head `3d88e21792dcf2c764cebf98c6006f5339c9b127`.
+- This does **not** mean `@offgrid/models` has been removed: M3–M7 model imports and the RAG/sync workstreams remain. Keep package/workspace declarations until the final importer is migrated.
 
 | **M7: Guide & Boost Copy** | `BOOST_PROMO`, `BoostPromoSurface`, `boostPromoCopy`, `boostPromoLink`, `boostPromoVisible`, `GUIDE_FIRST_LOOK`, `GUIDE_STARTERS`, `GUIDE_LINKS`, `GUIDE_KB_VECTOR_MODEL`, `MOBILE_GUIDE_GROUPS`, `GUIDE_FLOWS`, `GUIDE_NOT_SUPPORTED`, `GuideAnswerBlock`, `GuideTopicFacts`, `guide*` helpers, `templateStoryboard` | `GuideScreen/*`, `BoostPromoCard.tsx`, `src/constants/index.ts`, `FeatureShowcase.tsx`, `ProTabScreen.tsx` | **LOW PRIORITY / JARVIS OVERRIDE.** Boost/Pro promos can simplify or hide cleanly in standalone Jarvis. |
 
