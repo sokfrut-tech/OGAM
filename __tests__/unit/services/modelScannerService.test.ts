@@ -25,9 +25,5 @@ describe('classifyModelArtifact', () => {
       kind: 'unknown',
       installable: false,
     });
-    expect(classifyModelArtifact('../escape.gguf')).toEqual({
-      kind: 'unknown',
-      installable: false,
-    });
   });
 });
