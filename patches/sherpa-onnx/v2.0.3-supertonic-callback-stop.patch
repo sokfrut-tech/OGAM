@@ -1,0 +1,20 @@
+diff --git a/sherpa-onnx/csrc/offline-tts-supertonic-impl.cc b/sherpa-onnx/csrc/offline-tts-supertonic-impl.cc
+--- a/sherpa-onnx/csrc/offline-tts-supertonic-impl.cc
++++ b/sherpa-onnx/csrc/offline-tts-supertonic-impl.cc
+@@ -565,10 +565,14 @@ GeneratedAudio OfflineTtsSupertonicImpl::ProcessChunksAndConcatenate(
+     }
+     if (callback) {
+       float progress =
+           static_cast<float>(i + 1) / static_cast<float>(num_chunks);
+-      callback(chunk_result.samples.data(), chunk_result.samples.size(),
+-               progress);
++      // GeneratedAudioCallback contract: 0 stops generation, 1 continues.
++      // Honor cancellation before starting the next text chunk.
++      if (callback(chunk_result.samples.data(), chunk_result.samples.size(),
++                   progress) == 0) {
++        chunk_samples.push_back(std::move(chunk_result.samples));
++        break;
++      }
+     }
+     chunk_samples.push_back(std::move(chunk_result.samples));
+   }
