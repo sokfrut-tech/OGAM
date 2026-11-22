@@ -183,7 +183,7 @@ export const ImageGenScreen: React.FC = () => {
         promptIsFinal: true,
       });
       if (!result && imageGenerationService.getState().error) {
-        Alert.alert(t('image.generationFailed'), imageGenerationService.getState().error || 'Unknown error');
+        Alert.alert(t('image.generationFailed'), imageGenerationService.getState().error || t('image.generationFailed'));
       }
     } catch (error) {
       Alert.alert(t('image.generationFailed'), error instanceof Error ? error.message : String(error));
@@ -217,7 +217,7 @@ export const ImageGenScreen: React.FC = () => {
             placeholder={t('image.promptPlaceholder')}
             placeholderTextColor={colors.textMuted}
             editable={!imageState.isGenerating && !recording}
-            accessibilityLabel="Image prompt"
+            accessibilityLabel={t('image.prompt')}
             testID="image-gen-prompt"
             style={{ minHeight: 120, color: colors.text, fontSize: 15, lineHeight: 22, padding: SPACING.sm, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
           />
@@ -231,7 +231,7 @@ export const ImageGenScreen: React.FC = () => {
               onPress={() => void (recording ? stopVoice() : startVoice())}
               disabled={imageState.isGenerating || previewBusy}
               accessibilityRole="button"
-              accessibilityLabel={recording ? 'Stop voice dictation' : 'Start voice dictation'}
+              accessibilityLabel={recording ? t('image.stopDictation') : t('image.dictate')}
               testID="image-gen-voice"
               style={{ minHeight: 42, paddingHorizontal: SPACING.md, borderRadius: 10, backgroundColor: recording ? colors.error : colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.xs }}
             >
@@ -242,12 +242,12 @@ export const ImageGenScreen: React.FC = () => {
               onPress={() => void handleEnhance()}
               disabled={!prompt.trim() || previewBusy || imageState.isGenerating || recording}
               accessibilityRole="button"
-              accessibilityLabel="Enhance and preview prompt"
+              accessibilityLabel={t('image.enhancePreview')}
               testID="image-gen-enhance"
               style={{ minHeight: 42, paddingHorizontal: SPACING.md, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.xs }}
             >
               {previewBusy ? <ActivityIndicator color={colors.primary} /> : <Icon name="zap" size={16} color={colors.primary} />}
-              <Text style={{ color: colors.text, fontWeight: '600' }}>Enhance preview</Text>
+              <Text style={{ color: colors.text, fontWeight: '600' }}>{t('image.enhancePreview')}</Text>
             </TouchableOpacity>
           </View>
           {previewStatus ? <Text style={{ color: colors.textSecondary, marginTop: SPACING.sm, fontSize: 12 }}>{previewStatus}</Text> : null}
@@ -291,7 +291,7 @@ export const ImageGenScreen: React.FC = () => {
         {imageState.isGenerating ? (
           <Card style={{ padding: SPACING.md, marginBottom: SPACING.md }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={{ color: colors.text, fontWeight: '600' }}>{imageState.status || 'Generating image…'}</Text>
+              <Text style={{ color: colors.text, fontWeight: '600' }}>{imageState.status || t('image.generating')}</Text>
               <TouchableOpacity onPress={cancel} accessibilityRole="button" accessibilityLabel={t('image.cancel')} testID="image-gen-cancel">
                 <Icon name="x-circle" size={22} color={colors.error} />
               </TouchableOpacity>
