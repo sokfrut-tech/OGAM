@@ -18,6 +18,9 @@ Status: public source research and design notes; no new TTS/KWS model is integra
 
 - [Soniqo Speech Android: Supertonic-3 and LocalVQE AEC audit](SONIQO_SUPERTONIC_LOCALVQE_ANDROID_AUDIT_2026-11-22.md) — Russian-capable 99M LiteRT TTS and its OpenRAIL-M model terms, S23 Ultra benchmark reference, actual Android TTS API limits, plus 16 kHz timestamped LocalVQE echo cancellation and its Kotlin/JNI integration gap.
 
+
+- [CosyVoice 3 and VoxCPM2 mobile TTS audit](COSYVOICE_VOXCPM2_MOBILE_TTS_AUDIT_2026-11-22.md) — CosyVoice's unresolved public Russian wrong-language report and Android GGUF build/toolchain/frontend gaps; VoxCPM2's 30-language/Russian WER evidence, Apache license and 2B/8 GB desktop / 8.7 GB ARM bundle scale.
+
 ## Decisions / no-go boundaries
 
 1. Keep the physical microphone owner unique: OGAM AudioRecorderService. KWS/ASR/Whisper must share/subcribe to it or coordinate through one native capture service; never start a competing recorder.
