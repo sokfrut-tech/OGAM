@@ -160,3 +160,10 @@ Commits:
 - External source-contract audit [#45049107229](https://github.com/sokfrut-tech/OGAM/actions/runs/45049107229) succeeded on latest head `95682ccb`. It does not compile Kotlin.
 - Full CI's JavaScript lint/type/Jest gates remain red because the ongoing standalone migration still leaves `@offgrid/models`, `@offgrid/sync`, and `@offgrid/rag` consumers unresolved in this branch, as well as test imports from private `pro/*` paths that are not present in the checkout. Continue the exact package-slice migration and test-boundary cleanup rather than masking these imports.
 - Required next step: repeat the Android Gradle run after the external Maven rate limit clears, preferably with a populated Gradle dependency cache. The successful build must show `:app:compileDebugKotlin`, `:app:testDebugUnitTest`, and Android manifest merge results on the same commit. Then proceed to APK assembly and instrumentation/PGEM10 testing.
+
+## Android compile confirmation on `a65dbca1` and test-fake JVM signature fix (2026-11-22)
+
+- Inspection of `CI` run [#45052196801](https://github.com/sokfrut-tech/OGAM/actions/runs/45052196801) (`a65dbca1`, job `137300347889`) confirmed `:app:processDebugMainManifest`, `:app:processDebugManifest`, `:app:processDebugResources`, **`:app:compileDebugKotlin`** (validating main-source fixes `53ef299f` & `20650c13`), and `:app:compileDebugJavaWithJavac` all completed successfully.
+- `:app:compileDebugUnitTestKotlin` then caught a Kotlin/JVM platform declaration clash in `android/app/src/test/java/ai/offgridmobile/voice/JarvisPcmStreamPlayerTest.kt` (`FakeTrack` property `var volume = 1f` and `override fun setVolume(volume: Float)` shared JVM signature `setVolume(F)V`).
+- Renamed `FakeTrack.volume` → `FakeTrack.currentVolume` while keeping all 8 `@Test` signatures intact; re-execution of `:app:testDebugUnitTest` awaits the next CI push.
+

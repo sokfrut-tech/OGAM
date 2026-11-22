@@ -152,13 +152,13 @@ class JarvisPcmStreamPlayerTest {
     val generation = player.begin(24_000)!!
 
     focus.duck()
-    assertEquals(JarvisPcmStreamPlayer.DUCKED_VOLUME, track.volume, 0f)
+    assertEquals(JarvisPcmStreamPlayer.DUCKED_VOLUME, track.currentVolume, 0f)
     focus.gain()
-    assertEquals(JarvisPcmStreamPlayer.NORMAL_VOLUME, track.volume, 0f)
+    assertEquals(JarvisPcmStreamPlayer.NORMAL_VOLUME, track.currentVolume, 0f)
 
     player.finish(generation)
     focus.duck()
-    assertEquals(JarvisPcmStreamPlayer.NORMAL_VOLUME, track.volume, 0f)
+    assertEquals(JarvisPcmStreamPlayer.NORMAL_VOLUME, track.currentVolume, 0f)
   }
 
   private class FakeTrackFactory(
@@ -206,7 +206,7 @@ class JarvisPcmStreamPlayerTest {
     var flushed = false
     var stopped = false
     var released = false
-    var volume = 1f
+    var currentVolume = 1f
 
     override fun play() { played = true }
     override fun write(samples: FloatArray, offset: Int, length: Int): Int {
@@ -215,7 +215,7 @@ class JarvisPcmStreamPlayerTest {
       repeat(count) { written += samples[offset + it] }
       return count
     }
-    override fun setVolume(volume: Float) { this.volume = volume }
+    override fun setVolume(volume: Float) { this.currentVolume = volume }
     override fun pause() { paused = true }
     override fun flush() { flushed = true }
     override fun stop() { stopped = true }
