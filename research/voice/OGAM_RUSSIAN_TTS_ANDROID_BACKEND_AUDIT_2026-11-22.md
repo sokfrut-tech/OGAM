@@ -290,3 +290,56 @@ AOSP and Android API documentation provide a concrete experiment path that is mo
 ### Current verdict
 
 The Android public API offers a plausible, testable AEC route and AOSP specifies expected behavior for VOICE_COMMUNICATION capture. It does **not** prove that OGAM's current recorder exposes its AudioRecord session, that ColorOS 16 enables AEC, or that assistant playback is removed from the captured signal. No code was changed and half-duplex remains the current safe behavior.
+
+
+## 3.1 New official Silero model revision: v5_6_ru (not the version bundled by RuVoice)
+
+A follow-up check of the official Silero repository's current README, model catalogue and license found a newer Russian model entry:
+
+- Official README lists `v5_6_ru` above `v5_5_ru` and reports automatic stress, homograph resolution, question intonation and emphasis/exclamation support.
+- The listed speakers are `aidar`, `baya`, `kseniya`, `xenia` and `eugene`; supported sample rates are 8, 24 and 48 kHz.
+- Official `models.yml` publishes the artifact URL `https://models.silero.ai/models/tts/ru/v5_6_ru.pt`.
+- The current Silero root LICENSE is CC BY-NC-SA 4.0. The README's general license section says all models use the main repository license except the V5 CIS Base models under MIT. Do not mistake the README badge wording for a separate commercial grant.
+- The separate `v5_cis_base` / `v5_cis_base_nostress` Russian-compatible models remain MIT, but the official README explicitly says they do not provide auto-stress or homograph resolution and that explicit stress must be supplied for Slavic languages.
+
+This refines the RuVoice finding:
+- RuVoice 1.1.3's inspected build instructions fetch and convert `v5_5_ru.pt`, not `v5_6_ru.pt`.
+- The newer `v5_6_ru` is a model-level lead, not a drop-in replacement for RuVoice's v5_5 conversion pipeline. Before testing, inspect the v5_6 model structure, conversion compatibility, sample-rate behavior and golden output; never swap the source URL without checking the converter.
+- It keeps the same non-commercial licensing barrier for a general OGAM distribution. The MIT CIS Base remains the cleaner model-only legal candidate if OGAM independently implements the Russian text-normalization/stress front end and verifies the pack.
+
+Pinned source snapshot:
+- Silero repo current main commit: `e382298387332f2bf461fe6eadfde99104611b0c` (README updated 2026-10-15).
+- README blob: `8bb4ccae1d285a5b32bc5b3648a0a027d112a2dc`.
+- models.yml in the same main snapshot lists the exact v5_6_ru and v5_cis_base model artifact URLs.
+- Main LICENSE inspected: CC BY-NC-SA 4.0.
+- LICENSE_CIS inspected: MIT.
+
+Sources:
+- Official model catalogue and language/feature table: https://github.com/snakers4/silero-models/blob/e382298387332f2bf461fe6eadfde99104611b0c/README.md
+- Official artifact catalogue: https://github.com/snakers4/silero-models/blob/e382298387332f2bf461fe6eadfde99104611b0c/models.yml
+- Main model license: https://github.com/snakers4/silero-models/blob/e382298387332f2bf461fe6eadfde99104611b0c/LICENSE
+- CIS model license: https://github.com/snakers4/silero-models/blob/e382298387332f2bf461fe6eadfde99104611b0c/LICENSE_CIS
+
+## 3.2 Sherpa-ONNX Russian VITS candidate — offline runtime exists, voice license blocks general distribution
+
+A direct inspection of the Sherpa-ONNX `tts-models` GitHub release asset list found `vits-mms-rus.tar.bz2` (107,761,221 bytes compressed). It is a Russian MMS VITS package published in the Sherpa model release. The corresponding official Meta model card `facebook/mms-tts-rus` reports:
+- VITS text-to-waveform, Russian-only checkpoint;
+- 36.3M parameters;
+- model weights around 145 MB in FP32;
+- license CC BY-NC 4.0.
+
+Sherpa-ONNX itself is Apache-2.0 and supports Android/Kotlin. Its Kotlin `OfflineTts.generateWithCallback` / `generateWithConfigAndCallback` methods stream generated FloatArray chunks to a callback; this is a ready-made interface shape for the Jarvis PCM player. However, the MMS Russian voice remains non-commercial. The ONNX conversion and Android runtime do not change the original model license.
+
+Decision:
+- keep `vits-mms-rus` as an optional personal/non-commercial benchmark candidate only, subject to inspecting the exact archive contents and license text;
+- do not include it in a general OGAM distribution;
+- the Sherpa runtime remains a strong Android chunked-TTS adapter option only when paired with a separately license-cleared model.
+
+Sources:
+- Sherpa-ONNX repository/license and supported Android/Kotlin platforms: https://github.com/k2-fsa/sherpa-onnx
+- Sherpa `tts-models` release: https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models
+- Sherpa Kotlin TTS callback API: https://github.com/k2-fsa/sherpa-onnx/blob/master/sherpa-onnx/kotlin-api/Tts.kt
+- Meta Russian MMS model card: https://huggingface.co/facebook/mms-tts-rus
+- Meta MMS license and model details: https://huggingface.co/facebook/mms-tts
+
+No archive or model weights were downloaded in this audit. No Sherpa APK/AAR was integrated into OGAM.
