@@ -28,15 +28,13 @@ class MainActivity : ReactActivity() {
       DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
 
   /**
-   * React Native's Linking integration consumes ACTION_VIEW intents for the Jarvis assistant
-   * hand-off. Preserve the new intent for cold/warm app-start and forward it to RN.
+   * Protect every ACTION_VIEW spelling that React Navigation can resolve to the Jarvis
+   * assistant route. Do not compare Uri.path alone: the JS router normalizes trailing and
+   * repeated slashes, and accepts percent-encoded static path characters.
    */
   private fun isJarvisAssistantIntent(intent: Intent?): Boolean {
-    val data = intent?.data ?: return false
-    return intent.action == Intent.ACTION_VIEW &&
-      data.scheme == "offgrid" &&
-      data.host == "assistant" &&
-      data.path == "/voice"
+    return intent?.action == Intent.ACTION_VIEW &&
+      JarvisAssistantLaunchGuard.matchesAssistantVoiceRoute(intent.dataString)
   }
 
   private fun acceptJarvisAssistantIntent(intent: Intent): Boolean {
