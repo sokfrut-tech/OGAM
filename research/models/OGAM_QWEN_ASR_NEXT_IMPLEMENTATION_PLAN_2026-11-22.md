@@ -62,7 +62,7 @@ Jarvis needs a first-class context mechanism for local vocabulary: names, applic
 ### WP-A — Extend the existing llama.rn Qwen3-ASR path first
 1. Add an optional typed ASR context object to the Qwen ASR service boundary, separate from the UI and from raw prompt strings. Include a bounded list of hotwords/phrases and a maximum character/token budget.
 2. Preserve the existing language prefix and audio chat template exactly when no context is provided.
-3. Determine the Qwen3-ASR GGUF chat-template semantics before implementing context injection. Test system-role context and safe prefix insertion; do not assume a template variant without verifying generated prompt tokens.
+3. Official Hugging Face Transformers docs now confirm Qwen3-ASR accepts free-form context/hotwords through a system-role text message (e.g. a Vocabulary prompt) alongside the user audio message. Prototype the same message shape through llama.rn getFormattedChat/completion, preserving the current forced-language assistant prefill. Verify the exact rendered prompt and native multimodal behavior in tests before relying on it: https://huggingface.co/docs/transformers/main/model_doc/qwen3_asr#context--hotwords.
 4. Add tests for: no-context compatibility; Russian language + hotwords; names with ё/й and declensions; Latin/number mixed codes; duplicate/oversized terms; empty/invalid Unicode; context never logged; cancellation/release while transcribing.
 5. Add deterministic normalization only for grading (case/spacing/punctuation); never silently rewrite the actual transcript shown to the user.
 6. Keep current Whisper fallback and memory-release behavior.
