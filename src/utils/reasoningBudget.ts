@@ -33,3 +33,15 @@ export function thinkingBudgetPayload(
   if (!enabled || !Number.isFinite(budget) || budget <= REASONING_BUDGET_AUTO) return {};
   return { thinking_budget_tokens: Math.floor(budget) };
 }
+
+
+export function openRouterReasoningPayload(
+  enabled: boolean,
+  budget: number = REASONING_BUDGET_AUTO,
+): { reasoning: { enabled: boolean } | { max_tokens: number } } {
+  if (!enabled) return { reasoning: { enabled: false } };
+  if (Number.isFinite(budget) && budget > REASONING_BUDGET_AUTO) {
+    return { reasoning: { max_tokens: Math.floor(budget) } };
+  }
+  return { reasoning: { enabled: true } };
+}
