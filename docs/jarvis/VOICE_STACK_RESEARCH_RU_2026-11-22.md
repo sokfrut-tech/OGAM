@@ -199,3 +199,16 @@ The Android system-assistant route now sets a one-shot flag on the existing Chat
 - New `voiceNoteSend.test.ts` Jest tests cover assistant auto-send, draft protection and pending-attachment protection. A new Node source-contract test is part of open-core CI. The Jest tests have not yet run in this CI workflow.
 - This still does not provide a spoken reply in free/core mode: local Russian TTS, sentence streaming and duplex/barge-in remain separate open implementation slices. No OPPO device verification has been performed.
 
+
+
+## 11. Local TTS research and model-independent Android PCM output
+
+The detailed comparison of Sherpa-ONNX + Supertonic-3, GarAlex/local-tts (Vosk Russian), TeraTTSv2, Soniqo speech-android and Piper licensing is now stored in `docs/jarvis/LOCAL_RUSSIAN_TTS_RUNTIME_EVALUATION.md`.
+
+The first PCM output layer now exists as `android/app/src/main/java/ai/offgridmobile/voice/JarvisPcmStreamPlayer.kt`:
+- TTS backends can feed ordered mono Float32 chunks, and the player owns AudioTrack, AudioFocus, ducking, stop/release and generation IDs.
+- Newer replies/cancel events invalidate an older generation, so delayed chunks cannot leak into the current answer.
+- The player is deliberately model-independent. It is not yet wired to Sherpa, TeraTTSv2 or the local-tts C ABI; no model weights or TTS dependency were added.
+- Eight Kotlin/JUnit tests cover ordering, cancellation, stale generations, sample-rate validation, focus denial/loss/ducking and a blocked-start/late-cleanup race. They are present but not yet executed via Gradle.
+- The open-core CI step checks the PCM source contract only. It does not prove Kotlin compilation, AudioTrack device playback or OPPO latency.
+
