@@ -5,7 +5,7 @@ describe('classifyModelArtifact', () => {
     ['llama-3.2-1b-Q4_K_M.gguf', 'gguf', true],
     ['mmproj-model-f16.gguf', 'mmproj', false],
     ['ggml-tiny.bin', 'whisper', true],
-    ['unet.mnn', 'mnn-model', true],
+    ['unet.mnn', 'mnn-model', false],
     ['unet.bin', 'qnn-model', false],
     ['libQnnHtp.so', 'qnn-runtime', false],
     ['portrait-lora-v1.safetensors', 'lora', false],
