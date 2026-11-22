@@ -851,3 +851,65 @@ References:
 - https://developer.apple.com/documentation/appintents/apple-intelligence-and-siri-ai
 - https://developer.apple.com/documentation/appintents/getting-started-with-the-app-intents-framework
 - https://developer.apple.com/design/human-interface-guidelines/siri
+
+
+## Voice, speech and spoken-Siri parity audit (2026-11-22)
+
+### Confirmed OGAM voice functionality in the current tree
+
+- Microphone capture is owned by `audioRecorderService`; it produces WAV/MP3 files and exposes audio-level and mono 16 kHz sample callbacks.
+- `RecorderAudioStream` adapts the recorder's samples to the realtime Whisper stream; it does not open a second microphone.
+- `whisperService` supports local Whisper file/realtime transcription and a Qwen3-ASR 0.6B path through llama.rn; model downloads, cancellation, language selection and memory coordination exist.
+- Voice note trimming removes pre-speech and trailing silence only when the trim is worthwhile; original recording is preserved on failure.
+- `recordingController` owns start/stop/cancel intents and derives idle/listening/recording/transcribing from the shared voice session.
+- `useSilenceEndpoint` implements audio-level-based VAD/end-of-turn detection; hands-free has speech onset and silence timeout; tap-to-talk is available; chat dictation is intentionally not ended by silence.
+- `voiceService` also wraps the Android/iOS system speech-recognition service. It currently starts with hard-coded `en-US`; it is not a suitable local/offline default and must not be mistaken for Whisper.
+- The Whisper store currently initializes its transcription language to `en`; user-selected languages persist. Russian-first onboarding/default-language behaviour must be addressed separately without overwriting an existing user's explicit preference.
+- Current recorder comments explicitly state echo cancellation is disabled on both platforms because capture and playback do not share a voice-processing engine. The app must not claim reliable barge-in while its own TTS is audible; it waits for playback to finish until a shared AEC path is implemented and verified.
+- The core tree does not contain the full TTS engine implementation. Existing TTS tests and architecture documents import `pro/audio` modules: Kokoro streaming TTS and OuteTTS saved-audio generation are currently in the private Pro surface. Qwen3-TTS is documented there as a stub, not a working phone runtime.
+- `@offgrid/speech` remains a private sibling dependency supplying the voice-session state machine, silence endpoint timer/constants, language catalogue and WAV trim helpers. Consumers and observable behaviour are available, but the package source is not present in the standalone fork.
+
+### Voice migration blockers and rules
+
+1. Do not replace the missing `@offgrid/speech` state machine with a guessed transition function. Recover every event/state/field from consumers and tests; then create an OGAM-owned transition table and exhaustive tests before switching imports.
+2. Do not route default voice input through the platform recognizer or a remote service. The default path must be local Whisper/Qwen ASR; system recognizer and user-configured remote ASR remain optional, visible alternatives.
+3. Do not implement always-on wake word until battery, foreground-service, privacy indicator, stop control and offline model behaviour are tested on supported Android versions.
+4. Barge-in is gated on a real capture/playback shared AEC implementation. The present `isEchoCancelled() === false` is an intentional safety truth, not a missing boolean to flip.
+5. Preserve a single microphone owner, one sample stream, one session state owner, and one TTS playback coordinator. Never create parallel capture sessions.
+6. TTS must expose streaming and saved-audio modes, stop/pause/resume, voice selection, progress, model lifecycle, memory admission and cancellation through a platform-neutral interface. Keep the Iron Man HUD's listening/thinking/speaking states synchronized to real engine state.
+7. Add Russian ASR/TTS golden tests: numerals, names, dates, addresses, technical terms, mixed Russian/English and long multi-turn commands. Measure WER/latency and voice intelligibility on real OPPO hardware; do not infer Russian quality from multilingual claims.
+
+### TTS replacement research — candidates, not yet selected
+
+- **sherpa-onnx** (`k2-fsa/sherpa-onnx`): Apache-2.0 runtime, Android arm64/iOS support, offline ASR/TTS/VAD and related speech tasks. Best first runtime candidate for an independent native speech backend. Need select a Russian model with a compatible per-model license, verify the exact Android JNI/Kotlin interface, ABI/package size and latency. Runtime license does not grant rights to voice weights. https://github.com/k2-fsa/sherpa-onnx
+- **Qwen3-TTS 12Hz 0.6B**: official Hugging Face checkpoint lists Apache-2.0 and 10 languages including Russian; supports streaming synthesis and voice cloning. Its official Python example uses PyTorch/CUDA; no verified Android-native runtime was found in this audit. Keep as a quality/desktop/home-server reference until a quantized Android path is independently demonstrated. https://github.com/QwenLM/Qwen3-TTS and https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base
+- **Piper**: Russian voices exist, including official/community options, but runtime and each voice have separate licensing. The actively maintained `OHF-Voice/piper1-gpl` runtime is GPL-3.0; the archived `rhasspy/piper` runtime was MIT but is archived. Voice model cards may carry separate terms. Do not adopt Piper runtime or bundle a voice until the project chooses whether GPL-3.0 is acceptable and the exact voice card/license is checked. Candidate voices must be tested for Russian pronunciation, not assumed interchangeable. https://github.com/OHF-Voice/piper1-gpl ; voice inventory reference: https://piperhub.org/voices/language/ru/
+- **Kokoro**: existing Pro design uses React Native ExecuTorch and lists a small streaming engine, but the inspected voice catalog lists English, Hindi and German voices, not Russian. Do not select it as the Russian Jarvis default without an actual supported Russian voice and quality test.
+- **OuteTTS**: existing Pro design targets full saved-audio generation and voice cloning, but is documented as slower than interactive Kokoro; no verified Russian quality or standalone core integration in this audit. Retain as a reference, not a selected default.
+
+### Siri spoken-interaction parity backlog
+
+- continuous turn-taking: interruption, cancel, resume, barge-in only when AEC verified;
+- streaming ASR partials and sentence-by-sentence TTS, with a shared transcript/audio timeline;
+- wake word as opt-in, on-device and visibly controlled;
+- spoken follow-ups using the same conversation context as typed chat;
+- read-aloud of selected text, notifications and user-approved content with private-content redaction;
+- voice actions with confirmation spoken and shown visually before execution;
+- offline-first model selection and graceful no-model/no-microphone fallbacks;
+- accessibility: captions, transcript replay, voice speed, voice identity, reduced animation and screen-reader labels.
+
+### Tool-extension security gap discovered
+
+- The core tool loop routes built-ins through the new Jarvis skill contract, but Pro/MCP `ToolExtension.execute` currently has a separate execution branch.
+- The extension interface currently exposes tool definitions and OpenAI schemas, but no mandatory typed risk/capability/approval descriptor. MCP schemas can validate input shape, but input schema alone does not tell Jarvis whether a remote tool sends a message, deletes data or changes money.
+- Do not infer safety from a tool name or from the fact it is enabled. A user enabling an extension is not approval for every external/destructive action.
+- Required migration: add a mandatory skill descriptor to extension contracts; classify email send as external communication, calendar read as read-only, calendar write as reversible write requiring per-action approval, and unknown MCP operations as approval-required/blocked until their owner supplies a risk declaration. Add an approval queue/UI before enabling these actions through the planner.
+- Pro source files are absent from the current standalone core checkout, so the private extension owners cannot yet be migrated here. Keep this as a release blocker for exposing MCP/Pro actions through Jarvis; do not silently disable or falsely certify them.
+
+### Next voice/agent implementation order
+
+1. Finish and verify the enabled-skill catalogue added to the core contract; expose it to the future planner without granting execution.
+2. Define the extension-owned skill descriptor contract in core and write compatibility tests; keep existing Pro extension execution status explicitly marked as a gap until private implementation is available.
+3. Build a complete `@offgrid/speech` contract inventory from all imports, event call sites and tests. Only then port the transition machine and endpoint timer.
+4. Create the local TTS provider interface in core and a sherpa-onnx Android proof-of-concept on a separate branch; no model bundling until exact license and real-device test.
+5. Unify ASR, TTS, turn state and HUD with a single event timeline; keep AEC and wake-word as separate verified milestones.
