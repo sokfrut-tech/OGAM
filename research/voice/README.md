@@ -35,3 +35,6 @@ Status: public source research and design notes; no new TTS/KWS model is integra
 
 ## Next gate
 Create a benchmark-only Kotlin backend harness around JarvisTtsBackend + JarvisPcmStreamPlayer; compare Qwen3-TTS Q4_K_M, a legal MIT Silero CIS pack with a clean-room runtime, and Sherpa-ONNX with a separately cleared Russian VITS/Piper voice. Run the same Russian corpus on PGEM10, record TTFA/RTF/RSS/temperature/battery/audio quality, then choose. Do not change the production voice path before evidence.
+
+
+- [Russian wake-word and Snapdragon 8 Gen 2 runtime follow-up](OGAM_RUSSIAN_WAKEWORD_AND_QNN_FOLLOWUP_2026-11-23.md) — custom Russian wake-word research, openWakeWord language/quality limits, sherpa KWS model gap, OGAM's verified single-mic/AEC boundary and SM8550 NPU runtime evidence.
