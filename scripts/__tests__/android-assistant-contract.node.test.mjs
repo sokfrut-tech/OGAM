@@ -29,6 +29,34 @@ test('system-assistant route cannot be triggered by an external browsable deep l
   assert.ok(activity.includes('JarvisAssistantLaunchGuard.consume(token)'));
 });
 
+test('native guard protects every assistant route spelling normalized by React Navigation', () => {
+  const guard = read('android/app/src/main/java/ai/offgridmobile/voice/JarvisAssistantLaunchGuard.kt');
+  const activity = read('android/app/src/main/java/ai/offgridmobile/MainActivity.kt');
+  const kotlinTests = read('android/app/src/test/java/ai/offgridmobile/voice/JarvisAssistantLaunchGuardTest.kt');
+  const packageLock = read('package-lock.json');
+
+  assert.ok(activity.includes('intent?.action == Intent.ACTION_VIEW'));
+  assert.ok(activity.includes('JarvisAssistantLaunchGuard.matchesAssistantVoiceRoute(intent.dataString)'));
+  assert.ok(guard.includes('fun matchesAssistantVoiceRoute(uri: String?): Boolean'));
+  assert.ok(guard.includes('rawPath.replace(Regex("/+"), "/").trim(\'/\')'));
+  assert.ok(guard.includes('decodedStaticCharacters.equals("assistant/voice", ignoreCase = true)'));
+
+  // The regression vectors live in the Android/JUnit suite; these source-contract
+  // assertions keep the open-core audit from silently dropping that coverage.
+  for (const value of [
+    'offgrid://assistant/voice/?startVoice=1',
+    'offgrid:///assistant//voice///?startVoice=1',
+    'offgrid:assistant/voice/?startVoice=1',
+    'offgrid://%61ssistant/%76oice///?startVoice=1',
+    'offgrid://oauth/callback?code=abc',
+  ]) {
+    assert.ok(kotlinTests.includes(value), `Missing Kotlin regression vector: ${value}`);
+  }
+
+  assert.match(packageLock, /"node_modules\/@react-navigation\/native":[\s\S]*?"version": "7\.5\.1"/);
+  assert.match(packageLock, /"node_modules\/@react-navigation\/core":[\s\S]*?"version": "7\.24\.0"/);
+});
+
 test('system assistant is enabled only from Android 12 (API 31)', () => {
   const base = read('android/app/src/main/res/values/bools.xml');
   const api31 = read('android/app/src/main/res/values-v31/bools.xml');
