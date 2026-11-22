@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import type { MediaStyleKind } from '@offgrid/models';
+import type { MediaStyleKind } from '../../constants/mediaStyles';
 import { useChatStore } from '../../stores/chatStore';
 import { NEW_CHAT_STYLE_KEY, useMediaStyleStore } from '../../stores/mediaStyleStore';
 import { SPACING } from '../../constants';
