@@ -195,3 +195,24 @@ The Jarvis planner and action layer must not depend on any vendor runtime. Deter
 - https://github.com/off-grid-ai/OGAM/blob/ff6abb8babdeb0836bb64d1df61dd90dd39cfd42/package.json
 - https://github.com/off-grid-ai/OGAD/tree/69768e90b5f7485b645f65ad4ad1f895831a46d7
 - https://github.com/off-grid-ai/OGAC/tree/97afc9cc6ff298a2d6d17dcefff9e576c05ae35e
+
+
+## 10. New Breeno takeover reference — Zafiro 2.1.0 source audit (2026-11-22)
+
+A dedicated report was added at `research/breeno/ZAFIRO_BREENO_HOOK_COMPATIBILITY_AUDIT_2026-11-22.md`.
+
+Key result:
+- Found `niki914/zafiro`, MIT-licensed Kotlin/Compose Android agent with LSPosed/Xposed system-assistant takeover.
+- Inspected main commit `bd3767ef1849f12d7aa7e302d7f10342871a52d8`; latest release at audit time was 2.1.0, published 2026-11-22 14:57 UTC.
+- Zafiro has a concrete Breeno host profile for package `com.heytap.speechassist`, `version_code: 130302`, `is_beta:false`. This numerically matches the user's reported Breeno 13.3.2 naming/version-code convention and is now the strongest public compatibility lead. The installed PGEM10 versionCode/variant is still not verified.
+- It also has profile 130305. Structural diff between 130302 and 130305 configs found only two changed values: reset method `p` → `q`, and DataCenter update method `f1` → `g1`. Do not infer other builds are identical without exact verification.
+- The 130302 profile identifies capture input/response at `AIChatDataCenter.s(AIChatViewBean)`, session reset at `AIChatRoomIdManager.p(String,String)`, lifecycle targets `NewCuiFloatWindowRootView.onDetachedFromWindow` and `SpeechAssistMainActivity.onResume`, inbound directive processor `com.heytap.speech.engine.connect.core.manager.i.C(String,String)`, cleanup factory `ke.e.c(...)`, and card insert/update through `AIChatDataCenter.s` / `f1`.
+- Zafiro architecture separates orchestration (`BreenoHook`), version config (`BreenoConfigProvider`), small subhooks, and native card rendering (`BreenoCardRenderer`). It sends semantic frames across IPC instead of host reflection objects. These boundaries are strong clean-room design references for OGAM.
+- Zafiro takeover explicitly uses LSPosed/Xposed and README marks root as required. Its BYOK Agent, Phone-Use and tools are not proof of OGAM's offline-first model pipeline.
+- Its directive filter suppresses selected Breeno namespaces/actions and cleanup behavior. Do not copy these broad suppressions as defaults: OGAM must preserve native fallback and use typed, permission-gated deterministic Android tools.
+- MIT license permits reuse subject to notice requirements, but clean-room architecture adaptation is preferred. No proprietary Breeno APK content may be copied.
+
+Evidence limits: no Breeno APK was decompiled, no device versionCode was read, no Zafiro APK installed, no Jarvis source changed, and no runtime hook/device test performed. Zafiro's own assistant-add-support skill requires REA for APK analysis and says to ask the user to deploy it if unavailable; do not silently install or bypass this gate.
+
+Source report:
+https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/breeno/ZAFIRO_BREENO_HOOK_COMPATIBILITY_AUDIT_2026-11-22.md
