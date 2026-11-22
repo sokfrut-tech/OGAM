@@ -200,3 +200,10 @@ Main branch inspected at 14b27f7c12c8e6f69b132842534b23a627523956:
 Decision: do not build a parallel model/audio stack. Implement the Android system assistant as a native entry/session layer and route input into the existing OGAM runtime. Make ASR locale selectable and use the existing local Whisper/Qwen paths where verified.
 
 Detailed phased implementation contract: research/breeno/OGAM_NATIVE_ASSISTANT_IMPLEMENTATION_BRIEF.md.
+
+
+## Target OPPO device evidence (2026-11-22)
+
+User-supplied Settings screenshots confirm Breeno `13.4.3_08c04e4_261110` and a separate Breeno Memory app `16.11.5_008719b_260901`. The OPPO AI surfaces also show Breeno Memory, Quick Search (screen recognition and service suggestions), personalized Recommendations, AI Search, AI Writer, AI Translation, AI Voice Transcription, AI Automation, Personalized Information and Services, and an AI Service Module. A Chinese promo page mentions one-tap flash memory and displays ColorOS 16 marketing; this does **not** establish the installed OS version.
+
+Implementation consequence: device compatibility research must target the exact Breeno 13.4.3 profile and separately assess Breeno Memory 16.11.5. These are OEM feature references, not dependencies. OGAM must implement its own conversational, memory, screen-context, search, writing, translation, transcription, automation, recommendation and signed-module capabilities. See `OPPO_FIND_X6_PRO_DEVICE_EVIDENCE_2026-11-22.md` for evidence limits and next data required.
