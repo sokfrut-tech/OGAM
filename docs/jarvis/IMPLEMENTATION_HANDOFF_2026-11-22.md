@@ -8,8 +8,8 @@ This file is the durable continuation point for the current OGAM fork work. It r
 - Active branch: `feature/jarvis-step-2-storage-privacy`
 - PR: [#1 — Jarvis Step 2: privacy and Android storage permission bridge](https://github.com/sokfrut-tech/OGAM/pull/1)
 - PR state: open, draft, not merged; base `main`
-- PR head observed during this audit: `d79cecc46018efc79f1ac1d98b79f28bdb840053`
-- PR metadata reports 309 commits, 136 changed files, +7,525/-399 lines.
+- PR head observed before this handoff refresh: `316981b3e16270b825079297a57feeb3f693817f`
+- PR metadata at that snapshot: 337 commits, 140 changed files, +8,364/-399 lines.
 - Do not merge the PR or publish an APK as a way to bypass the missing-source blocker.
 
 ## Product contract
@@ -74,7 +74,7 @@ This file is the durable continuation point for the current OGAM fork work. It r
 
 ## Siri-like capability parity still required
 
-- Android system assistant integration: `VoiceInteractionService` / `VoiceInteractionSessionService`, explicit user selection as default assistant, assist context and visible capture state.
+- Android system-assistant source integration is now present: `VoiceInteractionService` / `VoiceInteractionSessionService`, explicit `RoleManager` selection UI, verified role/service status, privacy-disabled assist/screenshot context, and a one-shot handoff into the existing ChatInput recorder. APK/ColorOS verification is still outstanding; no legacy Android 7–11 `RecognitionService` is implemented.
 - Unified voice/text conversation, follow-up context, interruption/barge-in, local wake-word provider, local Russian TTS.
 - Personal-context connectors with per-source consent, local index, provenance, retention and delete/export controls.
 - On-screen context through an explicit permission/visible snapshot flow with sensitive-field redaction; do not reuse background sync screenshot capture as silent assistant awareness.
@@ -107,16 +107,18 @@ A public fork survey found:
 5. **Separate Pro-only code safely** while preserving free-core functionality. Remove the Pro gitlink and private-token checkout only after all imports, tests, native hooks and runtime entry points have been replaced or deliberately removed with documented parity decisions.
 6. **Complete Siri/Jarvis execution layer**: skill catalogue → permission/capability broker → approval preview → deterministic executor → progress/cancel/result ledger → plan editor/HUD. Keep the model outside the authority boundary.
 7. **Build a versioned Russian/tool-use model benchmark** and compare Qwen3.5-4B, Aurum 4B and Gemma 4 E2B/E4B on identical prompts and the actual OPPO device. Do not select a default from model-card claims alone.
-8. **Complete voice stack** in order: migrate turn contract → measure existing Whisper → benchmark VAD/T-one/GigaAM → verify TTS license and voice quality → integrate one local Russian TTS engine → barge-in/duplex → wake word → system assistant service.
+8. **Complete voice stack** in order: migrate turn contract → measure existing Whisper → benchmark VAD/T-one/GigaAM → verify TTS license and voice quality → integrate one local Russian TTS engine with the OGAM-owned PCM player → barge-in/duplex → wake word → OPPO system-assistant validation. The system-assistant source handoff is already implemented; it is not yet a device-verified release feature.
 9. **Release gate**: clean OGAM-only checkout, lockfile/install, TypeScript, ESLint, Jest, dependency-cruiser/knip, actionlint, Android unit tests, arm64 APK + SHA-256, install/launch and OPPO Find X6 Pro smoke tests. Every failure must be classified; skipped private-dependent suites do not count as success.
 
 ## Current verified status at handoff
 
-- PR #1 remains open/draft/unmerged.
-- PR metadata currently reports `mergeable: false`; do not merge just to unlock the manual APK workflow.
-- Latest CI run #129 (`45024767123`) on head `dcbefb038d1200adf0af35a6b4eace0884d9a1cc` completed successfully: model-evaluation validator 6/6 and locale-aware transcription default tests 2/2 passed, alongside all existing open-core Node audit suites. The workflow scanned 1,966 files and reported 1,354 external dependency references; artifact `ogam-import-audit` (ID `14755202715`) was uploaded. The prior model-evaluation workflow run #120 also passed.
-- This CI workflow checks an open-core Node subset only. It does not run Jest/TypeScript/full React Native tests, clean standalone installation, Gradle APK build or OPPO device checks. The legacy voiceService Jest tests therefore remain unverified.
-- The new Qwen/Russian ChatInput integration test and new `voiceNoteSend.test.ts` tests for system-assistant auto-send/draft safety are present but remain unexecuted in Jest; no ASR microphone accuracy result is available.
-- Five Kotlin/JUnit tests for `JarvisAssistantRoleSnapshot` are present but have not been executed in Gradle.
-- No APK artifact, clean standalone install, or OPPO device verification has been demonstrated.
-- Continue from the active branch and current source, not by replaying the already completed steps above.
+- PR #1 remains open/draft/unmerged; do not merge to bypass the private-source blocker.
+- At the source snapshot reviewed before this documentation refresh, PR head was `316981b3e16270b825079297a57feeb3f693817f`; metadata reported 337 commits, 140 changed files, +8,364/-399 lines. The documentation refresh itself will advance the head.
+- Latest completed open-core audit run for that source snapshot: [run #45038477079](https://github.com/sokfrut-tech/OGAM/actions/runs/45038477079), conclusion success. It ran the Jarvis system-role, one-shot voice, URI mapping, PCM source-contract tests and existing open-core Node suites; the import audit scanned 1,976 files and reported 1,354 external dependency references. Artifact `ogam-import-audit`, ID `14760761900`.
+- The PCM playback static test now also asserts the corrected Kotlin test declarations. Two malformed declarations in `JarvisPcmStreamPlayerTest.kt` were found and corrected: the stale-generation test now stores the first token as a `Long`, and the async test writes its result through `AtomicReference.set()`.
+- New Android source now includes the in-app RoleManager picker/status bridge, one-shot ChatScreen invocation, preservation of an existing draft/attachments, and an engine-neutral mono Float32 AudioTrack player with AudioFocus, generation tokens, cancellation and eight Kotlin/JUnit cases.
+- The PCM player is currently a standalone native primitive. No Sherpa/Vosk/Supertonic/Piper TTS runtime or voice model is wired to it; the TTS evaluation document is research only and license review/model profiling remain open.
+- The successful open-core Node audit does **not** compile Kotlin, execute Gradle/JUnit, merge the manifest, build an APK, run Jest/TypeScript, or verify the assistant picker/microphone on OPPO Find X6 Pro.
+- The manual arm64 APK workflow still requires the private `PRO_SUBMODULE_PAT` and upstream `mobile-pro`/shared workspace. Do not ask the user for a private upstream token or create fake package stubs. Continue the self-contained migration plan.
+- PR mergeability remains false at the reviewed snapshot. No APK artifact, clean standalone install, or OPPO device verification has been demonstrated.
+- Continue from the active branch and current source, not by replaying completed work above.
