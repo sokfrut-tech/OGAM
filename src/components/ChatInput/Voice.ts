@@ -194,6 +194,8 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
 
   // voiceAvailable: direct audio OR whisper downloaded
   const voiceAvailable = supportsDirectAudio() || !!downloadedModelId || remoteTranscriptionAvailable;
+  const voiceAvailableRef = useRef(voiceAvailable);
+  voiceAvailableRef.current = voiceAvailable;
 
   useVoiceSessionDriver({
     // Hands-free auto-arm is voice-mode only (a global setting leaves the session in `listen`, so
@@ -429,6 +431,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
   cancelRef.current = cancelRecording;
   useEffect(() => {
     return recordingController.registerHandlers({
+      canStart: () => voiceAvailableRef.current,
       start: () => startRef.current(),
       stop: () => {
         // In hands-free there was no tap to start, so the stop button means STOP THE SESSION - and a
