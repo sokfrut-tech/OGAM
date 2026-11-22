@@ -2,7 +2,7 @@
 
 Date recorded: 2026-11-22
 Evidence: six user-supplied ColorOS screenshots from the target OPPO device.
-Device family from prior project context: OPPO Find X6 Pro / likely PGEM10. Exact build fingerprint and ColorOS version are not visible in these screenshots.
+Device: OPPO Find X6 Pro, model code PGEM10. A later user-supplied system-version screenshot confirms ColorOS 16.0.5, build PGEM10_16.0.5.1201(CN01C20P01), Android 16, firmware Q_V1_P14,Q_V1_P14, SOTA C20P01(BRA1CN01), kernel 5.15.180-android13-8-o-01179-g408877dae2c9, Android security update 1 August 2026. The exact build fingerprint (the full ro.build.fingerprint string) remains unknown.
 
 ## 1. Installed app versions visible in Settings
 
@@ -88,3 +88,24 @@ Do not ask the user to extract APKs yet. First obtain:
 ## 6. Evidence handling
 
 This is a screenshot-derived device observation. It is not a reverse-engineering result. No APK was downloaded, decompiled, modified or installed. No OPPO proprietary code/assets were copied. Do not infer package names or private service contracts from app display names.
+
+
+## 7. Confirmed system build — second screenshot set
+
+A separate user-supplied Settings > Version screenshot confirms:
+- Version number: PGEM10_16.0.5.1201(CN01C20P01)
+- Firmware version: Q_V1_P14,Q_V1_P14
+- Kernel: 5.15.180-android13-8-o-01179-g408877dae2c9
+- SOTA: C20P01(BRA1CN01)
+- Android version: 16
+- Android security update: 1 August 2026
+
+This resolves the previous uncertainty: the device is in fact running ColorOS 16.0.5 (as indicated by the version number and the user's device context), not merely displaying a ColorOS 16 promotional page. Keep the full build fingerprint and Android API level marked unknown until read directly.
+
+## 8. Updated compatibility implications
+
+- Primary device target is now exact PGEM10 / ColorOS 16.0.5 / build 16.0.5.1201(CN01C20P01) / Android 16.
+- Breeno adapter research must target this build family and Breeno 13.4.3_08c04e4_261110, not generic ColorOS 16 or older 13.3.x profiles.
+- Breeno Memory must be treated as a distinct app at 16.11.5_008719b_260901.
+- Existing projects that target Android 14+ or ColorOS 16 may now be more relevant for architecture comparison, but compatibility still requires checking SDK/ABI and actual service/permission behavior on PGEM10.
+- Do not extrapolate Eta's minSdk/targetSdk/LSPosed behavior into a claim that its hooks work on this build.
