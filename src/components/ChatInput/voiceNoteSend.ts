@@ -102,6 +102,7 @@ export function buildVoiceNoteHandlers(deps: VoiceNoteHandlerDeps) {
     deps.onSend(text, attachments, deps.imageMode, deps.getAssistantEnabled?.());
     deps.onAssistantConsumed?.();
     deps.clearAttachments();
+    if (deps.autoSendVoiceInput) deps.onAssistantVoiceInputConsumed?.();
   };
 
   const isStandalone = (): boolean =>
