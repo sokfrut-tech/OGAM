@@ -302,3 +302,11 @@ A direct audit of PR #1's actual feature branch changed the next-step priority. 
 
 ### Verification boundary
 This was a read-only source audit through GitHub. No model weights were downloaded, no new code was changed in the OGAM application, no APK/runner was built, and no acoustic benchmark or PGEM10 test was performed.
+
+
+### Official Qwen3-ASR chat-template confirmation — 2026-11-22
+- Current Hugging Face Transformers documentation explicitly documents free-form context/hotwords for Qwen3-ASR via a system-role text message (example: Vocabulary: Quilter, apostle, gospel.) preceding the user audio message. It also documents forced-language assistant prefill as language <NAME><asr_text>.
+- This is stronger than the earlier inference from LiteRT issue #4360: the base Qwen3-ASR model itself supports contextual vocabulary; the missing feature is specifically an API gap in the current LiteRT Omni implementation.
+- This gives OGAM's existing llama.rn Qwen3-ASR path a concrete implementation hypothesis: pass a bounded system text message plus the audio user message, and preserve the existing language prefill. Validate the exact formatted multimodal prompt and runtime behavior in tests before release.
+- Official docs: https://huggingface.co/docs/transformers/main/model_doc/qwen3_asr (sections Context / hotwords and Chat template).
+- The GGUF conversion model card also notes that this architecture needs a sufficiently recent llama.cpp build with Qwen3-ASR support (references upstream llama.cpp PR #32571). OGAM already has an engine-build compatibility gate in qwenAsrModel.ts; verify the pinned custom llama.rn build actually satisfies it, rather than trusting only the package version.
