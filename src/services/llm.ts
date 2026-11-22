@@ -480,7 +480,13 @@ class LLMService {
         ...buildThinkingCompletionParams(thinkingOn, this.isGemma4Model(), settings.reasoningBudget),
       };
       logger.log(`[LLM][THINKING] thinkingSupported=${this.thinkingSupported}, thinkingEnabled=${useAppStore.getState().settings.thinkingEnabled}, isThinkingEnabled=${this.isThinkingEnabled()}, enable_thinking=${(completionParams as any).enable_thinking}, reasoning_format=${(completionParams as any).reasoning_format}`);
-      logger.log(`[WIRE-LLAMA-PARAMS] ${JSON.stringify({ model: this.currentModelPath, params: { ...completionParams, messages: undefined } })}`); // [WIRE] settings→native params (temp/thinking/etc), messages elided
+      const loggedParams = {
+        ...completionParams,
+        messages: undefined,
+        ...(opts.rawPrompt !== undefined ? { prompt: `[redacted ${opts.rawPrompt.length} chars]` } : {}),
+        ...(opts.prefillText !== undefined ? { prefill_text: `[redacted ${opts.prefillText.length} chars]` } : {}),
+      };
+      logger.log(`[WIRE-LLAMA-PARAMS] ${JSON.stringify({ model: this.currentModelPath, params: loggedParams })}`); // [WIRE] content-bearing prompts are redacted
       const completionResult = await safeCompletion(ctx, () => ctx.completion(completionParams, (data: any) => {
         if (__wire.length < 500) __wire.push({ token: data.token, content: data.content, reasoning_content: data.reasoning_content, tool_calls: data.tool_calls }); // [WIRE]
         if (!this.isGenerating || !data.token) return;
