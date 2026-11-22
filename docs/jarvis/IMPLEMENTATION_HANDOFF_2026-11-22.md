@@ -8,8 +8,8 @@ This file is the durable continuation point for the current OGAM fork work. It r
 - Active branch: `feature/jarvis-step-2-storage-privacy`
 - PR: [#1 — Jarvis Step 2: privacy and Android storage permission bridge](https://github.com/sokfrut-tech/OGAM/pull/1)
 - PR state: open, draft, not merged; base `main`
-- PR head observed during this audit: `4cb872bbff38b94b83c13be85624c75c001e6cef`
-- PR metadata reports 212 commits, 94 changed files, +5,446/-382 lines.
+- PR head observed during this audit: `ad62d0c7bc467da21e31ca02ef6ce3f4155bbdcf`
+- PR metadata reports 215 commits, 97 changed files, +5,562/-388 lines.
 - Do not merge the PR or publish an APK as a way to bypass the missing-source blocker.
 
 ## Product contract
@@ -36,8 +36,17 @@ This file is the durable continuation point for the current OGAM fork work. It r
 - Task-plan validation (DAG/dependency/cycle checks), run state transitions, approval wait, completion/failure/retry/pause/resume/cancel guards, and local Zustand persistence.
 - Built-in tool skill contracts validate schemas and enabled-tool capabilities; high-risk skill types have an approval rule.
 - OGAM-owned pure progress helpers and file-size/split-GGUF/companion-file utilities.
+- Voice recognition now uses the app's selected language: `ru-RU` for Russian and `en-US` for English, replacing the hard-coded English recognizer locale. Unsupported device languages use the same English fallback as the UI.
 - Android APK workflow is manual-only, arm64 debug, SHA-256 + 14-day artifact; it currently cannot build standalone because setup still requires private workspaces.
 - External dependency audit workflow and scanner tests are included.
+
+
+## Latest implementation slice — Russian speech locale
+
+- Commit `dc22e8a8fc20180ca51a889bc81161dc01851ee1`: `src/services/voiceService.ts` imports the existing app locale and uses `getVoiceRecognitionLocale()` when starting speech recognition.
+- Commit `ad62d0c7bc467da21e31ca02ef6ce3f4155bbdcf`: voice service unit tests cover `ru → ru-RU`, `en → en-US`, and assert that `Voice.start` receives the selected app locale.
+- This is a narrow locale correction only. It does not implement offline ASR, wake word, VAD, TTS, barge-in, or Android system-assistant integration.
+- The test code is committed but has not yet been run in a fresh CI job. Do not report it as passing until CI evidence is available.
 
 ## Model research decisions
 
@@ -99,5 +108,6 @@ A public fork survey found:
 
 - PR #1 remains open/draft/unmerged.
 - PR metadata currently reports `mergeable: false`; investigate fresh GitHub status before any merge consideration.
+- Latest source/test changes are on the same PR branch; the Actions query did not yet return a workflow run for the latest head, so the voice locale tests remain unverified.
 - No APK artifact, clean standalone install, or OPPO device verification has been demonstrated.
 - Continue from the active branch and current source, not by replaying the already completed steps above.
