@@ -1,0 +1,30 @@
+name: OGAM external dependency audit
+
+on:
+  push:
+    branches:
+      - feature/jarvis-step-2-storage-privacy
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Scan imports and external workspace references
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out OGAM only
+        uses: actions/checkout@v4
+      - name: Verify scanner tests
+        run: node --test scripts/__tests__/audit-offgrid-imports.test.mjs
+      - name: Generate complete source/config inventory
+        run: node scripts/audit-offgrid-imports.mjs --output=ogam-import-audit.json
+      - name: Upload audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ogam-import-audit
+          path: ogam-import-audit.json
+          if-no-files-found: error
+          retention-days: 14
