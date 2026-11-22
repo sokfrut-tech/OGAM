@@ -137,3 +137,17 @@ The audit findings were checked against the later OGAM source and CI evidence. T
 - Gemini's workstation did not have JADX/JDK/apksigner/aapt2/apktool/adb; its APK analysis is an independent static cross-check, not method-level DEX or runtime proof.
 - The 26 APK inventory remains read-only. No OPPO APK, DEX/Smali, native library, private key or OEM asset is imported into OGAM.
 - The successful Android main-source compile is not an APK release or device pass. Require Kotlin/JUnit completion, APK assembly, and PGEM10 checks for role selection, cold/warm/locked invocation, microphone handoff, audio focus and denial paths.
+
+
+## CI follow-up — run #45052196801 (2026-11-22)
+
+The later Android workflow was inspected directly, including the Android job log. Corrected evidence status:
+
+- The Android job reached and successfully completed `:app:compileDebugKotlin` and `:app:compileDebugJavaWithJavac`; Android resource processing and main application compilation therefore passed in this run.
+- The same job then failed at `:app:compileDebugUnitTestKotlin` because `JarvisPcmStreamPlayerTest.FakeTrack` declared a Kotlin `var volume` property whose generated JVM setter collided with an explicit `setVolume(Float)` method. This is a test-fixture compile error, not evidence that the production app Kotlin source failed.
+- Consequently `:app:testDebugUnitTest` did not run to completion and no Kotlin/JUnit test pass is claimed.
+- The overall workflow failed: all eight Jest shards failed; lint/type/dependency-cruiser/knip gate failed; coverage gate failed; Android tests failed. The native video helper test in the lint job passed, and the iOS tests job passed. These results do not establish a successful complete CI run.
+- This run is not an APK package/build artifact and does not prove a merged/release APK, installation, system role activation, microphone invocation, lock-screen behavior or PGEM10 compatibility.
+
+### Correct next action
+Fix the test fake by renaming its backing property (for example, `currentVolume`) so it no longer generates `setVolume(F)V`; rerun the Android unit-test job. Separately diagnose the Jest and static-analysis gates rather than treating the Android main-source compile as overall success. Keep PR #1 draft and do not merge until the user's independent-APK and PGEM10 verification gates are satisfied.
