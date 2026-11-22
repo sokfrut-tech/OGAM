@@ -1,8 +1,11 @@
+import type { DownloadedModel } from '../types';
 import { NativeDirectoryCandidate, nativeDirectorySourceBoundary } from './sync/nativeDirectorySource';
 import { isMMProjFile } from './modelManager/scan';
 import { splitGgufPartNames } from '@offgrid/models';
 import { modelManager } from './modelManager';
 import { listDownloadedModels as listWhisperModels } from './whisperModelFiles';
+import { readModelHeader } from './modelHeader';
+import { estimateTextModelMemoryMB } from './activeModelService/memory';
 
 export type ModelArtifactKind =
   | 'gguf'
@@ -23,8 +26,15 @@ export interface ScannedModelArtifact extends NativeDirectoryCandidate {
   source: 'selected-folder';
 }
 
+export interface InspectedTextModel {
+  model: DownloadedModel;
+  estimatedRamBytes: number;
+  ggufArchitecture?: string;
+  ggufFileType?: number;
+}
+
 export interface LocalModelInventory {
-  textModels: Awaited<ReturnType<typeof modelManager.getDownloadedModels>>;
+  textModels: InspectedTextModel[];
   imageModels: Awaited<ReturnType<typeof modelManager.getDownloadedImageModels>>;
   whisperModels: Awaited<ReturnType<typeof listWhisperModels>>;
 }
@@ -74,7 +84,7 @@ export function classifyModelArtifact(fileName: string): {
 /**
  * Scan a user-selected SAF tree without copying model weights into cache or app storage.
  * The native bridge enumerates document metadata only; large files stay in their original
- * document provider until the user explicitly imports one.
+ * document provider until the user explicitly imports them.
  */
 export async function scanSelectedModelDirectory(grant: string): Promise<ScannedModelArtifact[]> {
   if (!grant.trim()) throw new Error('A selected folder grant is required.');
@@ -90,13 +100,29 @@ export async function scanSelectedModelDirectory(grant: string): Promise<Scanned
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Refresh all model registries already owned by OGAM; do not create a parallel registry. */
+/**
+ * Refresh the registries OGAM already owns, then inspect GGUF headers through llama.rn's
+ * metadata-only reader and use the same RAM estimator that gates actual model loading.
+ * This deliberately does not load any model into RAM.
+ */
 export async function scanAppModelInventory(): Promise<LocalModelInventory> {
   await modelManager.refreshModelLists();
-  const [textModels, imageModels, whisperModels] = await Promise.all([
+  const [models, imageModels, whisperModels] = await Promise.all([
     modelManager.getDownloadedModels(),
     modelManager.getDownloadedImageModels(),
     listWhisperModels(),
   ]);
+  const textModels = await Promise.all(models.map(async model => {
+    const header = model.engine === 'llama' ? await readModelHeader(model.filePath) : null;
+    const estimatedRamMB = await estimateTextModelMemoryMB(model);
+    const architecture = header?.['general.architecture'];
+    const fileType = header?.['general.file_type'];
+    return {
+      model,
+      estimatedRamBytes: estimatedRamMB * 1024 * 1024,
+      ...(typeof architecture === 'string' ? { ggufArchitecture: architecture } : {}),
+      ...(typeof fileType === 'number' ? { ggufFileType: fileType } : {}),
+    };
+  }));
   return { textModels, imageModels, whisperModels };
 }
