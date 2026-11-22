@@ -38,6 +38,7 @@ The OS still needs the user to grant microphone permission through the existing 
 - The session never asks for assist structure, screen text or screenshots. \`supportsAssist=true\` is retained for Android assistant-role eligibility only; context delivery is explicitly disabled.
 - There is no always-on mic or wake-word listener in this change. Invocation is through Android's selected-assistant gesture/button.
 - No conversation content is put in the assistant handoff URI.
+- The assistant URI is removed from the external BROWSABLE intent filter. External apps cannot launch the non-exported bridge; MainActivity rejects forged assistant VIEW intents unless the in-process one-time token is present. This prevents an arbitrary web link or another app from opening the microphone through the Jarvis route.
 
 ## User activation
 
@@ -63,11 +64,11 @@ Android references: [RoleManager](https://developer.android.com/reference/androi
 
 ## CI evidence and what it does not prove
 
-Latest completed open-core audit for the current code snapshot: run #45038477079
-https://github.com/sokfrut-tech/OGAM/actions/runs/45038477079
+Latest completed open-core audit for the current code snapshot: run #45038838766
+https://github.com/sokfrut-tech/OGAM/actions/runs/45038838766
 
 Passed:
-- 5 static Android-assistant contract tests;
+- 6 static Android-assistant/security contract tests;
 - 3 system-role request/UI wiring/status-snapshot tests;
 - 2 one-shot voice invocation contracts (route wiring, safe auto-send, existing draft preservation, empty capture cleanup);
 - 1 assistant URI/route mapping test;
@@ -75,7 +76,7 @@ Passed:
 - source/config audit: 1,976 files and 1,354 dependency references;
 - audit artifact \`ogam-import-audit\`, ID \`14760761900\`.
 
-These are open-core Node/static checks. They do **not** compile Kotlin, execute the five Kotlin/JUnit role-snapshot tests or eight Kotlin/JUnit PCM-player tests, run Jest (including composer/Qwen integration tests), run TypeScript, merge the Android manifest, install an APK, prove role eligibility on ColorOS, or validate mic invocation on OPPO Find X6 Pro. The PCM source-contract test additionally checks the two corrected Kotlin test declarations, but is not a substitute for Gradle. No release claim should be based on this run alone.
+These are open-core Node/static checks. They do **not** compile Kotlin, execute the five Kotlin/JUnit role-snapshot tests, three Kotlin/JUnit launch-guard tests or eight Kotlin/JUnit PCM-player tests, run Jest (including composer/Qwen integration tests), run TypeScript, merge the Android manifest, install an APK, prove role eligibility on ColorOS, or validate mic invocation on OPPO Find X6 Pro. The PCM source-contract test additionally checks the two corrected Kotlin test declarations, but is not a substitute for Gradle. No release claim should be based on this run alone.
 
 ## PCM playback groundwork
 
@@ -87,7 +88,7 @@ These are open-core Node/static checks. They do **not** compile Kotlin, execute 
 
 1. Run Android Gradle compile / manifest merge / unit tests once the private \`shared\` and Pro dependencies are replaced or available in the authorized build environment; verify the two fixed Kotlin test cases actually compile and run.
 2. Install on OPPO Find X6 Pro, grant microphone permission and confirm Jarvis appears in Android's Digital Assistant App picker; verify Settings role status reflects an active service.
-3. Invoke from the system gesture with the app cold, warm, locked and after process recreation; verify a single recording start, existing drafts remain unsent, and no assist/screenshot data arrives.
+3. Invoke from the system gesture with the app cold, warm, locked and after process recreation; verify a single recording start, existing drafts remain unsent, no external deep link can trigger capture, and no assist/screenshot data arrives.
 4. Verify the no-model path leaves the microphone closed and offers the speech-model screen.
 5. Select a Russian TTS runtime only after code/model/voice/dataset license review; implement its adapter to the PCM player, then measure first-audio latency, RTF, peak RAM, thermal and battery on OPPO.
 6. Add opt-in wake word, duplex/barge-in and consented on-screen context. These are not delivered by the current system-assistant slice.
