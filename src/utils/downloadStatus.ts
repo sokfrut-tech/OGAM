@@ -6,7 +6,7 @@
  * so existing `from '../stores/downloadStore'` importers keep working.
  */
 import { ModelKey } from './modelKey';
-import type { ProgressRateSample } from '@offgrid/ui';
+import type { ProgressRateSample } from './progressCore';
 
 export type DownloadStatus =
   | 'pending'
