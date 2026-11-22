@@ -153,3 +153,34 @@ This batch inspected repository READMEs, selected source files and license files
 - PocketWisdom is a feature/UX reference, not the preferred app framework for OGAM.
 - Next source-audit batch: inspect official LiteRT-LM Android sample APIs and model loading lifecycle; inspect Qwen3-ASR 0.6B and Russian evaluation setup; inspect Qwen3-TTS Android repository; audit PocketPal upstream and dependency licenses; inspect DakeQQ export scripts and runtime integration.
 - Required device gates: verify PGEM10 ABI/SoC and available memory; build minimal sample APKs; measure load/TTFT/tokens-per-second/ASR real-time factor/TTS generation speed/peak RSS/thermal/battery; run offline and permission-safety tests. No APK build, download, installation or PGEM10 benchmark was performed in this batch.
+
+
+## Android voice implementation audit — additional batch 2026-11-22
+
+### Qwen3-TTS Android reference
+- Repository: https://github.com/Danmoreng/qwen3-tts-android
+- Repository LICENSE declares MIT. README describes a Jetpack Compose app using qwen3-tts.cpp through JNI, app-private model storage, voice profiles, local generation history, playback/stop/delete and WAV export.
+- Inspected app/build.gradle.kts: compileSdk/targetSdk 36, minSdk 31, JDK 17, arm64-v8a only, optional OpenMP/Vulkan/OpenCL build flags.
+- Inspected app/src/main/cpp/CMakeLists.txt: builds native GGML components and a qwen3_tts_jni shared library; optional Vulkan and OpenCL paths are wired as build options, defaulting OFF. This is a practical small reference for separating TTS from the main Jarvis application and exposing runtime acceleration choices.
+- Limitations: CPU path is the documented default; optional GPU paths need device-specific validation. The README lists Q4_K_M model artifacts but this audit did not fetch weights or compile the project. The app targets API 31+, so it is compatible in principle with Android 16 but not proof of ColorOS/OPPO compatibility.
+- Jarvis decision: retain as a standalone TTS prototype reference; do not merge as a full application. Compare its CPU Q4 path with LiteRT-LM Qwen3-TTS and Piper/Kokoro on Russian pronunciation, streaming latency, voice naturalness, memory, thermal and license.
+
+### Qwen3-ASR official source correction
+- Official repository: https://github.com/QwenLM/Qwen3-ASR
+- README states the family comprises 0.6B and 1.7B ASR models and lists Russian in the supported language table. It describes both offline and streaming inference and links official Hugging Face and ModelScope collections.
+- The README contains two different language-count descriptions: its overview says 52 languages/dialects, while the detailed table lists 30 named languages plus 22 Chinese dialects. Record this wording discrepancy; Russian is explicitly named in the table.
+- Vendor claims about accuracy/throughput are not independent benchmarks. The model card and local Android conversion must be checked separately; Python/vLLM support does not imply a native Android runtime.
+- Jarvis decision: add Qwen3-ASR-0.6B and 1.7B as high-priority Russian ASR candidates. First prototype should measure streaming partial transcript latency and Russian command WER/CER under controlled noise, then compare against existing Whisper/Sherpa candidates.
+
+### Fresh LiteRT model artifact signals
+- LiteRT community Qwen3-ASR-1.7B card: https://huggingface.co/litert-community/Qwen3-ASR-1.7B. The card reports a 2.69 GB bundle, 30-language card metadata, Russian included, and GPU graph changes dated 2026-11-17. Device performance examples are on Galaxy S26/Pixel 11 Pro, not PGEM10.
+- LiteRT community Qwen3-TTS 0.6B card: https://huggingface.co/litert-community/Qwen3-TTS-12Hz-0.6B-Base. It reports a 2.24–2.44 GB package and recommends at least 4 GB device memory. Treat as on-demand speech model; measure memory contention with Jarvis LLM before selecting it.
+- Qwen3.5 9B GGUF surfaced on ModelScope as Apache-2.0, llama.cpp-compatible and around 5.29 GiB for Q4_K_M plus a separate vision projector. This is a large reference model, not a default phone candidate. Prefer smaller exact checkpoints and verify upstream canonical artifacts/hashes.
+
+### Updated next-step priorities
+1. Prototype the Qwen3-ASR 0.6B path first; compare LiteRT conversion availability and native runtime support with Sherpa/Whisper.
+2. Prototype Qwen3-TTS Android separately, with model download only on demand and guaranteed unload when memory pressure rises.
+3. Compare LiteRT-LM vs llama.cpp on the same exact model/task set, with CPU and GPU paths separated.
+4. Inspect the exact LiteRT-LM Kotlin sample API, Android packaging, model metadata and lifecycle before changing OGAM dependencies.
+5. Keep all voice modules replaceable behind internal ASR/TTS interfaces; do not bind the assistant core to one vendor runtime.
+6. Do not mark any of these as integrated or device-tested until a reproducible build and PGEM10 run are recorded.
