@@ -294,3 +294,56 @@ Commits:
 - Removed `"@offgrid/speech": "file:../shared/packages/speech"` from `package.json` and removed `speechPackagePath` / `watchFolders` / `extraNodeModules['@offgrid/speech']` from `metro.config.js` (`package-lock.json` left untouched per `340c80e2`; synthetic scanner fixture in `scripts/__tests__/audit-offgrid-imports.test.mjs` kept).
 - Added Node tests `scripts/__tests__/transcription-languages.node.test.mjs` (4/4) and `scripts/__tests__/voice-session-machine.node.test.mjs` (7/7) and wired both into `.github/workflows/ogam-external-dependency-audit.yml`.
 - **Next continuation step starts at item 2:** extract `@offgrid/sync` **Half A** pure chat/reasoning/markdown/queue helpers into `src/utils/` (see `TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md` Section 3.5), while keeping PR #1 as `Draft` and verifying `OGAM external dependency audit` CI.
+
+
+## B1–B3 and B5 source/API triage — 2026-11-22
+
+This section records exact-source/API review after the B4 mitigation. It does not replace required Gradle, manifest-merger, emulator or PGEM10 tests.
+
+### B1 — React Native listener signature: no source-level defect found
+
+- OGAM locks React Native `0.83.1`.
+- The official React Native Android native-module documentation demonstrates the Kotlin `BaseActivityEventListener.onActivityResult` override with the same nullable parameter types used by OGAM: `Activity?` and `Intent?`. Therefore Gemini's suspected nullable/non-null override mismatch is not reproduced by the published Kotlin API example.
+- OGAM's `currentActivity` access comes from `ReactContextBaseJavaModule.getCurrentActivity()`. It is an available nullable Activity accessor; current React Native changelog treats the API as deprecated/clarifies deprecation, not removed. The existing null check is correct for the documented API shape.
+- No speculative signature patch was applied. A real compile against the pinned artifacts remains mandatory before marking B1 build-verified.
+
+Reference: [React Native Android native-module docs — getting Activity results](https://reactnative.dev/docs/legacy/native-modules-android#getting-activity-result-from-startactivityforresult).
+
+### B2 — explicit NEW_TASK flag: not required by these VoiceInteractionSession APIs
+
+- OGAM calls `startAssistantActivity(launchIntent)` on API 26+ and `startVoiceActivity(launchIntent)` on its fallback branch.
+- Android's public API reference explicitly states both methods create a new task and set `Intent.FLAG_ACTIVITY_NEW_TASK` automatically. Adding the flag manually is therefore unnecessary for the API contract and may only duplicate platform behaviour.
+- The currently configured system assistant is enabled only API 31+, so the legacy branch is defensive rather than the PGEM10 execution path.
+- No code change was applied. ColorOS 16 task/lock-screen/background activity-launch behaviour still requires device validation.
+
+Reference: [Android VoiceInteractionSession API — startAssistantActivity and startVoiceActivity](https://developer.android.com/reference/android/service/voice/VoiceInteractionSession#startAssistantActivity(android.content.Intent)).
+
+### B3 — recognitionService metadata and debug applicationId: conditionally safe, with a documented limitation
+
+- The locked Android manifest uses a non-empty `android:recognitionService` string. AOSP's `VoiceInteractionService` attribute definition says the field must be non-empty; on Android 12+ it does nothing. On Android 11 and earlier it must reference a valid `RecognitionService`.
+- OGAM's `jarvis_voice_interaction_enabled` is false in `res/values/bools.xml` and true in `res/values-v31/bools.xml`. Thus the current assistant entry point is deliberately unavailable below API 31, and the metadata's placeholder component value is not used by the supported Android 12+ implementation. The debug `.dev` applicationId suffix is not a runtime component-validation failure on API 31+ because AOSP documents the attribute as unused there.
+- A legacy RecognitionService has not been implemented. Do not enable the system-assistant entry point below API 31 until OGAM adds a real RecognitionService adapter and changes this metadata to its actual component.
+- The AndroidX/AOSP API contract source is strong enough to reject the claim that a wrong component value alone breaks API 31+, but debug/release manifest and device behaviour still need build/runtime verification.
+
+Reference: [AOSP VoiceInteractionService attributes](https://android.googlesource.com/platform/frameworks/base/+/4fd8e1246d9b503f602412021df52e87e418ed1c/core/res/res/values/attrs.xml#8628).
+
+### B5 — service gate consistency fixed in source
+
+- The main `JarvisVoiceInteractionService` already used `android:enabled="@bool/jarvis_voice_interaction_enabled"`.
+- The companion `JarvisVoiceInteractionSessionService` did not. The manifest now applies the same gate to it, so both components are disabled below API 31 and enabled together on API 31+.
+- The Node source-contract suite now asserts the gate on both services and the true/false resource values.
+- Remaining B5 work is runtime-only: PGEM10/ColorOS 16 background activity launch, lock screen, service process death/restart, permission denial, audio focus and PCM playback. Broad manifest permission justification is still open.
+
+### Commits from this triage
+
+- Session service API gate: `a781a873ad1f99c03ba6b3e66578f1b6ba75c2ad`.
+- Node contract assertion for both service gates: `9c6863aea09aa66cbc3ed7147dd714098f11f6a1`.
+
+### Verification status
+
+- B4: React Navigation normalization mismatch confirmed from locked-version source and source-level mitigated; Activity-level and device tests still pending.
+- B1: no signature incompatibility found in public RN Kotlin API example; exact Gradle compile pending.
+- B2: no missing-NEW_TASK defect; Android API sets it automatically; device BAL behaviour pending.
+- B3: no API31+ parser/component-validation defect; legacy API<31 support intentionally disabled until a real RecognitionService exists.
+- B5: source-level API gate now aligned; Gradle/manifest merge and device lifecycle checks pending.
+- The changes above are not merge/release approval. PR #1 remains draft until complete Android verification.
