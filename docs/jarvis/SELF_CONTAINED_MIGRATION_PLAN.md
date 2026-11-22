@@ -475,3 +475,21 @@ Import references by package (source / tests):
 7. **pro** — isolate the two runtime references and determine the open-core behavior; keep Pro-only tests meaningful and do not silently skip tests to obtain green CI.
 
 The inventory shows the migration is not a one-package change: models and sync dominate the runtime surface. The next implementation work should start with exact export/consumer contracts for models, then split pure deterministic helpers from catalog data and native/runtime integrations. The full JSON artifact is the file/line evidence source for this count set.
+
+
+## Latest upstream cross-check — no public shared-package drop-in found (2026-11-22)
+
+The current public upstream `off-grid-ai/OGAM` main was inspected after the standalone-fork survey:
+- Upstream main commit: `ff6abb8babdeb0836bb64d1df61dd90dd39cfd42`
+- Current upstream package version: `0.0.125`
+- Upstream still declares the same nine `file:../shared/packages/*` dependencies in `package.json`: design, models, notes, notes-editor, rag, speech, sync, ui, writing.
+- Its current `rules.md` states that the business logic for shared packages is owned by the shared monorepo, not by the mobile app. The upstream `metro.config.js` and Jest configuration therefore still expect a sibling `../shared` checkout.
+- Upstream OGAM's `LICENSE` is MIT, copyright 2026 Mohammed Ali Chherawalla. That licence covers the OGAM files distributed under it; it is not evidence that separately distributed shared packages or private Pro source are MIT-licensed.
+
+References:
+- [Upstream OGAM](https://github.com/off-grid-ai/OGAM)
+- [Upstream package.json](https://github.com/off-grid-ai/OGAM/blob/main/package.json)
+- [Upstream rules.md](https://github.com/off-grid-ai/OGAM/blob/main/rules.md)
+- [Upstream license](https://github.com/off-grid-ai/OGAM/blob/main/LICENSE)
+
+Decision: do not copy a fictitious "standalone upstream" branch or assume the current public OGAM tree includes shared packages. The public mobile source is useful as a behavioral and integration reference, but it does not solve the missing sibling workspace. Every replacement package still needs its own source, provenance/licence audit, and consumer-contract tests.
