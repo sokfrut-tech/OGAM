@@ -80,5 +80,16 @@
   "models.accessReview": "Review",
   "models.accessAllow": "Allow",
   "models.accessExplanation": "This optional Android permission can browse shared non-media files. Selected folders continue to use the safer system picker.",
-  "models.noSupportedFiles": "No supported model files were found in this folder."
+  "models.noSupportedFiles": "No supported model files were found in this folder.",
+  "storage.modelFolders": "Access to model folders",
+  "storage.permission": "All files access",
+  "storage.checking": "Checking permission…",
+  "storage.granted": "Granted",
+  "storage.notGranted": "Not granted — individual folder selection still works",
+  "storage.manage": "Manage",
+  "storage.managePermission": "Manage Android all files access permission",
+  "storage.explanation": "This optional Android permission lets Jarvis scan model files in shared folders. You can keep it disabled and select individual folders through Android’s folder picker instead. Jarvis will re-check the permission when you return.",
+  "storage.notNow": "Not now",
+  "storage.openSettings": "Open Android settings",
+  "storage.openFailed": "Could not open settings"
 }
