@@ -142,3 +142,81 @@ The 13.3.2 and 13.3.5 profiles differ in obfuscated method names, including conv
 - Breeno 13.3.2 profile: https://github.com/niki914/zafiro/blob/main/app/src/main/res/raw/com_heytap_speechassist_130302_config.json
 - Breeno 13.3.5 profile: https://github.com/niki914/zafiro/blob/main/app/src/main/res/raw/com_heytap_speechassist_130305_config.json
 - Version registry: https://github.com/niki914/zafiro/blob/main/app/src/main/res/raw/com_heytap_speechassist_versions.json
+
+
+## Expanded China + India + regional platform survey (2026-11-22)
+The research scope now explicitly includes Chinese developer ecosystems (GitCode, AtomGit, Gitee, ModelScope, OpenI) and Indian/open Indic-language projects, not just GitHub. GitCode and AtomGit are being consolidated into a unified developer ecosystem according to AtomGit's own about page. Search-index coverage differs by platform; a missing search result is not evidence that a project does not exist. Search both native platform search and mirrored public sources where available.
+
+### China: GitCode / AtomGit findings
+
+#### exepc/ZorvAI — phone agent runtime (GitCode)
+URL: https://gitcode.com/exepc/ZorvAI
+- README-level architecture says Kotlin + Jetpack Compose, minSdk 26, MNN / llama.cpp local inference, Accessibility / Shizuku / root action channels, 235 built-in tools, Linux sandbox terminal, MCP, knowledge base, TTS/STT, Feishu/QQ/WeChat access and APK plugin extensions.
+- This is a high-priority architecture reference for a modular phone agent and extensible tool runtime.
+- Do not assume the 235 tools are all safe, available without privilege, or tested on PGEM10. Need source/license/build/test audit before adoption.
+
+#### 2401_88872702/Aiassistant — offline Android assistant (GitCode)
+URL: https://gitcode.com/2401_88872702/Aiassistant
+- README describes Android 7.0+ (API 24), MIT, package com.assistant.ai, Vosk small Chinese model embedded for offline speech recognition, speech input/output, weather, alarms, calendar, notes, calculator/conversion, encyclopedia/search fallback and no GMS/API key requirement.
+- Candidate for lightweight offline command and no-GMS compatibility patterns; not a Russian LLM assistant by itself.
+- Package/version/hash data shown by the project are self-reported; verify artifact signature and source/build reproducibility before testing.
+
+#### GitCode dsh-mobile-apk / DSH Android shell
+URL: https://gitcode.com/gh_mirrors/ds/dsh-mobile-apk
+- Search result describes a WebView UI + embedded Termux runtime snapshot, with local agent shell/browser and Accessibility-based screen control, no root.
+- This is a potential embedded tool-runtime pattern, not a reason to bundle an unrestricted shell in Jarvis. If studied, isolate shell execution in a permissioned sandbox with explicit user approval, allowlists, audit logs and no access to secrets by default.
+- The search result is a GitCode mirror; confirm canonical upstream and license before any code reuse.
+
+#### Chinese GUI-agent / mobile-agent references
+- KYRIE66nb/mobile-agent: https://github.com/KYRIE66nb/mobile-agent — Android screen agent using Accessibility semantic nodes plus visual coordinates; describes safety gating for external side effects and foreground/background modes. Early-stage; test-device-only warning in its README.
+- DU8866-nice/awesome-phone-agents: https://github.com/DU8866-nice/awesome-phone-agents — curated catalogue of phone agents, MCP bridges, ADB frameworks and testing tools; catalog is useful for discovery, not proof that every entry is maintained or safe.
+- UgOrange/gui_agent_skill: https://github.com/UgOrange/gui_agent_skill — stateful/stateless ADB GUI automation skill with local Ollama, Qwen and Zhipu/StepFun providers and unified session outputs. Useful for factory-side QA, not a phone-resident assistant runtime.
+
+### India / Indic-language ecosystem findings
+
+#### mukeshchandu/Personal-AI-Assistant (Naomi)
+URL: https://github.com/mukeshchandu/Personal-AI-Assistant
+- README describes always-on/offline-first Android voice assistant; offline keyword router for common phone actions, Vosk wake word, multi-turn follow-up, optional Groq/Gemini and on-device LLM fallback.
+- Useful pattern: deterministic local action router first, LLM only for ambiguous/complex requests; wake-word and multi-turn loop are distinct from command execution.
+- Need inspect source, license, Android background restrictions and device tests; do not assume true always-on works on every ROM.
+
+#### Uktam-ai/uktam
+URL: https://github.com/Uktam-ai/uktam
+- Indic offline speech-to-speech pipeline on Android using Sherpa-ONNX + AI4Bharat IndicConformer ASR, Sarvam Translate via llama.cpp/JNI and native Android TTS; languages include Hindi, Kannada, Tamil, Telugu, Marathi and Malayalam.
+- README states min API 34 and recommends 6 GB RAM; not directly a low-API baseline. Strong reference for mobile speech pipeline composition and quantized model selection.
+
+#### Neyam Vaani
+URL: https://neyam-opensc.github.io/neyam-vaani/
+- Project page states Apache-2.0, Android 7+, nine Indian languages, full on-device ASR/LLM/TTS and target hardware as low as 2 GB RAM; status is Phase 0 of a 90-day roadmap to public beta.
+- Treat as design/roadmap evidence, not a mature verified runtime. Important lessons: graceful low-memory design, language-pack separation, offline-first, accessibility and no-account UX.
+
+#### souravanand001/ai-assistant-android
+URL: https://github.com/souravanand001/ai-assistant-android
+- README describes offline-first Android assistant with screen vision, live camera/voice, encrypted conversation storage, custom OpenAI-compatible endpoints and default assistant role.
+- Candidate for reviewing VoiceInteractionService/assistant-role integration and multimodal UX; source-level verification remains pending.
+
+#### Sanna — voice-first phone agent
+URL: https://github.com/sannabotdev/sannabotapp
+- README describes email, messages, notifications, calendar, scheduler, app-specific UI automation through Accessibility and background sub-agents. It is an agent/action workflow reference, not evidence of a safe unattended executor.
+- Jarvis must add action risk tiers, preview/confirmation, undo where possible, and per-app permission scopes.
+
+#### Other useful Indian-origin / offline-first research candidates
+- vinaytz/ProjectCharlie: https://github.com/vinaytz/ProjectCharlie — Kotlin/C++ JNI, Porcupine wake word, whisper.cpp, quantized Qwen via llama.cpp, Room memory, one-heavy-model-at-a-time RAM strategy. README targets low-memory devices; verify license and dependency licenses before reuse.
+- Subh24ai/yojana-sahayak-assistant: https://github.com/Subh24ai/yojana-sahayak-assistant — Whisper + Qwen2.5 QLoRA + FAISS RAG + MCP, multilingual offline voice agent; primarily a welfare-scheme assistant, useful for RAG/MCP pipeline patterns.
+- Saanvirajput/Dhwani and cld2labs/VaaniSahayak: sovereign Indic model stacks using Param-1 and Indic Parler-TTS. Useful for model routing and streaming sentence-by-sentence TTS, but backend/runtime deployment differs from an Android-resident app.
+- Precise-Goals/iTantra-Communication-Ecosystem: https://github.com/Precise-Goals/iTantra-Communication-Ecosystem — offline STT/TTS over Wi-Fi Direct/Bluetooth mesh; useful as an optional future local-device communication idea, not core assistant functionality.
+
+### Additional broad Android assistant references
+- naveen-anon/JarvisAI: https://github.com/naveen-anon/JarvisAI — offline command router, wake word, Arc Reactor HUD and optional Gemini fallback; inspect as a direct UI/command-flow reference.
+- mathanroot/nova-ai: https://github.com/mathanroot/nova-ai — native Android offline voice assistant explicitly advertises VoiceInteractionService, screen-off wake word, streaming partial ASR, follow-up dialogue and lock-screen responses. High priority for native assistant contract study; verify claimed behavior and implementation in source.
+- outsidepro-arts/OAssist: https://github.com/outsidepro-arts/OAssist — Android system-assistant gesture, share/chat modes, 55 tools, Accessibility/TalkBack and optional Shizuku/root. Review its permission model and accessibility compliance; root is not core Jarvis.
+- x1watt/eva: https://github.com/x1watt/eva — fully offline Android assistant with local LLM, speech, docs, maps, music and Wikipedia; useful for offline multimodal app structure.
+- MRDarshan7/OffHand: https://github.com/MRDarshan7/OffHand — on-device llama.cpp + Qwen, grammar-constrained output, explicit user-confirmed actions, durable outbox; README explicitly says physical-device validation is pending, so treat as architecture only.
+
+## New priority ranking
+P0 source audits: ZorvAI (tool runtime/plugin architecture), nova-ai (VoiceInteractionService), Naomi (offline wake/command router), Mobile Agent (screen/action safety).
+P1 source audits: GitCode AIAssistant (Vosk/no-GMS baseline), Uktam (Sherpa/IndicConformer pipeline), Sanna (multi-step app automation), OAssist (system-assistant integration), ProjectCharlie (memory/RAM scheduling).
+P2 design references: Neyam Vaani, Dhwani/VaaniSahayak, iTantra, Eva, OffHand, curated phone-agent catalog.
+
+## Cross-platform search policy for OGAM
+Search is not GitHub-only. For each research question, query at least: GitHub, GitLab, GitCode, AtomGit, Gitee, Codeberg and relevant model hubs (ModelScope, OpenI, Hugging Face). Search Chinese-language terms (安卓语音助手, 手机智能体, 离线语音识别, 系统助手, 无障碍自动化, 本地大模型) and English/Hindi/Indic terms. Record canonical upstream, mirror status, license, latest commit/release, build instructions, Android API/ABI, permission requirements, test evidence and compatibility. A project is not accepted merely because its README claims a feature.
