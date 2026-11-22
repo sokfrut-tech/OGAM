@@ -34,6 +34,20 @@ describe('recordingController', () => {
     expect(recordingController.getPhase()).toBe('idle');
   });
 
+  it('allows direct-audio capture for normal taps but requires STT for system-assistant text turns', () => {
+    const h = handlers();
+    recordingController.registerHandlers({
+      ...h,
+      canStart: options => options?.requiresTranscript ? false : true,
+    });
+
+    expect(recordingController.start()).toBe('started');
+    voiceSession._resetForTesting();
+    expect(recordingController.start({ requiresTranscript: true })).toBe('unavailable');
+    expect(h.start).toHaveBeenCalledTimes(1);
+    expect(recordingController.getPhase()).toBe('idle');
+  });
+
   it('returns unavailable and leaves the session stopped when no speech backend exists', () => {
     const h = handlers();
     recordingController.registerHandlers({ ...h, canStart: () => false });
