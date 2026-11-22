@@ -927,3 +927,18 @@ Implemented in the OGAM branch:
 Boundary: this is the declarative plan/graph foundation, not yet a full execution engine. Persistent run history, pause/resume/cancel, retry, per-step approval UI, timeouts, compensation/undo and background scheduling remain future slices. The executor must resolve each `skillId` against the installed skill catalogue and the Android capability broker; model-provided plan JSON never executes directly.
 
 The latest standalone workflow run after this change must be checked before treating the new test as passing.
+
+
+### Progress update — deterministic plan-run lifecycle (2026-11-22)
+
+Extended `src/services/planner/taskPlan.ts` with a pure run-state transition layer:
+- Create a fresh run with all steps pending.
+- Claim only the next dependency-ready step, in stable topological order.
+- Resolve approval using a callback supplied by the installed skill registry; the plan JSON itself cannot mark an action safe.
+- Hold high-risk steps in `awaiting-approval`; rejection cancels the remaining plan rather than silently continuing.
+- Record step outputs, failures and bounded error text; retry a failed step without losing already completed dependencies.
+- Pause only between steps; resume to ready; cancel only when no native action is still running. The planner refuses to claim cancellation/pause succeeded while an active executor still owns work.
+
+Added tests for approval, rejection, execution-state transitions, output capture, failure/retry, pause/resume and cancellation guards. This is still a pure state layer: no native tool is invoked, no background job is started, and persistence/UI/executor integration are not yet wired. A real executor must cancel native work before confirming pause/cancel, persist state before/after side effects, and use idempotency keys to avoid duplicate writes after process death.
+
+Current Actions run for the newest test commit: `45021671152` (check its final conclusion before calling this slice green).
