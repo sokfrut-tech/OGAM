@@ -281,3 +281,27 @@ Revised decision:
 - Full CI run 45059622387 was still in progress at the last check: https://github.com/sokfrut-tech/OGAM/actions/runs/45059622387
 - Three Jest shards already failed: 86/104, 89/106, and 83/106 suites failed respectively. Logs show broad `Cannot find module '@offgrid/models'` failures plus missing `pro/sync` modules/configuration. This is a repository/private-workspace CI integration blocker; it is not evidence that the new Kotlin chunker tests failed.
 - Android Gradle test job had started but no completed result was available. No Kotlin/JUnit, APK or PGEM10 pass is claimed.
+
+
+## New China/India scan: LiteRT Qwen3-ASR SM8550 + Qwen3-TTS Android route (2026-11-22)
+
+Research evidence saved on branch `docs/research-breeno-coloros-2026-11-22`:
+`research/china-india/CHINESE_INDIAN_ON_DEVICE_SPEECH_SCAN_2026-11-22.md`
+Commit: `33589c0b30e55ccdf7a568a72f268834875c62c3`.
+
+New high-priority finding:
+- Google LiteRT-LM model documentation exposes Qwen3-ASR-0.6B Android deployment and a SoC-specific AOT NPU graph family including Qualcomm SM8550 (Snapdragon 8 Gen 2), the exact SoC in PGEM10.
+- 960 MB INT8 .litertlm bundle supports Russian among 30 languages/22 Chinese dialects; Android CPU/GPU runner documented; 3–4 GB available RAM recommended.
+- Separate SM8550 AOT .tflite graph family is listed at 1.88–2.19 GB and targets standalone LiteRT NPU C++/Kotlin APIs. Exact filename, model revision, hash, I/O contract, NPU runtime and ColorOS compatibility still need pinning. Do not claim NPU use until verified in device logs.
+- This is an alternative native deployment route, not a replacement for OGAM's already integrated Qwen3-ASR GGUF/llama.rn backend. Preserve Whisper fallback.
+
+New TTS candidate:
+- Qwen3-TTS-12Hz-0.6B-Base LiteRT-LM is Russian-capable, Apache-2.0, Android NDK runner/C++ OmniSession path documented, INT8 v2 bundle ~2.44 GB / INT4 ~2.24 GB.
+- Model card reports Galaxy S26 RTF 1.24 GPU / 1.29 CPU, peak RSS ~1.44 / ~1.90 GB. Not tested on PGEM10. Separate older Kotlin CPU TFLite sample is slower (RTF ~2.06 Pixel 8a optimized) and does not implement dual-track streaming; do not conflate with newer LiteRT-LM Omni.
+- Candidate for optional expressive Russian TTS tier; tiny-voca-ru remains compact fallback until real tests.
+
+India scan:
+- Indic-Speak is 3B BF16, 22 Indic languages + English, ~6.6 GB weights, gated/custom license, no Russian and no verified Android deployment.
+- IndicF5 is 0.4B, 11 Indic languages, MIT, reference-audio conditioned; no Russian/Android proof.
+- IndicConformer 600M MIT covers 22 Indic languages, and card recommends newer Indic-Transcribe (25 Indic languages); neither supports Russian.
+- These are useful future Indic-language research, not Russian core candidates.
