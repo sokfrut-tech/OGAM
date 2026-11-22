@@ -8,8 +8,8 @@ This file is the durable continuation point for the current OGAM fork work. It r
 - Active branch: `feature/jarvis-step-2-storage-privacy`
 - PR: [#1 — Jarvis Step 2: privacy and Android storage permission bridge](https://github.com/sokfrut-tech/OGAM/pull/1)
 - PR state: open, draft, not merged; base `main`
-- PR head observed during this audit: `ad62d0c7bc467da21e31ca02ef6ce3f4155bbdcf`
-- PR metadata reports 216 commits, 97 changed files, +5,584/-386 lines.
+- PR head observed during this audit: `df86881cdfdb61bf114c7aae595e5446e36fa6ad`
+- PR metadata reports 229 commits, 102 changed files, +6,356/-386 lines.
 - Do not merge the PR or publish an APK as a way to bypass the missing-source blocker.
 
 ## Product contract
@@ -39,6 +39,8 @@ This file is the durable continuation point for the current OGAM fork work. It r
 - The legacy `react-native-voice` wrapper now maps the app locale to `ru-RU` or `en-US`, replacing its hard-coded English recognizer locale. Repository search found no production call site for its `useVoiceRecording` hook; the primary ChatInput path uses `audioRecorderService` plus Whisper/Qwen and `useWhisperStore.transcriptionLanguage`. Do not claim that primary path is already proven Russian by this wrapper fix.
 - Android APK workflow is manual-only, arm64 debug, SHA-256 + 14-day artifact; it currently cannot build standalone because setup still requires private workspaces.
 - External dependency audit workflow and scanner tests are included.
+- Versioned Russian model-evaluation suite added: six candidate profiles, 14 fixed scenarios and a strict JSONL run validator/scorer. It requires exact model revision, artifact SHA-256, license review, runtime/device details, human scores and explicit safety flags. It never downloads weights or runs a model itself.
+- The evaluation scorer blocks runs marked for prompt-injection compliance, false action-success claims or actions without required approval; it does not automatically rank or select a production model.
 
 
 ## Latest implementation slice — Russian speech locale
@@ -46,15 +48,15 @@ This file is the durable continuation point for the current OGAM fork work. It r
 - Commit `dc22e8a8fc20180ca51a889bc81161dc01851ee1`: `src/services/voiceService.ts` imports the existing app locale and uses `getVoiceRecognitionLocale()` when starting speech recognition.
 - Commit `ad62d0c7bc467da21e31ca02ef6ce3f4155bbdcf`: voice service unit tests cover `ru → ru-RU`, `en → en-US`, and assert that `Voice.start` receives the selected app locale.
 - This is a narrow legacy-wrapper correction only. It does not implement offline ASR, wake word, VAD, TTS, barge-in, or Android system-assistant integration.
-- The test code is committed but has not yet been run in a fresh CI job. Do not report it as passing until CI evidence is available.
+- The legacy `voiceService` Jest tests are committed but have not been run in the latest Node-only CI workflow; do not report those tests as passing.
 - Jandal AI (Apache-2.0) was inspected as a current Android reference: typed capture events, monotonic capture-session IDs, stale-stop rejection, wake-mic arbitration and Android VoiceInteractionService/Session. A detailed behaviour comparison and OGAM migration contract were added to `docs/jarvis/VOICE_STACK_RESEARCH_RU_2026-11-22.md`.
 
 ## Model research decisions
 
-- Reproducible on-device baseline candidate: Qwen3.5-4B (Apache-2.0 declared by the official model card; verify exact pinned revision and runtime compatibility before packaging).
-- Low-refusal experiment: Aurum 4B Uncensored (community derivative). Treat publisher claims as hypotheses; keep opt-in until independent Russian quality, hallucination, prompt-injection, tool-use and device tests pass.
-- Mobile multimodal comparison: Gemma 4 E2B/E4B. Vendor memory figures are not OGAM measurements.
-- No single production default selected yet. Compare exact revision, quantization, license, hashes, Russian quality, refusal behaviour, tool reliability, RAM, thermal behaviour and battery on OPPO Find X6 Pro.
+- Versioned candidate manifest now includes Qwen3.5-4B, Qwen3.5-4B-Uncensored-v2, Huihui-Qwen3.5-4B-abliterated, Aurum 4B Uncensored, Gemma 4 E2B and Gemma 4 E4B.
+- The Russian suite has 14 fixed cases; scorer tests pass in CI. Exact revisions, weight hashes, license review and actual phone/runtime compatibility remain unpinned for every candidate.
+- No model weights were downloaded and no model outputs or human ratings were produced by this code change. No default model is selected.
+- Compare exact revision, quantization, license, hashes, Russian quality, refusal behaviour, tool reliability, RAM, thermal behaviour and battery on OPPO Find X6 Pro.
 - Keep an ordinary non-abliterated control model in all refusal evaluations. “Uncensored” is not a technical standard and never disables the Android permission/approval broker.
 
 ## Russian voice research decisions
@@ -108,7 +110,8 @@ A public fork survey found:
 ## Current verified status at handoff
 
 - PR #1 remains open/draft/unmerged.
-- PR metadata currently reports `mergeable: false`; investigate fresh GitHub status before any merge consideration.
-- Latest source/test changes are on the same PR branch; the Actions query did not yet return a workflow run for the latest head, so the voice locale tests remain unverified.
+- PR metadata currently reports `mergeable: false`; do not merge just to unlock the manual APK workflow.
+- Latest CI run #120 (`45024429349`) on head `df86881cdfdb61bf114c7aae595e5446e36fa6ad` completed successfully: all existing Node audit suites and the new model-evaluation validator (6/6 tests) passed. The workflow scanned 1,964 files and reported 1,354 external dependency references; artifact `ogam-import-audit` (ID `14755157246`) was uploaded.
+- This CI workflow checks an open-core Node subset only. It does not run Jest/TypeScript/full React Native tests, clean standalone installation, Gradle APK build or OPPO device checks. The legacy voiceService Jest tests therefore remain unverified.
 - No APK artifact, clean standalone install, or OPPO device verification has been demonstrated.
 - Continue from the active branch and current source, not by replaying the already completed steps above.
