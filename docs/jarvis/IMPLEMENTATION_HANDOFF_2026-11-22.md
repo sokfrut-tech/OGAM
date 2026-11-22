@@ -214,3 +214,23 @@ These are research references, not claims that their code has been integrated in
 8. Continue Breeno deep study: obtain exact Instructions 17.7.2 APK; run pinned JADX and apksigner on authorized local artifacts; extract class/method call paths for SpeechService, OmniMind, AnalogSkillService, Memory and DMP. Then implement clean-room OGAM equivalents.
 9. Benchmark local Russian model candidates and connect a license-cleared Russian TTS/VAD/AEC/KWS stack on OPPO. No candidate becomes default until measured.
 10. Keep every result, evidence link, commit and next step in this handoff and the relevant PR. Continue without asking the user to repeat already-recorded requirements; request user input only when an owner-controlled artifact, device action or permission is genuinely essential.
+
+## Gemini independent audit received — 2026-11-22 16:56 UTC
+
+Substantive independent report is now available; this supersedes the earlier statement that Gemini had not yet produced a report.
+
+- Full report: [Universal-AI-Factory Gemini outbox report](https://github.com/sokfrut-tech/Universal-AI-Factory/blob/main/coordination/gemini/outbox/REPORT_2026-11-22_OGAM_breeno_dex_audit.md)
+- Acceptance record: [Gemini acceptance](https://github.com/sokfrut-tech/Universal-AI-Factory/blob/main/coordination/gemini/outbox/ACCEPTED_2026-11-22_OGAM_breeno_dex_audit.md)
+- OGAM summary and action list: [GEMINI_INDEPENDENT_AUDIT_2026-11-22.md](GEMINI_INDEPENDENT_AUDIT_2026-11-22.md)
+- Reviewed PR #2 at `a5d5c71d`, PR #1 at `8ad6a6fd`, CI run `#45045542937` (17 Node suites / 68 local cases; not Gradle).
+- Gemini independently confirmed the 26 APK Markdown/JSON metrics, exact Breeno and Memory build metadata, and evidence boundaries. No JADX, apksigner, Android build or device execution occurred; those tools were absent from the reviewed Windows workstation.
+
+### New P0/P1 gates from Gemini
+
+1. **P0 security test:** adversarial external intents to exported MainActivity may evade the exact URI matcher via scheme/host case variants, trailing slash or alternate URI encoding, then be interpreted by React Navigation. This is a reported security hypothesis, not yet reproduced. Add cold-start and onNewIntent tests proving that every route to the assistant voice screen requires the bridge's one-use token.
+2. **P0 build/API verification:** B1–B3 are reported compile/component risks: RN 0.83.1 activity-result override/currentActivity signature; assistant session activity launch flags; hard-coded recognitionService component/package and debug applicationId suffix. Verify against exact dependencies, AOSP parser and debug/release manifest merge before patching.
+3. **P1 lifecycle/security:** gate VoiceInteractionSessionService below API 31 consistently; validate ColorOS 16 background activity launch, lock screen, service process death, audio focus, PCM backoff and permission-denial behaviour on PGEM10.
+4. **P1 research correction:** apply A1–A5 document corrections to PR #2: SearchService screenshot attribution, package/certificate grouping counts, AIUnit worker process terminology, inferred-vs-confirmed labels/size units, stale device evidence and CI references.
+5. Obtain exact Instructions 17.7.2 APK from the device; run pinned JADX/apksigner/aapt2 only in an out-of-repository scratch directory. Do not commit raw proprietary output.
+
+Gemini's B1–B5 findings are reviewer findings, not all reproduced defects. No runtime code has been changed from these claims. Reproduce/verify each finding, then implement and test the smallest safe fix. Preserve the original offline-first and clean-room requirements.
