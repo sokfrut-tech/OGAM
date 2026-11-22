@@ -1,0 +1,138 @@
+# OGAM / Jarvis — Zafiro Breeno takeover source audit
+**Date:** 2026-11-22  
+**Status:** public-source audit; no Zafiro code copied, no Breeno APK inspected, no device test  
+**Target under investigation:** OPPO Find X6 Pro / PGEM10, ColorOS 16.0.5; user-reported Breeno 13.3.2
+
+## 1. Why this source matters
+
+A newly discovered public Android project, [niki914/zafiro](https://github.com/niki914/zafiro), implements a real Breeno takeover adapter using Kotlin, LSPosed and Xposed hooks. This is much closer to OGAM/Jarvis's ColorOS integration problem than a generic assistant app.
+
+Repository facts at the inspected snapshot:
+- Repository: `niki914/zafiro`
+- Inspected main commit: `bd3767ef1849f12d7aa7e302d7f10342871a52d8`
+- Latest release at audit time: `v21-2.1.0`, published 2026-11-22 14:57 UTC
+- Repository license: MIT (LICENSE inspected)
+- Latest release assets listed by GitHub: `zafiro-release.apk` (31,198,712 bytes) and `mapping.zip` (7,750,689 bytes). No asset downloaded or inspected in this audit.
+- README explicitly says system voice assistant takeover uses LSPosed and requires root. A separate built-in app UI remains available without takeover.
+- README describes Zafiro as a BYOK Android agent with Phone-Use, Skills, MCP, Shell/Python and remote model providers. This is not evidence of an offline-first Russian Jarvis engine.
+
+## 2. Direct version match: Breeno versionCode 130302
+
+Zafiro tracks raw host configs:
+- `app/src/main/res/raw/com_heytap_speechassist_130302_config.json`
+- `app/src/main/res/raw/com_heytap_speechassist_130305_config.json`
+- version list `com_heytap_speechassist_versions.json` contains `[120803, 120906, 120909, 130302, 130305]`.
+
+The 130302 configuration explicitly declares:
+- package: `com.heytap.speechassist`
+- `version_code: 130302`
+- `is_beta: false`.
+
+The numeric version code 130302 matches the user's reported Breeno 13.3.2 naming convention and is a strong candidate for the exact target. However, the actual installed APK's package versionCode and variant have not been read from the user's PGEM10 in this audit. Therefore compatibility is a high-value lead, not a confirmed device match.
+
+### 130302 vs 130305 config diff
+
+A structural JSON comparison of the two checked-in configs found exactly two differing values:
+1. `actions.reset_conversation_signal.target.method_name`: `p` (130302) → `q` (130305).
+2. `actions.render_card.business.data_center_update_message_method`: `f1` (130302) → `g1` (130305).
+
+All other JSON values compared equal in these two files. This is a useful narrow change map, but it does not prove that all vendor APK builds with those version codes have identical internals.
+
+## 3. Breeno hook map in Zafiro 2.1.0
+
+| Purpose | Host target in 130302 config | Zafiro behavior |
+|---|---|---|
+| Capture user query | `AIChatDataCenter.s(AIChatViewBean)`, before | Reads chatType, roomId and content; only handles query chatType |
+| Distinguish host response | Same `AIChatDataCenter.s(AIChatViewBean)`, before | Checks answer chatType and self-injected local-data marker |
+| Detect conversation reset | `AIChatRoomIdManager.p(String,String)`, after | Clears assistant turn/session |
+| Detect floating-window lifecycle | `NewCuiFloatWindowRootView.onDetachedFromWindow()`; `SpeechAssistMainActivity.onResume()` | Detects session reset with a grace window |
+| Filter native response directives | `com.heytap.speech.engine.connect.core.manager.i.C(String,String)`, before | Parses directive JSON and filters selected native directives only in injected-LLM mode |
+| Suppress cleanup operation | `ke.e.c(Directive,List,List,String,ConversationInfo)`, after | Replaces a specific CleanOperation with DoNothingOperation in injected-LLM mode |
+| Insert/update assistant card | `AIChatViewBean`; insert `AIChatDataCenter.s`; update `f1` | Builds native Breeno answer card and updates it incrementally |
+
+The 130305 config changes only the reset method to `q` and update method to `g1`.
+
+### Architecture worth learning from
+
+- `BreenoHook` is a thin orchestration layer; host reflection is isolated in `BreenoCardRenderer` and small subhooks.
+- Configuration is data-driven: package version → raw JSON → class/method/argument metadata. The host adapter is not a pile of hardcoded reflection calls.
+- Input capture deduplicates identical room/query pairs.
+- A turn state explicitly distinguishes `InjectedLLM` from `NativeTakeover`. Native Breeno behavior is passed through when the user-selected routing decision says to keep native takeover.
+- The renderer maintains a per-turn session, inserts one card and then updates it. It populates native fields for reasoning/thinking, final/first-slice flags, local-data markers and feedback controls.
+- IPC sends semantic frames (Thinking, Tools, Content), not Breeno-specific reflection objects. This is a good boundary for OGAM: model/runtime remains independent of ColorOS host details.
+
+## 4. Important behavioral and safety caveats
+
+Zafiro's directive filter suppresses selected native namespaces/actions in injected mode, including recommendations, native speech synthesis, some system/app/phone/storage actions, native assistant cards, feedback and an `ExpectSpeech` directive. Its cleanup hook also replaces a matched cleanup operation.
+
+These are not safe defaults to copy wholesale into Jarvis. For OGAM:
+- Keep native Breeno behavior intact unless the user explicitly selected Jarvis takeover for that turn.
+- Never suppress an Android/system action merely because an LLM requested it. Map actions to typed tools, check permissions, classify risk, and ask for confirmation for consequential operations.
+- Keep voice output single-owner per turn to prevent overlapping TTS, but preserve an explicit native fallback path.
+- Treat Accessibility/Phone-Use and Xposed as separate capabilities with visible permission state and revocation.
+- Do not expose unrestricted shell, root, or Accessibility control to the model. Deterministic policy enforcement must sit outside the LLM.
+- Do not log transcripts, contact names, raw audio or personal hotwords.
+
+## 5. Licensing and reuse decision
+
+Zafiro's repository declares MIT. That permits reuse subject to the MIT notice/attribution requirements, but does not grant rights to OPPO/Breeno proprietary code or assets.
+
+For OGAM, prefer:
+1. clean-room architecture adaptation (versioned host adapter, typed semantic IPC, turn routing, lifecycle-aware card renderer);
+2. if a code fragment is later copied, preserve its MIT copyright and license notice and record exact file/commit provenance;
+3. never copy proprietary Breeno APK code, resources, signatures or user data into OGAM.
+
+## 6. Source files inspected
+
+- `.agents/skills/assistant-add-support/docs/BREENO.md` — host classes and adaptation checklist.
+- `.agents/skills/assistant-add-support/SKILL.md` — reverse-engineering tool gate and version workflow.
+- `app/src/main/res/raw/com_heytap_speechassist_130302_config.json`
+- `app/src/main/res/raw/com_heytap_speechassist_130305_config.json`
+- `app/src/main/res/raw/com_heytap_speechassist_versions.json`
+- `app/src/main/java/a0/a0/a0/a0/a0/a0/Entrance.kt`
+- `app/src/main/java/com/niki914/zafiro/mod/feat/oppo/BreenoHook.kt`
+- `app/src/main/java/com/niki914/zafiro/mod/feat/oppo/BreenoConfigProvider.kt`
+- `app/src/main/java/com/niki914/zafiro/mod/feat/oppo/BreenoCardRenderer.kt`
+- `app/src/main/java/com/niki914/zafiro/mod/feat/oppo/BreenoFeedbackAssembler.kt`
+- `app/src/main/java/com/niki914/zafiro/mod/feat/oppo/subhooks/CaptureInputHook.kt`
+- `app/src/main/java/com/niki914/zafiro/mod/feat/oppo/subhooks/BlockNativeCardHook.kt`
+- `app/src/main/java/com/niki914/zafiro/mod/feat/oppo/subhooks/FilterNativeDirectivesHook.kt`
+- `app/src/main/java/com/niki914/zafiro/mod/feat/oppo/subhooks/ResetConversationSignalHook.kt`
+- `app/src/main/java/com/niki914/zafiro/mod/feat/oppo/subhooks/SuppressCleanupHook.kt`
+- `app/src/main/java/com/niki914/zafiro/mod/feat/AbstractAssistantHook.kt`
+- `app/src/main/java/com/niki914/zafiro/mod/feat/SubHook.kt`
+- `app/src/main/AndroidManifest.xml`
+- `AGENTS.md` and `README.md`.
+
+### Key upstream links (pinned to inspected commit where possible)
+
+- Repository: https://github.com/niki914/zafiro
+- Commit: https://github.com/niki914/zafiro/commit/bd3767ef1849f12d7aa7e302d7f10342871a52d8
+- Release 2.1.0: https://github.com/niki914/zafiro/releases/tag/v21-2.1.0
+- MIT license: https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/LICENSE
+- Breeno support guide: https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/.agents/skills/assistant-add-support/docs/BREENO.md
+- 130302 config: https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/app/src/main/res/raw/com_heytap_speechassist_130302_config.json
+- 130305 config: https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/app/src/main/res/raw/com_heytap_speechassist_130305_config.json
+- Hook entry: https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/app/src/main/java/a0/a0/a0/a0/a0/a0/Entrance.kt
+- Breeno adapter: https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/app/src/main/java/com/niki914/zafiro/mod/feat/oppo/BreenoHook.kt
+- Card renderer: https://github.com/niki914/zafiro/blob/bd3767ef1849f12d7aa7e302d7f10342871a52d8/app/src/main/java/com/niki914/zafiro/mod/feat/oppo/BreenoCardRenderer.kt
+
+## 7. What this changes for OGAM
+
+Recommended next sequence:
+1. Treat `130302` as the primary compatibility candidate, but verify the installed PGEM10 package versionCode before applying any hook config.
+2. Build an OGAM host-adapter design note: `BreenoHostAdapter` → versioned `BreenoHookProfile` → typed input/session/response events → renderer port. Do not copy Zafiro's broad directive suppression.
+3. Audit OGAM's existing Android assistant entry point and permission model; decide whether the product has an optional LSPosed/root integration tier and a no-root fallback tier.
+4. Keep root/Xposed takeover optional. It is not a prerequisite for the offline Jarvis core.
+5. For exact APK class/method verification, follow the Zafiro skill's explicit REA gate: its instructions say use REA first and, if unavailable, ask the user to deploy it; do not silently install/configure REA or bypass that project-specific gate.
+6. Only after source profile and exact installed version are verified should a minimal compatibility prototype be written and tested.
+
+## 8. Evidence limitations
+
+- This is a source-code/config audit, not a reverse engineering report of the user's installed APK.
+- No Breeno APK was downloaded, unpacked, decompiled or inspected.
+- No PGEM10 shell/ADB access or installed package versionCode was read.
+- No Xposed module was installed or activated.
+- No Zafiro APK was downloaded or installed.
+- No Jarvis source code was changed and no build/device test was run.
+- No dedicated Breeno hook test file was found in the inspected repository tree; the source search did not establish runtime compatibility by tests.
