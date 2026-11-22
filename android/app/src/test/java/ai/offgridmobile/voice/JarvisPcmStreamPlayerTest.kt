@@ -10,6 +10,7 @@ import org.junit.Test
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 class JarvisPcmStreamPlayerTest {
 
@@ -58,7 +59,7 @@ class JarvisPcmStreamPlayerTest {
     val factory = QueueTrackFactory(first, second)
     val player = JarvisPcmStreamPlayer(factory, FakeFocus())
 
-    val firstGeneration = player.begin(24_000)!!
+    val firstGeneration.set(player.begin(24_000))!!
     player.cancel(firstGeneration)
     val secondGeneration = player.begin(24_000)!!
 
@@ -103,7 +104,7 @@ class JarvisPcmStreamPlayerTest {
     val factory = BlockingFirstTrackFactory(firstTrack, secondTrack)
     val focus = FakeFocus()
     val player = JarvisPcmStreamPlayer(factory, focus)
-    @Volatile var firstGeneration: Long? = null
+    val firstGeneration = AtomicReference<Long?>(null)
 
     val oldStarter = Thread {
       firstGeneration = player.begin(24_000)
@@ -120,7 +121,7 @@ class JarvisPcmStreamPlayerTest {
     oldStarter.join(2_000)
 
     assertFalse(oldStarter.isAlive)
-    assertNull(firstGeneration)
+    assertNull(firstGeneration.get())
     assertTrue(player.isActive)
     assertEquals(1, focus.abandons) // only the old generation's cancellation
     assertTrue(player.write(currentGeneration, floatArrayOf(0.5f)))
