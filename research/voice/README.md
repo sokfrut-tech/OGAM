@@ -15,9 +15,9 @@ Status: public source research and design notes; no new TTS/KWS model is integra
 2. Keep half-duplex voice turns until Android AEC is attached to and verified on the actual AudioRecord session and the assistant playback reference is demonstrably suppressed. Current AudioRecorderService.isEchoCancelled() deliberately returns false. Android AEC is attached by AudioRecord session ID; OBOE preset comments alone are not proof.
 3. Preserve JarvisPcmStreamPlayer as the single Android AudioTrack/AudioFocus owner. TTS inference sends Float32 chunks; cancellation is generation-scoped.
 4. No wake-word, TTS model or acceleration backend is selected until license, exact artifacts, hashes and PGEM10 measurement are available.
-5. Do not copy RuVoice code or bundle its built-in v5_5_ru model: its root source and built-in model are CC BY-NC-SA 4.0. Its v5_cis_base_nostress MIT model pack is a separate candidate, but the exact pack and clean-room runtime remain to be verified.
+5. Do not copy RuVoice code or bundle its built-in v5_5_ru model: its root source and built-in model are CC BY-NC-SA 4.0. Official Silero now lists v5_6_ru as a newer Russian model, also under the main CC BY-NC-SA 4.0 license. The separate v5_cis_base_nostress MIT model pack is a clean-license candidate, but requires an independent stress/normalization layer and clean-room runtime.
 6. Qwen3-TTS 0.6B Q4_K_M is the leading Kotlin/JNI prototype candidate. The reference JNI C++ already has nativeSynthesizeStreaming, but the Kotlin QwenEngine wrapper does not declare or expose it. Expose and test that existing JNI path only in an isolated benchmark build first.
-7. Sherpa-ONNX remains a secondary runtime candidate if a Russian voice artifact with a clear model/data license is pinned.
+7. Sherpa-ONNX remains a strong Kotlin chunked-TTS runtime candidate, but the located MMS Russian voice is CC BY-NC 4.0; seek a separately cleared model before general distribution.
 8. No TTS/KWS model weights, external APK, or proprietary OPPO code are committed to the repository.
 
 ## Next gate
