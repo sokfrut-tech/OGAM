@@ -24,12 +24,12 @@ The original planning note proposed NDK 26.1.10909125, but that is not the NDK u
 
 ## New workflow
 
-File: `.github/workflows/jarvis-android-apk.yml`
+File: `.github/workflows/build-android-apk.yml`
 
 - Trigger: manual `workflow_dispatch` only.
 - Builds a debug APK for `arm64-v8a`, suitable for installation/testing on the OPPO Find X6 Pro.
 - Uses the repository's shared workspace setup and pinned Android toolchain/video-runtime action.
-- Uploads `app-debug.apk` plus a SHA-256 checksum as a 14-day GitHub Actions artifact.
+- Verifies the APK exists, writes a SHA-256 checksum, and uploads both as a 14-day GitHub Actions artifact.
 - Does not create a GitHub Release, alter versions, push commits, or upload to Play Store.
 - No release keystore or Play Store credentials are needed.
 
@@ -39,7 +39,9 @@ OGAM declares local workspace dependencies under `file:../shared/packages/*` and
 
 ## Qualcomm / Hexagon boundaries
 
-The workflow builds OGAM's checked-in Hexagon video runtime. This is separate from the Qualcomm QNN runtime libraries used by local-dream image generation. No proprietary Qualcomm QNN SDK binaries are added or redistributed by this change. The requested QNN runtime set must still be sourced from an appropriately licensed SDK and version-matched before an OPPO NPU runtime test can be claimed.
+The workflow builds OGAM's checked-in Hexagon video runtime. This is separate from the Qualcomm QNN runtime libraries used by local-dream image generation.
+
+The existing `android/app/src/main/assets/qnnlibs/` tree already contains the common `libQnnHtp.so` and `libQnnSystem.so`, HTP backend binaries for V68/V69/V73/V75/V79/V81, and the matching Stub/Skel pairs. The native LocalDream module explicitly passes `libQnnHtp.so` and `libQnnSystem.so` to the backend and copies the qnnlibs asset directory to app-private runtime storage. The current tree does **not** contain `libQnnHtpPrepare.so`; a repository code search found no reference to that filename. The APK workflow verifies the actual 21-file runtime manifest rather than silently adding an unreferenced placeholder. The QNN asset provenance and redistribution rights still need a separate license audit; this build change adds no Qualcomm binaries.
 
 ## Verification and execution status
 
