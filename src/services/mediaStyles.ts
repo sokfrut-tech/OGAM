@@ -2,8 +2,8 @@ import { IMAGE_STYLES, VIDEO_STYLES, type MediaStyle, type MediaStyleKind } from
 import type { ImageSourcePropType } from 'react-native';
 
 /**
- * The phone's side of the shared styles (@offgrid/models): the preview each style shows. The names,
- * the words a style adds and their order come from the shared lists, the same ones Desktop shows.
+ * OGAM's preview lookup for the local style catalog. The style IDs are persisted in chat history;
+ * keep this asset map in lockstep with src/constants/mediaStyles.ts.
  */
 const PREVIEWS: Record<MediaStyleKind, Record<string, ImageSourcePropType>> = {
   image: {
