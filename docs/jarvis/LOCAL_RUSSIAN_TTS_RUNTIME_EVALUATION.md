@@ -177,3 +177,10 @@ Added to `feature/jarvis-step-2-storage-privacy`:
 - Added `scripts/__tests__/jarvis-tts-backend.node.test.mjs` and wired it into `ogam-external-dependency-audit.yml`.
 - Node source-contract audit run 423 passed on commit `a8113ac77c35108dc9f2a88da9f990923e9bbd08`: https://github.com/sokfrut-tech/OGAM/actions/runs/45058086277
 - This checks the source boundary and regression-test presence only. It does not compile Kotlin, run JUnit, build APK or prove device behavior.
+
+
+### Latest verification snapshot — 2026-11-22
+- Current PR #1 head: `781d6e68ebc11b971892f521c05e3020b5f9d2a9`.
+- External dependency audit run 426 completed successfully on this exact head: https://github.com/sokfrut-tech/OGAM/actions/runs/45058165618
+- The passing audit includes the TTS backend/chunker source contract, assistant bridge source contracts, PCM playback source contract and the other configured Node-only checks.
+- Full CI run 182 is still pending/no job result at last inspection. Gradle/JUnit, APK build and PGEM10 tests are not verified.
