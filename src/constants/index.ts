@@ -205,7 +205,7 @@ export const ONBOARDING_SLIDES: readonly OnboardingSlide[] = [
   },
 ];
 
-// Fonts, type, spacing, radius and the living field come from @offgrid/design (the one token source).
-import { FONTS, TYPOGRAPHY, SPACING, RADIUS, LIVING_FIELD, ALIVE } from '@offgrid/design';
+// Fonts, type, spacing, radius and the living field come from OGAM-owned designTokens.
+import { FONTS, TYPOGRAPHY, SPACING, RADIUS, LIVING_FIELD, ALIVE } from '../theme/designTokens';
 
 export { FONTS, TYPOGRAPHY, SPACING, RADIUS, LIVING_FIELD, ALIVE };

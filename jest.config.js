@@ -66,15 +66,10 @@ module.exports = {
     // @offgrid/sync: test against SOURCE (jest transforms the TS) rather than the tsup dist,
     // which references @babel/runtime helpers not resolvable from the out-of-root package. Keep
     // these subpaths in step with metro.config.js's aliases and the package's exports map.
-    // @offgrid/design: the one token source, tested from source like sync.
-    '^@offgrid/design$': '<rootDir>/../shared/packages/design/src/index.ts',
     '^@offgrid/sync$': '<rootDir>/../shared/packages/sync/src/index.ts',
     '^@offgrid/sync/rn$': '<rootDir>/../shared/packages/sync/src/adapters/rn-tcp.ts',
     '^@offgrid/sync/rn-discovery$': '<rootDir>/../shared/packages/sync/src/adapters/rn-discovery.ts',
     '^@offgrid/sync/portable$': '<rootDir>/../shared/packages/sync/src/portable/index.ts',
-    // Scribe and Notes logic, also tested against SOURCE for the same reason as @offgrid/sync.
-    '^@offgrid/writing$': '<rootDir>/../shared/packages/writing/src/index.ts',
-    '^@offgrid/notes$': '<rootDir>/../shared/packages/notes/src/index.ts',
     // The sync source lives out-of-root; when jest transforms it, babel injects @babel/runtime
     // helper imports that would otherwise resolve from ../shared (where they aren't installed).
     // Pin them to mobile's own copy.

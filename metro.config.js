@@ -24,18 +24,9 @@ const ragPackagePath = path.resolve(sharedRoot, 'packages/rag');
 // @offgrid/models: cross-platform model contracts (catalog, reasoning-budget rule) shared
 // with desktop. Out-of-root like rag, prebuilt CJS in dist/.
 const modelsPackagePath = path.resolve(sharedRoot, 'packages/models');
-// @offgrid/design: the one token source for desktop and mobile (colours, type, spacing, motion).
-const designPackagePath = path.resolve(sharedRoot, 'packages/design');
 // @offgrid/speech: voice-turn decisions (when a spoken turn begins and ends) shared with desktop.
 // Out-of-root like sync, so Metro must watch it and be pointed at its built entry.
 const speechPackagePath = path.resolve(sharedRoot, 'packages/speech');
-// @offgrid/writing (Scribe engine) and @offgrid/notes (links, history rules): pure TS, prebuilt
-// CJS. Writing loads its dictionary lazily from a sibling chunk in dist/, so map the entry file and
-// let Metro resolve the chunk beside it.
-const writingPackagePath = path.resolve(sharedRoot, 'packages/writing');
-const notesPackagePath = path.resolve(sharedRoot, 'packages/notes');
-// @offgrid/notes-editor: the Notes Page editor, prebuilt as one HTML page for the WebView.
-const notesEditorPackagePath = path.resolve(sharedRoot, 'packages/notes-editor');
 const sharedNodeModulesPath = path.resolve(sharedRoot, 'node_modules');
 // A git worktree links each package to the main checkout (scripts/link-worktree-deps.sh). Metro
 // indexes files by their real path, so it must also watch the folder those links point into.
@@ -50,10 +41,6 @@ const syncRuntimeModules = {
   '@noble/hashes/hkdf': path.resolve(sharedNodeModulesPath, '@noble/hashes/hkdf.js'),
   '@noble/hashes/hmac': path.resolve(sharedNodeModulesPath, '@noble/hashes/hmac.js'),
   '@noble/hashes/sha256': path.resolve(sharedNodeModulesPath, '@noble/hashes/sha256.js'),
-  // Writing's ESM build (what package exports pick through node_modules/@offgrid/writing) loads its
-  // dictionary with import(), a lazy bundle in dev that the phone requests at a `../shared/…` URL
-  // Metro cannot serve: spelling went silent. The CJS build requires the chunk, so it is bundled.
-  '@offgrid/writing': path.resolve(writingPackagePath, 'dist/index.cjs'),
 };
 
 const config = {
@@ -65,10 +52,6 @@ const config = {
     ragPackagePath,
     modelsPackagePath,
     speechPackagePath,
-    writingPackagePath,
-    notesPackagePath,
-    notesEditorPackagePath,
-    designPackagePath,
     sharedNodeModulesPath,
     ...linkedNodeModulesPaths,
   ],
@@ -95,10 +78,6 @@ const config = {
       '@offgrid/rag/documents': path.resolve(ragPackagePath, 'dist/documents/index.js'),
       '@offgrid/models': path.resolve(modelsPackagePath, 'dist/index.js'),
       '@offgrid/speech': path.resolve(speechPackagePath, 'dist/index.cjs'),
-      '@offgrid/writing': path.resolve(writingPackagePath, 'dist/index.cjs'),
-      '@offgrid/notes': path.resolve(notesPackagePath, 'dist/index.cjs'),
-      '@offgrid/notes-editor/webview-html': path.resolve(notesEditorPackagePath, 'dist/webview-html.js'),
-      '@offgrid/design': path.resolve(designPackagePath, 'dist/index.js'),
       // @offgrid/sync owns this dependency in its package manifest. Metro still needs the
       // out-of-root file dependency mapped to a watched, built CommonJS entry.
       '@offgrid/automation': path.resolve(automationPackagePath, 'dist/index.js'),
