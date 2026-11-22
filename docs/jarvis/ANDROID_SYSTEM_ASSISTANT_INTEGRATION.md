@@ -39,12 +39,24 @@ The OS still needs the user to grant microphone permission through the existing 
 ## User activation
 
 After an APK containing this change is installed on Android 12+:
-1. Open Android Settings.
-2. Open Apps → Default apps → Digital assistant app (wording and nesting vary by OEM/ColorOS version).
-3. Choose **Jarvis** (shown by the assistant service label).
-4. Return to OGAM and allow microphone access when prompted. A local Whisper/Qwen speech model or a supported direct-audio model must be available for automatic capture.
+1. Open OGAM → Settings → **Set Jarvis as assistant**.
+2. OGAM calls Android `RoleManager.ROLE_ASSISTANT`; the OS shows its own confirmation screen. Confirm the choice there.
+3. Return to OGAM. Settings re-reads both `RoleManager.isRoleHeld()` and `VoiceInteractionService.isActiveService()` and distinguishes the assigned role from an actually active service.
+4. Allow microphone access through the existing visible permission flow. A local Whisper/Qwen speech model or supported direct-audio model must be available for automatic capture.
 
-The app has not yet added a native button that opens the OEM-specific assistant-role picker. If the OS does not list Jarvis, inspect the merged manifest and APK before changing the registration.
+If the Android/ColorOS build reports that the assistant role is unavailable, the row explains this instead of claiming activation. The OS settings path is still available as a manual fallback: Apps → Default apps → Digital assistant app (wording/nesting vary by OEM).
+
+## In-app role selection
+
+`SettingsScreen` now contains an Android-only **Set Jarvis as assistant** row. Its React Native service wrapper calls `JarvisAssistantRoleModule`, registered by `MainApplication`. The native module:
+- is active only on API 31+ (the app remains Android 7+ compatible for ordinary voice dictation);
+- checks that the assistant role exists before asking for it;
+- opens the system-owned `createRequestRoleIntent(RoleManager.ROLE_ASSISTANT)` confirmation;
+- handles the activity result with a `BaseActivityEventListener`;
+- re-reads role-held and active `VoiceInteractionService` state instead of trusting the result code;
+- prevents overlapping requests and rejects a pending promise if the RN module is invalidated.
+
+Android references: [RoleManager](https://developer.android.com/reference/android/app/role/RoleManager), [VoiceInteractionService](https://developer.android.com/reference/android/service/voice/VoiceInteractionService).
 
 ## CI evidence and what it does not prove
 
