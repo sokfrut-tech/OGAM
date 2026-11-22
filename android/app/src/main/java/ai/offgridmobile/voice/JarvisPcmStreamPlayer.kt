@@ -77,18 +77,10 @@ internal class JarvisPcmStreamPlayer(
       if (generation != token || !starting) {
         false
       } else {
-        try {
-          candidate.play()
-          track = candidate
-          starting = false
-          active = true
-          true
-        } catch (_: Exception) {
-          starting = false
-          active = false
-          track = null
-          false
-        }
+        track = candidate
+        starting = false
+        active = true
+        true
       }
     }
 
@@ -100,7 +92,15 @@ internal class JarvisPcmStreamPlayer(
       return null
     }
 
-    return token
+    // Publish the active generation before play(): an immediate focus-loss callback
+    // can now invalidate and release this track without a late start resurrecting it.
+    try {
+      candidate.play()
+    } catch (_: Exception) {
+      cancel(token)
+      return null
+    }
+    return if (isCurrent(token)) token else null
   }
 
   /**
