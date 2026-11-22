@@ -28,12 +28,16 @@ test('the assistant session launches Chat through the documented URI without req
   assert.match(session, /offgrid:\/\/assistant\/voice\?startVoice=1/);
   assert.match(session, /startAssistantActivity\(launchIntent\)/);
   assert.match(session, /startVoiceActivity\(launchIntent\)/);
-  assert.doesNotMatch(session, /SHOW_WITH_ASSIST|SHOW_WITH_SCREENSHOT/);
   assert.match(metadata, /android:supportsAssist="true"/);
+  // The session does not request screen data. Comments may name the forbidden flags,
+  // so check for actual show/showSession calls rather than searching raw source text.
+  assert.doesNotMatch(session, /(?:showSession|\.show)\([^)]*SHOW_WITH_(?:ASSIST|SCREENSHOT)/);
   const service = read('android/app/src/main/java/ai/offgridmobile/voice/JarvisVoiceInteractionService.kt');
-  assert.match(service, /setDisabledShowContext\\([\\s\\S]*SHOW_WITH_ASSIST[\\s\\S]*SHOW_WITH_SCREENSHOT/);
+  assert.ok(service.includes('setDisabledShowContext('));
+  assert.ok(service.includes('VoiceInteractionSession.SHOW_WITH_ASSIST'));
+  assert.ok(service.includes('VoiceInteractionSession.SHOW_WITH_SCREENSHOT'));
   const app = read('App.tsx');
-  assert.match(app, /linking=\\{jarvisVoiceLinking\\}/);
+  assert.ok(app.includes('linking={jarvisVoiceLinking}'));
 });
 
 test('system assistant invokes the shared recorder only when a voice backend exists', () => {
