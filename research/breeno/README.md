@@ -209,3 +209,7 @@ The source survey now includes Chinese platforms and Chinese-language projects (
 - [Soniqo Supertonic-3 and LocalVQE AEC audit](../voice/SONIQO_SUPERTONIC_LOCALVQE_ANDROID_AUDIT_2026-11-22.md) — Russian 31-language LiteRT TTS, OpenRAIL-M terms and published Galaxy S23 Ultra performance; explicit-reference 16 kHz LocalVQE AEC design, fail-closed timestamp alignment and Android integration gaps.
 
 - [CosyVoice 3 and VoxCPM2 mobile TTS audit](../voice/COSYVOICE_VOXCPM2_MOBILE_TTS_AUDIT_2026-11-22.md) — CosyVoice public Russian wrong-language issue and Android native build constraints; VoxCPM2 author-reported Russian intelligibility benchmark and why its 2B / 8.7 GB ARM LiteRT variant is reference-only for PGEM10.
+
+
+## Russian wake-word and accelerator follow-up (2026-11-23)
+- [Russian wake-word and Snapdragon 8 Gen 2 runtime follow-up](../voice/OGAM_RUSSIAN_WAKEWORD_AND_QNN_FOLLOWUP_2026-11-23.md) — source-verified microphone ownership/AEC=false, Russian wake-word model gap, sherpa-onnx KWS compatibility boundary, SM8550/V73 and LiteRT-vs-ONNX QNN distinctions, PR #1 CI snapshot.
