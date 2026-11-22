@@ -176,3 +176,5 @@ The source survey now includes Chinese platforms and Chinese-language projects (
 - [AzCode + Aries AI automation audit](AZCODE_ARIES_SOURCE_AUDIT.md)
 
 - [OGAM native system assistant implementation brief](OGAM_NATIVE_ASSISTANT_IMPLEMENTATION_BRIEF.md) — maps the research into a phased Android implementation plan using OGAM's existing RN/Whisper/Qwen/Kokoro runtime.
+
+- [OPPO Find X6 Pro device evidence — Breeno 13.4.3 and Memory 16.11.5](OPPO_FIND_X6_PRO_DEVICE_EVIDENCE_2026-11-22.md) — exact versions and feature surfaces read from user screenshots.
