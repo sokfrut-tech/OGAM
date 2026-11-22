@@ -232,3 +232,27 @@ Official LiteRT-LM Omni source and model card now provide a much clearer integra
 - This was a GitHub source/model-card audit only. No weights were downloaded, no Android binary was built, no model was run, no NPU delegate was loaded and no OPPO Find X6 Pro measurement was performed.
 - omni/README.md labels Omni experimental. The Android command-line runner instructions prove an ARM64 route, not a production-ready Kotlin embedding API.
 - NPU availability is not established merely by the Snapdragon model suffix: actual OPPO firmware, driver versions, vendor dispatch libraries, delegate support and permissions must be checked.
+
+## Additional Android local-agent code audit — India-oriented search batch 2026-11-22
+
+### KarthikeyaSuppa/fini — Kotlin + llama.cpp reference
+- Repository: https://github.com/KarthikeyaSuppa/fini
+- Repository README describes a privacy-first Android finance app with Qwen3-0.6B local inference, llama.cpp JNI, Jetpack Compose, Room/SQLCipher, background work, and typed domain tools. The author appears in India-oriented repository discovery, but this does not establish that the model or technology originated in India.
+- Important licensing caveat: README says MIT, but the inspected repository path did not contain a LICENSE file. Treat source reuse as NOT CLEARED until a canonical license file and upstream notices are confirmed. Use this as a read-only architecture reference only for now.
+- Inspected Kotlin LlamaEngine: singleton lifecycle, coroutine Dispatchers.IO, Mutex serialization around the native context, StateFlow status, initialization timing, warm-up test, and bounded conversation history. These are useful patterns for OGAM's single-model runtime coordinator, but lifecycle gaps (e.g. native context release/reset behavior) need deeper audit before adaptation.
+- Inspected LlamaJNI: loads GGML core, attempts CPU backend libraries in descending ARM ISA order, loads llama and JNI bridge, and exposes backend registration separately. CMake links prebuilt llama.cpp b9482 libraries and vendored matching headers. This is a useful Android linker/CPU-backend lesson: dynamic GGML CPU backend discovery is more subtle than simply packaging .so files.
+- Inspected ChatBotAgent / FinancialIntentParser: deterministic intent parsing is kept separate from data mutation operations, and tool contracts are represented as JSON schema plus a registry. This supports Jarvis' hybrid approach: deterministic command routing for known actions, LLM only for ambiguity/planning.
+- Safety review: ToolRegistry exposes a password-vault search tool to the LLM, even though its description says it does not reveal passwords. BatchEditTool returns a proposal summary and target IDs rather than directly changing records in its execute method. This proposal/confirmation pattern is worth preserving. OGAM must apply stricter permission checks, user confirmation and audit logs to all high-impact Android actions.
+- ModelDownloader audit found resumable Range downloads and temporary-file handling, but the inspected implementation verifies only received length before rename and does not perform SHA-256/signature verification. Do NOT copy this downloader as-is. Jarvis model distribution must require pinned artifact URL, expected size, SHA-256, license metadata, safe redirect policy, partial-file validation and atomic promotion only after hash verification.
+- README claims Qwen3-0.6B but downloader constants shown in source include a Qwen2.5-0.5B GGUF default; model metadata/actual selected artifact must be verified instead of trusting the README headline.
+- Useful source files:
+  - https://github.com/KarthikeyaSuppa/fini/blob/master/app/src/main/kotlin/com/fini/data/llm/LlamaEngine.kt
+  - https://github.com/KarthikeyaSuppa/fini/blob/master/app/src/main/kotlin/com/fini/data/llm/LlamaJNI.kt
+  - https://github.com/KarthikeyaSuppa/fini/blob/master/app/src/main/kotlin/com/fini/data/llm/ModelDownloader.kt
+  - https://github.com/KarthikeyaSuppa/fini/blob/master/app/src/main/kotlin/com/fini/data/chatbot/ChatBotAgent.kt
+  - https://github.com/KarthikeyaSuppa/fini/blob/master/app/src/main/kotlin/com/fini/data/chatbot/tools/ToolRegistry.kt
+
+### Adoption decision
+- No source code from fini is approved for copying at this stage because the repository license file was not found in this audit.
+- Port the architecture lessons only: serialized native inference access, observable model lifecycle state, explicit warm-up, deterministic intent parser before LLM, typed tool registry, proposal/confirmation for destructive operations, and robust model-download integrity.
+- Add negative tests for missing hash, mismatched file size, malicious redirect, interrupted resume, corrupt GGUF, unavailable backend, concurrent generation, cancellation and native context cleanup to OGAM's model manager test plan.
