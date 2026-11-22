@@ -278,3 +278,35 @@ Inspected AndroidManifest.xml, WakeService.kt, CommandRouter.kt, AssistantBrain.
 - Use a typed, encrypted memory store with explicit provenance and user review rather than plain key-value JSON.
 - Make action execution transactional: plan → show target/content → confirm → execute → verify result; require explicit confirmation for sending messages and other irreversible actions.
 - Treat full-screen overlays, Accessibility and background microphone as optional, separately consented capabilities.
+
+
+## Deep source audit: ZorvAI (Quor-a) — China-origin Android agent platform
+Primary source: https://github.com/Quor-a/ZorvAI (tree commit baeaf00acddadf2b9877a72702b5e03dbd70e5d3)
+Mirrors advertised upstream: https://gitee.com/ZorvAI/ZorvAI and https://jihulab.com/quor-a-group/ZorvAI. Their tree/commit parity is not yet verified. License: root Apache-2.0; third-party NOTICE includes separate GPL/MPL/PSF and other obligations for bundled components.
+
+Inspected README, LICENSE, NOTICE, PERMISSIONS.md, AndroidManifest.xml, tool router, ACI manager/base service/token verifier/token manager, HTTP server, plugin installer, privilege manager, ASR service/facade and long-horizon orchestrator. Read-only audit; no build, APK run or device validation.
+
+### Confirmed architecture
+- Kotlin + Jetpack Compose, minSdk 26 / targetSdk 34 / compileSdk 36 as stated by inspected README.
+- Central typed tool registry with progressive schema disclosure, categories, intent matching, on-demand schema loading and persistence of loaded tool schemas.
+- ACI cross-app capability protocol over Binder/AIDL, with capability discovery, callbacks, call IDs, timeouts, Binder-death handling, reconnect monitoring and optional same-device LocalSocket fast path.
+- Optional loopback HTTP server bound to 127.0.0.1 that routes into the AIDL manager.
+- APK plugin loader with metadata entry point, same-signature check option, app-private storage, atomic replacement and rollback.
+- Native Sherpa-NCNN ASR in a separate :asr process, Messenger IPC, dedicated HandlerThread, Binder DeathRecipient and model-layout preflight.
+- Long-horizon task orchestration: plan → ReAct execution → delivery gate over raw artifact → replan with failure memory, bounded iterations and escalation.
+- Permission documentation and L1–L5 privilege concepts; explicit user-grant framing.
+
+### Important audit findings and discrepancies
+1. README tool counts are inconsistent with code comments: sections mention 235 registered / 151 always-on, another comment references 265, while current QuroToolRouter comments describe about 43 core tools and a smaller actual ALWAYS_ON set. Do not copy advertised counts; benchmark registry and tool discoverability independently.
+2. BaseAidlAciService default onCheckPermission returns true. The default AciTokenVerifier verifies token presence/prefix format, not equality against a stored secret; a separate expected-token overload exists but the inspected base class invokes the default method. Every concrete controlled service must be audited for overrides. OGAM must default-deny and cryptographically/persistently verify peer credentials.
+3. Loopback HTTP limits remote network reachability but does not authenticate local apps by itself. Keep such endpoint disabled by default; prefer Binder IPC with peer identity and per-capability consent.
+4. Plugin same-signature requirement is an option passed to installer, not inherently a public marketplace sandbox. Plugins signed with host key share host trust; dynamic code is not sandboxed just because it is an APK. Use only first-party signed modules until a restricted plugin model exists.
+5. Permission manifest requests broad access including SMS, contacts, calendar, location, camera, media, overlay, notification-related capabilities and package visibility. Jarvis should request each only when its feature is enabled and needed; no first-launch permission wall.
+6. Proot/Linux environment is a user-space runtime, not a hardened security boundary. Shell execution needs isolation, allowlists, audit and explicit approval.
+7. Native ASR process isolation is a strong reusable pattern. Upstream docs mention Chinese/English model catalog; Russian quality must be separately benchmarked and no Indic/Chinese model should be assumed Russian-capable.
+8. The inspected project is a separate native Compose application. OGAM is React Native plus native Android; transfer architecture/contracts, not UI framework or full source tree.
+
+### OGAM adoption verdict
+High-value reference. Reimplement independently: typed capability registry; progressive tool discovery; bounded long-horizon orchestration; native engine process supervisor; paired Binder capability bridge; permission/risk dashboard; signed first-party extension contracts. Do not import the entire application, privilege ladder, unrestricted terminal, or unreviewed plugin ecosystem.
+
+Detailed notes: [ZORVAI_SOURCE_AUDIT.md](ZORVAI_SOURCE_AUDIT.md).
