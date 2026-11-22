@@ -29,7 +29,9 @@ export function classifyModelArtifact(fileName: string): {
 } {
   const name = fileName.trim();
   const lower = name.toLowerCase();
-  if (!name || name.startsWith('.')) return { kind: 'unknown', installable: false };
+  if (!name || name.startsWith('.') || name.includes('\0') || name !== name.split(/[\\/]/).pop()) {
+    return { kind: 'unknown', installable: false };
+  }
   if (lower === 'manifest.json') return { kind: 'manifest', installable: false };
   if (isMMProjFile(lower)) return { kind: 'mmproj', installable: false };
   if (lower.endsWith('.gguf')) {
