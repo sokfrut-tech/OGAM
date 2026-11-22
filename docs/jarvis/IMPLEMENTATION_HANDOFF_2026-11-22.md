@@ -633,3 +633,14 @@ Added source-only implementation on this branch:
 - CosyVoice3-MNN research benchmark estimates Flow-only RTF ~3.69 on Honor BKQ_AN90 / Adreno 840 and explicitly fails real-time gate. It is demoted to batch-quality experiment; not tested on OPPO SM8550.
 - Full CI run 45058750893 on preceding head was not green: private workspace packages `@offgrid/sync` / `@offgrid/models` missing in CI caused type and Jest-load failures; Android job was still in progress at last check. Do not describe full CI as passed.
 - Detailed candidate/benchmark evidence and limitations are in `LOCAL_RUSSIAN_TTS_RUNTIME_EVALUATION.md`.
+
+
+## tiny-voca-ru promoted as leading compact Russian TTS prototype (2026-11-22)
+
+- New source/license/runtime audit appended to `docs/jarvis/LOCAL_RUSSIAN_TTS_RUNTIME_EVALUATION.md`.
+- tiny-voca-ru is 4.53M parameters / ~21.4 MB ONNX / 24 kHz mono, two synthetic F/M voice candidates, Apache-2.0 code/weights, MIT RUAccent assets, CC BY 4.0 dataset. Voice asset provenance must still be checked.
+- Its graph consumes a 61-symbol IPA sequence plus a parallel stress vector, not raw Cyrillic. The upstream Python frontend spans ~3,600 lines across normalization, numerals, tables, stress, G2P and tokenization. Do not create a lossy partial port; build a Kotlin frontend with golden parity fixtures.
+- Model output is a complete utterance waveform, not native PCM streaming. OGAM can use sentence-by-sentence synthesis and label it `SENTENCE_CHUNKED`.
+- Published ONNX CPU speed is 81x real-time on AMD Ryzen 5 3600X/4 threads, not Android; no SM8550 claim. Test WER 2.03% on 696 clips is a sanity check, not a formal listening evaluation. `lite` homograph accuracy 56%; optional `full` omograph model is 10 MB INT8.
+- ONNX Runtime Android 1.32.0 is MIT and available on Maven Central, but OGAM currently has no ORT dependency. No dependency/model added yet. Pin the Russian model revision + exact model/config hashes first; do not reuse the English n4ze3m/tiny-voca ONNX hash.
+- Decision: leading compact prototype for next stage, ahead of CosyVoice3-MNN. Next: pin assets/licensing, build frontend golden tests, then sentence-chunked adapter and OPPO benchmark.
