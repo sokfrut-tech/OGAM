@@ -99,7 +99,7 @@ export async function scanSelectedModelDirectory(grant: string): Promise<Scanned
       const classification = classifyModelArtifact(entry.name);
       // A split GGUF is importable only when every numbered part is present in the selected tree.
       const splitParts = classification.kind === 'gguf' ? splitGgufPartNames(entry.name) : [entry.name];
-      const completeSplit = splitParts.every(part => names.has(part));
+      const completeSplit = splitParts.length === 1 && splitParts.every(part => names.has(part));
       return {
         ...entry,
         ...classification,
