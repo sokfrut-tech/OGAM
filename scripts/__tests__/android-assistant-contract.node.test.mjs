@@ -40,6 +40,23 @@ test('the assistant session launches Chat through the documented URI without req
   assert.ok(app.includes('linking={jarvisVoiceLinking}'));
 });
 
+test('Android exposes an explicit RoleManager request and reports actual active-service state', () => {
+  const module = read('android/app/src/main/java/ai/offgridmobile/voice/JarvisAssistantRoleModule.kt');
+  const app = read('android/app/src/main/java/ai/offgridmobile/MainApplication.kt');
+  const settings = read('src/screens/SettingsScreen.tsx');
+  const wrapper = read('src/services/jarvisAssistantRole.ts');
+  assert.ok(module.includes('RoleManager.ROLE_ASSISTANT'));
+  assert.ok(module.includes('createRequestRoleIntent'));
+  assert.ok(module.includes('VoiceInteractionService.isActiveService'));
+  assert.ok(module.includes('startActivityForResult'));
+  assert.ok(module.includes('pendingPromise'));
+  assert.ok(app.includes('add(JarvisAssistantRolePackage())'));
+  assert.ok(settings.includes('set-jarvis-system-assistant'));
+  assert.ok(settings.includes('requestJarvisAssistantRole'));
+  assert.ok(wrapper.includes('getStatus()'));
+  assert.ok(wrapper.includes('requestAssistantRole()'));
+});
+
 test('system assistant invokes the shared recorder only when a voice backend exists', () => {
   const screen = read('src/screens/ChatScreen/index.tsx');
   const controller = read('src/services/recordingController.ts');
