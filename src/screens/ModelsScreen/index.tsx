@@ -139,6 +139,16 @@ export const ModelsScreen: React.FC<ModelsScreenProps> = ({
                 <TouchableOpacity
                   style={styles.downloadManagerButton}
                   hitSlop={SPACING.md}
+                  onPress={() => vm.navigation.navigate('ImageGen')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open image generator"
+                  testID="image-generator-screen-button"
+                >
+                  <Icon name="image" size={20} color={colors.text} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.downloadManagerButton}
+                  hitSlop={SPACING.md}
                   onPress={() => vm.navigation.navigate('LocalModels')}
                   accessibilityRole="button"
                   accessibilityLabel="Open local model library"
