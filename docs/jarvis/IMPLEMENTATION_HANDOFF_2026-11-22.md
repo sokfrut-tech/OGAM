@@ -8,8 +8,8 @@ This file is the durable continuation point for the current OGAM fork work. It r
 - Active branch: `feature/jarvis-step-2-storage-privacy`
 - PR: [#1 — Jarvis Step 2: privacy and Android storage permission bridge](https://github.com/sokfrut-tech/OGAM/pull/1)
 - PR state: open, draft, not merged; base `main`
-- PR head observed before this handoff refresh: `e5beb3b590a0d49d914f6ae6f5c72bc6b265dcab`
-- PR metadata at that snapshot: 355 commits, 143 changed files, +8,613/-399 lines.
+- PR head observed before this handoff refresh: `5d46865a1ec8ba9120e83bb6d232ba8b1bad0f61`
+- PR metadata at that snapshot: 357 commits, 143 changed files, +8,614/-399 lines.
 - Do not merge the PR or publish an APK as a way to bypass the missing-source blocker.
 
 ## Product contract
@@ -114,7 +114,7 @@ A public fork survey found:
 
 - PR #1 remains open/draft/unmerged; do not merge to bypass the private-source blocker.
 - At the source snapshot reviewed before this documentation refresh, PR head was `316981b3e16270b825079297a57feeb3f693817f`; metadata reported 337 commits, 140 changed files, +8,364/-399 lines. The documentation refresh itself will advance the head.
-- Latest completed open-core audit run for that source snapshot: [run #45039077226](https://github.com/sokfrut-tech/OGAM/actions/runs/45039077226), conclusion success. It ran 6 Android-assistant/security contract tests, 3 system-role tests, 2 one-shot voice tests (including failed-start cleanup), 1 URI mapping test, 4 PCM source-contract tests and existing open-core Node suites; the import audit scanned 1,976 files and reported 1,354 external dependency references. Artifact `ogam-import-audit`, ID `14760921370`.
+- Latest completed open-core audit run for that source snapshot: [run #45039159486](https://github.com/sokfrut-tech/OGAM/actions/runs/45039159486), conclusion success. It ran 6 Android-assistant/security contract tests, 3 system-role tests, 2 one-shot voice tests (including failed-start cleanup), 1 URI mapping test, 4 PCM source-contract tests and existing open-core Node suites; the import audit scanned 1,976 files and reported 1,354 external dependency references. Artifact `ogam-import-audit`, ID `14761275690`.
 - The PCM playback static test now also asserts the corrected Kotlin test declarations. Two malformed declarations in `JarvisPcmStreamPlayerTest.kt` were found and corrected: the stale-generation test now stores the first token as a `Long`, and the async test writes its result through `AtomicReference.set()`.
 - New Android source now includes the in-app RoleManager picker/status bridge, a non-exported assistant bridge with one-time in-process launch authorization, one-shot ChatScreen invocation, preservation of existing drafts/attachments, and an engine-neutral mono Float32 AudioTrack player with AudioFocus, generation tokens, cancellation and eight Kotlin/JUnit cases. Whisper startup/model-load failures now return the voice-session state to idle and clear Jarvis's one-shot flag.
 - The system-assistant URI is no longer externally BROWSABLE. The VoiceInteractionSession launches a non-exported bridge Activity; it mints an in-process one-time token, and MainActivity rejects forged/externally supplied assistant VIEW intents before React Native Linking can consume them. Kotlin/JUnit token tests are present but not yet run in Gradle.
