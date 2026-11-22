@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 
 import {
   IMAGE_STYLES,
@@ -41,4 +43,13 @@ test('resolves prompt words by media kind and style ID without changing the user
     'A natural talking-head shot, stable framing, realistic facial motion and subtle gestures.');
   assert.equal(mediaStyle('image', 'talking-head'), undefined);
   assert.equal(mediaStyle('video', null), undefined);
+});
+
+test('every image and video style has its local preview asset', () => {
+  for (const [kind, styles] of [['image', IMAGE_STYLES], ['video', VIDEO_STYLES]]) {
+    for (const style of styles) {
+      const asset = join(process.cwd(), 'src', 'assets', 'styles', kind, `${style.id}.jpg`);
+      assert.equal(existsSync(asset), true, `Missing ${kind} preview for ${style.id}`);
+    }
+  }
 });
