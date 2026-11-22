@@ -1,4 +1,5 @@
 import { installNativeBoundary, requireRTL, MB, GB } from '../../harness/nativeBoundary';
+import { formatFileSize } from '../../../src/utils/formatFileSize';
 
 // A phone without room for a model must refuse the download up front with a plain message,
 // instead of starting it and failing at 90% when the disk fills. The model is a Hugging Face
@@ -51,7 +52,6 @@ describe('download refused when the phone is low on space', () => {
   afterEach(() => { global.fetch = originalFetch; });
 
   it('shows how much space the model needs and how much is free, and starts no download', async () => {
-    const { formatFileSize } = require('@offgrid/models');
     const { boundary, rtl, screen } = await openModelFiles(1 * GB);
 
     rtl.fireEvent.press(screen.getAllByLabelText(/^Download /)[0]);
