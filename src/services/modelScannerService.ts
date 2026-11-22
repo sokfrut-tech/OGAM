@@ -1,25 +1,14 @@
 import type { DownloadedModel } from '../types';
 import { nativeDirectorySourceBoundary } from './sync/nativeDirectorySource';
 import type { NativeDirectoryCandidate } from './sync/nativeDirectorySource';
-import { isMMProjFile } from './modelManager/scan';
+import { classifyModelArtifact, type ModelArtifactKind } from './modelArtifactClassifier';
+export { classifyModelArtifact } from './modelArtifactClassifier';
+export type { ModelArtifactKind } from './modelArtifactClassifier';
 import { splitGgufPartNames } from '@offgrid/models';
 import { modelManager } from './modelManager';
 import { listDownloadedModels as listWhisperModels } from './whisperModelFiles';
 import { readModelHeader } from './modelHeader';
 import { estimateTextModelMemoryMB } from './activeModelService/memory';
-
-export type ModelArtifactKind =
-  | 'gguf'
-  | 'litert'
-  | 'mmproj'
-  | 'whisper'
-  | 'qnn-model'
-  | 'qnn-runtime'
-  | 'mnn-model'
-  | 'lora'
-  | 'safetensors'
-  | 'manifest'
-  | 'unknown';
 
 export interface ScannedModelArtifact extends NativeDirectoryCandidate {
   kind: ModelArtifactKind;
@@ -41,48 +30,7 @@ export interface LocalModelInventory {
   whisperModels: Awaited<ReturnType<typeof listWhisperModels>>;
 }
 
-const KNOWN_QNN_MODEL_FILES = new Set([
-  'unet.bin',
-  'text_encoder.bin',
-  'vae_decoder.bin',
-  'vae_encoder.bin',
-  'controlnet.bin',
-]);
 
-/**
- * Classify by artifact signature in the filename, not by a directory name supplied by a provider.
- * This is inventory metadata only: an artifact is not declared runnable until the relevant runtime
- * validates its complete model pack and matching manifest.
- */
-export function classifyModelArtifact(fileName: string): {
-  kind: ModelArtifactKind;
-  installable: boolean;
-} {
-  const name = fileName.trim();
-  const lower = name.toLowerCase();
-  if (!name || name.startsWith('.')) return { kind: 'unknown', installable: false };
-  if (lower === 'manifest.json') return { kind: 'manifest', installable: false };
-  if (isMMProjFile(lower)) return { kind: 'mmproj', installable: false };
-  if (lower.endsWith('.gguf')) {
-    const firstPart = splitGgufPartNames(name)[0] === name;
-    return { kind: 'gguf', installable: firstPart };
-  }
-  if (lower.endsWith('.litertlm')) return { kind: 'litert', installable: true };
-  if (/^ggml-.+\.bin$/i.test(name)) return { kind: 'whisper', installable: true };
-  if (lower.endsWith('.mnn')) return { kind: 'mnn-model', installable: false };
-  if (lower.endsWith('.so') && /^libqnn/i.test(name)) {
-    return { kind: 'qnn-runtime', installable: false };
-  }
-  if (lower.endsWith('.bin') && KNOWN_QNN_MODEL_FILES.has(lower)) {
-    return { kind: 'qnn-model', installable: false };
-  }
-  if (lower.endsWith('.safetensors')) {
-    return lower.includes('lora')
-      ? { kind: 'lora', installable: false }
-      : { kind: 'safetensors', installable: false };
-  }
-  return { kind: 'unknown', installable: false };
-}
 
 /**
  * Scan a user-selected SAF tree without copying model weights into cache or app storage.
