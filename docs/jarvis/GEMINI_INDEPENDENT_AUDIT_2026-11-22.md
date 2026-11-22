@@ -49,3 +49,17 @@ Gemini confirms:
 5. P1: pull exact installed `com.coloros.shortcuts` 17.7.2 from PGEM10; hash and certificate-check, then JADX only in an out-of-repository scratch directory.
 6. Continue the clean-room OGAM transfer plan after assistant security/build blockers are resolved. No proprietary OPPO code/assets are to be copied.
 
+
+
+## B4 follow-up — reproduced at source level and mitigated in OGAM (2026-11-22)
+
+This follow-up supersedes the B4 wording above that called it only an unverified hypothesis.
+
+- OGAM's lockfile pins the actual resolved packages to `@react-navigation/native 7.5.1` and `@react-navigation/core 7.24.0`. Their corresponding source at upstream revision `379552a` confirms that URL extraction collapses repeated slashes, while the core path parser accepts a final slash and percent-encoded static path characters.
+- The former native matcher required `Uri.path == "/voice"`. That did not match the native path `/voice/` from `offgrid://assistant/voice/?startVoice=1`, although the JS router resolves it to the configured `assistant/voice` Chat route. This confirms the exact normalizer mismatch from primary source; the external-intent flow has not been executed on a device.
+- OGAM now uses `JarvisAssistantLaunchGuard.matchesAssistantVoiceRoute(intent.dataString)` in MainActivity before forwarding ACTION_VIEW intents to React Native. The matcher normalizes slash variants and percent-encoded unreserved static characters, then the existing one-use in-process token remains mandatory.
+- Added JUnit vectors for canonical, trailing/repeated slash, single-/triple-slash prefix, encoded route characters, and unrelated links. Added Node source-contract coverage to keep native wiring and test vectors present.
+- Commits on `feature/jarvis-step-2-storage-privacy`: `72abc73c` (matcher), `557a8d27` (MainActivity), `d60a3e14` (JUnit), `681aea5e` (Node contract), followed by handoff documentation commit `87ca14a3`.
+- GitHub Actions run [#45047342804](https://github.com/sokfrut-tech/OGAM/actions/runs/45047342804) passed the open-core Node contract job, including `Verify Android Jarvis assistant contract`.
+
+**Still not proven:** Android/Kotlin compilation, Gradle/JUnit execution, actual cold-start/onNewIntent activity tests, and emulator/PGEM10 runtime security. The next required evidence remains `./gradlew :app:testDebugUnitTest` plus Activity-level intent tests and device checks. B4 is source-level reproduced and code-mitigated, not fully runtime-closed.
