@@ -456,3 +456,19 @@ The single remaining M2 symbol still imported from `@offgrid/models` is `reasoni
 2. Continue M3 media styles/defaults, then M4 naming/classification.
 3. M5 device/backend/residency contracts require strict test parity and no threshold changes without evidence.
 4. Complete M6 catalog and M7 Jarvis standalone simplification before removing the final `@offgrid/models` package declaration.
+
+
+## M3 media style catalog — first standalone slice (2026-11-22)
+
+- Added `src/constants/mediaStyles.ts`; 16 image and 6 video style IDs are aligned to the local preview map and the existing persisted chat-style ID contract.
+- Updated `src/services/mediaStyles.ts`, `src/components/MediaStyles/{StyleRow,StyleGrid,ChatStyleSetting,RestyleButton}.tsx`, `src/stores/mediaStyleStore.ts`, `src/screens/ChatScreen/useChatGenerationActions.ts`, and `src/services/generationService.ts` to use OGAM-owned types/catalog.
+- Added and wired `scripts/__tests__/media-style-catalog.node.test.mjs` including preview-file existence checks.
+- OGAM-only audit passed on `9ff1eebc7101d5cfc783a0338026d778e62fb2fa`: [run #45051946914](https://github.com/sokfrut-tech/OGAM/actions/runs/45051946914).
+- Evidence caveat: prompt words in the new catalog are OGAM-authored clean-room defaults because original `@offgrid/models` catalog source is absent from this checkout. The style IDs and asset mapping are locally verified, but exact original prompt-word parity is not yet established.
+- Full RN CI `#45051946894` remains red due to missing shared workspace modules/private `pro/` checkout in CI without the private token. Jest shards and lint report missing-module / 112 workspace-boundary errors; this is not a successful app build. Android job status was not yet final at last inspection.
+
+### Next steps
+1. Obtain/inspect the exact shared `@offgrid/models` source (authorized local workspace or repo history) and reconcile style catalog wording/metadata without guessing.
+2. Continue M3 through image/video model settings and image parameter policy only after locating the real consumer contracts and tests.
+3. Do not change trained-resolution / RAM admission thresholds while migrating M5.
+4. Restore full workspace dependencies in CI or provide a reproducible public OGAM-only workspace build before treating the main RN Jest/type/lint gates as meaningful.
