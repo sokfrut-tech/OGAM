@@ -120,3 +120,36 @@ The current PR head is `f2a5ef6f8b796567a982914be93cb8846d13e5e0` (PR #1 remains
 ### Current conclusion
 
 The Pro fallback is already partially implemented for open-core CI. The remaining autonomy blocker is materially larger than one missing checkout: nine sibling packages are encoded as required npm links and referenced by Metro/Jest. The next safe action is a source-level consumer map, not changing CI to skip shared.
+
+
+## Source-level consumer audit — first verified vertical slices (2026-11-22)
+
+The following source files were opened directly from the current branch. This is a verified initial consumer map, not yet an exhaustive repository-wide import inventory.
+
+| Package / boundary | Verified source consumer | Role and migration implication |
+|---|---|---|
+| `@offgrid/sync` | `src/services/sync/engine.ts` | Core peer-sync engine and React Native TCP adapter imports (`@offgrid/sync`, `/rn`). It is not safe to remove as a Pro-only dependency. |
+| `@offgrid/sync` | `src/services/proLicenseService.ts` | Pro entitlement/seat lifecycle also uses sync contracts. This creates a mixed free-core / Pro consumer boundary that must be separated deliberately. |
+| `@offgrid/rag/documents` | `src/services/rag/index.ts`, `src/services/documents/index.ts`, `src/services/documents/models.ts` | Shared document ingest/retrieval contracts and services are used by project knowledge base and chat attachments. Core feature, not a harmless optional dependency. |
+| `@offgrid/speech` | `src/services/voiceSession.ts` | Owns voice-turn state/decision machine shared with desktop. Mobile voice path depends on it. |
+| `@offgrid/pro` | `src/bootstrap/loadProFeatures.ts` | Loaded dynamically; absent package returns false. Free build can skip Pro activation via existing null stub. |
+| `@offgrid/pro` | `metro.config.js`, `jest.config.js` | Explicit Metro/Jest fallback mapping exists when Pro submodule is not populated. |
+| `@offgrid/design` | `jest.config.js`, `metro.config.js` | Shared design-token package is wired into runtime and tests. Direct app import inventory remains to be confirmed. |
+| `@offgrid/models` | `metro.config.js` | Shared model contracts package is wired into Metro. Direct source import inventory remains to be confirmed. |
+| `@offgrid/ui` | `metro.config.js` | Shared UI package is wired into Metro. Direct source import inventory remains to be confirmed. |
+| `@offgrid/writing` | `metro.config.js`, `jest.config.js` | Scribe engine is explicitly loaded from shared package; runtime usage must be located before replacement. |
+| `@offgrid/notes` | `metro.config.js`, `jest.config.js` | Notes link/history rules wired into runtime/test resolver; source consumer inventory remains to be confirmed. |
+| `@offgrid/notes-editor` | `metro.config.js` | Notes WebView HTML bundle is a runtime mapping; source consumer must be located. |
+| `@offgrid/automation` | `metro.config.js` | Additional shared package discovered in Metro configuration, beyond the original nine root dependencies. Confirm whether it is a transitive package of sync or a direct dependency before planning extraction. |
+
+### Architectural findings
+
+- `src/services/rag/index.ts` explicitly delegates file reading, indexing, search and citations to the shared document engine; the local `rag.db` stores project membership and sync identity only. Replacing the package with a null module would silently remove a major feature.
+- `src/services/sync/engine.ts` constructs the mobile sync engine from the shared platform-neutral engine and RN TCP transport. A proper migration must preserve the portable engine API and separately implement/test the RN adapter.
+- `src/services/voiceSession.ts` delegates voice-turn decisions to `@offgrid/speech`; it is a reusable state-machine boundary and should be preserved behaviorally.
+- `src/bootstrap/loadProFeatures.ts` confirms Pro activation is dynamic and already safely optional for the free build. Pro licensing still has a cross-boundary dependency on `@offgrid/sync`, so removing Pro requires retaining or separating the sync contract used by entitlement handling.
+- The Metro config's package list is not identical to the root `package.json` local-dependency list: it also references `@offgrid/automation`. This must be reconciled against shared package manifests and transitive dependencies.
+
+### Audit limitation and next step
+
+The connected GitHub code-search index returned no matches for these exact scoped package names, so absence of search results is not evidence of absence of imports. A complete import map still requires a repository-wide source scan. Do not start deleting or stubbing packages on the basis of this partial map. Next inspect the complete shared package manifests and each verified consumer's call surface, then migrate the highest-value vertical slice (likely the document engine or sync core) only after its public API and tests are understood.
