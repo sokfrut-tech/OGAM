@@ -2,8 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { generateId } from '../utils/generateId';
 import { createHydrationGatedStorage } from '../utils/hydrationGatedStorage';
+import { validateTaskPlan, type TaskPlan } from '../services/planner/taskPlan';
 import {
-  validateTaskPlan,
   createTaskPlanRun,
   claimNextTaskStep,
   resolveTaskStepApproval,
@@ -13,10 +13,9 @@ import {
   pauseTaskPlanRun,
   resumeTaskPlanRun,
   cancelTaskPlanRun,
-  type TaskPlan,
   type TaskPlanRun,
-  type TaskPlanStep,
-} from '../services/planner/taskPlan';
+} from '../services/planner/taskPlanRun';
+import type { TaskPlanStep } from '../services/planner/taskPlan';
 
 interface TaskPlanStoreState {
   plans: TaskPlan[];
