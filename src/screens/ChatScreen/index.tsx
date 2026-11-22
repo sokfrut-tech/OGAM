@@ -96,7 +96,7 @@ export const ChatScreen: React.FC = () => {
     let cancelled = false;
     const interaction = InteractionManager.runAfterInteractions(() => {
       if (cancelled) return;
-      const result = recordingController.start();
+      const result = recordingController.start({ requiresTranscript: true });
       if (result === 'unavailable' || result === 'no-recorder') {
         setAssistantVoiceInputPending(false);
         setChatAlertState(showAlert(
