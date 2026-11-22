@@ -12,6 +12,9 @@ import {
   View,
   Text,
   ScrollView,
+  AppState,
+  Platform,
+  Alert,
 } from 'react-native';
 import { isClassifierModel } from '../services/classifierModel';
 import { TouchableOpacity } from '../components/Touchable';
@@ -33,6 +36,7 @@ import type { RootStackParamList } from '../navigation/types';
 import { AliveScreen } from '../components/AliveScreen';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { SectionLabel } from '../components/SectionLabel';
+import { StoragePermissionService } from '../services/storagePermissionService';
 
 /** A number with what it counts ("15 models", "1 chat"): bare counts beside sizes read as one unit (hand test 84). */
 const count = (n: number, noun: string): string => `${n.toLocaleString()} ${noun}${n === 1 ? '' : 's'}`;
@@ -49,6 +53,45 @@ export const StorageSettingsScreen: React.FC = () => {
   const size = (bytes: number) => (measured ? hardwareService.formatBytes(bytes) : 'Measuring…');
   const generatedVideoCount = useAppStore(s => s.generatedVideos.length);
   const [alertState, setAlertState] = useState<AlertState>(initialAlertState);
+  const [allFilesAccess, setAllFilesAccess] = useState<boolean | null>(null);
+
+  const refreshAllFilesAccess = useCallback(async () => {
+    if (Platform.OS !== 'android') {
+      setAllFilesAccess(true);
+      return;
+    }
+    try {
+      setAllFilesAccess(await StoragePermissionService.isAllFilesAccessGranted());
+    } catch {
+      setAllFilesAccess(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshAllFilesAccess();
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') void refreshAllFilesAccess();
+    });
+    return () => subscription.remove();
+  }, [refreshAllFilesAccess]);
+
+  const explainAndOpenAllFilesAccess = () => {
+    Alert.alert(
+      'Access to model folders',
+      'This optional Android permission lets Jarvis scan model files in shared folders. You can keep it disabled and select individual folders through Android’s folder picker instead. Jarvis will re-check the permission when you return.',
+      [
+        { text: 'Not now', style: 'cancel' },
+        {
+          text: 'Open Android settings',
+          onPress: () => {
+            StoragePermissionService.openAllFilesAccessSettings().catch(error => {
+              Alert.alert('Could not open settings', error instanceof Error ? error.message : String(error));
+            });
+          },
+        },
+      ],
+    );
+  };
 
   const { downloadedModels, downloadedImageModels, downloadedVideoModels, settings } =
     useAppStore();
@@ -151,6 +194,31 @@ export const StorageSettingsScreen: React.FC = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.content}
       >
+        {Platform.OS === 'android' ? (
+          <>
+            <SectionLabel title="Access to model folders" />
+            <Card style={styles.section}>
+              <View style={styles.infoRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.infoLabel}>All files access</Text>
+                  <Text style={styles.legendText}>
+                    {allFilesAccess === null ? 'Checking permission…' : allFilesAccess ? 'Granted' : 'Not granted — individual folder selection still works'}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={explainAndOpenAllFilesAccess}
+                  accessibilityRole="button"
+                  accessibilityLabel="Manage Android all files access permission"
+                  testID="storage-manage-all-files-access"
+                  hitSlop={12}
+                >
+                  <Text style={styles.infoValue}>Manage</Text>
+                </TouchableOpacity>
+              </View>
+            </Card>
+          </>
+        ) : null}
+
         <SectionLabel title="Space on this phone" />
         <Card style={styles.section}>
           <View style={styles.storageBar}>
