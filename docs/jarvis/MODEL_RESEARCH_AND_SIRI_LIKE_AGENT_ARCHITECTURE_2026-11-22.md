@@ -113,7 +113,9 @@ The assistant's personality should be warm, composed, precise and lightly witty 
 - Do not hard-code one model into Jarvis identity or planner. The same assistant, memory, skills and HUD must survive model switching.
 - Inspect actual OPPO Find X6 Pro RAM, available storage, Android version, llama.rn backend support and thermal behaviour before choosing quantization/default.
 - Verify all candidate model licenses and full model cards at the exact pinned revision before packaging or redistributing weights.
-- Next engineering slice: build a model-evaluation manifest and a small Russian/tool-use benchmark runner; do not yet replace the existing model catalog or memory-fit policy.
+- Implemented on 2026-11-22: `docs/jarvis/model-evaluation/manifest.v1.json`, `cases.ru.v1.json`, `scripts/model-eval/score-run.mjs`, and CI tests. The suite currently covers 14 Russian scenarios and six candidate profiles; the scorer requires pinned revision/SHA-256/license review, runtime/device metadata, human ratings and explicit safety flags. Its six Node tests passed in GitHub Actions run #120. This validates the harness, **not** the models.
+- Next: pin and license-review the exact candidate artifacts, then run at least three identical suite passes per candidate on the same OPPO Find X6 Pro build/runtime; record cold/warm load, RAM, TTFT, tokens/sec, heat, battery, crashes and raw human-rated answers. Do not replace the existing model catalog or memory-fit policy before that evidence exists.
+- No candidate weights were downloaded by the harness work and no production model is selected.
 - Separately, the planned splitGgufModelName / modelDisplayName / isRawModelName extraction remains blocked until the full @offgrid/models implementation and tests can be recovered. The public repository search did not expose those helper implementations; do not guess their behaviour.
 
 
