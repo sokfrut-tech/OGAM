@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<voice-interaction-service
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:sessionService="ai.offgridmobile.voice.JarvisVoiceInteractionSessionService"
+    android:recognitionService="ai.offgridmobile/ai.offgridmobile.voice.JarvisVoiceInteractionService"
+    android:settingsActivity="ai.offgridmobile.MainActivity"
+    android:supportsAssist="true"
+    android:supportsLocalInteraction="false" />
