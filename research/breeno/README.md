@@ -215,3 +215,5 @@ The source survey now includes Chinese platforms and Chinese-language projects (
 - [Russian wake-word and Snapdragon 8 Gen 2 runtime follow-up](../voice/OGAM_RUSSIAN_WAKEWORD_AND_QNN_FOLLOWUP_2026-11-23.md) — source-verified microphone ownership/AEC=false, Russian wake-word model gap, sherpa-onnx KWS compatibility boundary, SM8550/V73 and LiteRT-vs-ONNX QNN distinctions, PR #1 CI snapshot.
 
 - [Russian microWakeWord and Android KWS audit](../voice/OGAM_RUSSIAN_MICROWAKEWORD_ANDROID_AUDIT_2026-11-22.md) — custom Russian «Джарвис» model recipe and measured-author claims, Android TFLite/MicroFrontend porting requirements, shared-mic boundary and precise Android VoiceInteractionService / microphone-FGS limits.
+
+- [Alkove and Voicute Android KWS comparison](../voice/OGAM_ALKOVE_VOICUTE_ANDROID_KWS_AUDIT_2026-11-22.md) — shared-PCM Alkove Android API and voice isolation/AEC reference, limitations of its seven-language Spot/Lex, and Voicute's Android ONNX engine/hard-negative optimisation without Russian model coverage.
