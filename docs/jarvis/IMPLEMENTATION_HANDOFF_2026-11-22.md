@@ -508,3 +508,12 @@ The single remaining M2 symbol still imported from `@offgrid/models` is `reasoni
 - Commits on `feature/jarvis-step-2-storage-privacy`: `794bdadf327beee7925755b43fb28395ad1f59bb` (guard) and `da23c21ba5d76eedbaae99973635d183e8587d6d` (tests).
 - **Verification not yet established for this slice:** commit-triggered workflow lookup returned no PR workflow runs for the test commit at the time of this update. Do not claim Kotlin/JUnit passed. Require a fresh Android CI run to execute `:app:compileDebugKotlin`, `:app:compileDebugUnitTestKotlin` and `:app:testDebugUnitTest`.
 - Remaining Android audit items: PGEM10 background/lock-screen/service restart and audio-focus tests; PCM assistant-usage/backoff review; production Russian TTS integration; explicit permission-denial/airplane-mode matrix.
+
+
+## PCM assistant-audio follow-through — 2026-11-22 evening
+
+- Updated both the streamed `AudioTrack` and `AudioFocusRequest` attributes from `USAGE_MEDIA` to `USAGE_ASSISTANT`, retaining `CONTENT_TYPE_SPEECH`. This makes the intent of the native PCM path assistant speech rather than music playback.
+- Increased the non-blocking `AudioTrack.write()` zero-progress retry park from 100 microseconds to 5 milliseconds. The previous interval could wake the synthesis thread up to 10,000 times/second while the buffer was full; the new interval bounds polling to about 200 attempts/second while continuing to check the generation token and cancellation.
+- Source commit: `ab9ef929df6d4223b9faf82c4201cacc177ba186`.
+- This remains a low-level player only: no production TTS backend is connected, and audio routing/ducking/latency must be measured on PGEM10. No performance claim is made from source inspection alone.
+- No workflow run was returned for this commit at the time of this handoff update. Require Android compile + unit tests before considering this slice verified; then test assistant routing, ducking, focus loss, barge-in and sustained streaming on the target device.
