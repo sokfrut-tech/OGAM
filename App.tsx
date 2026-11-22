@@ -44,19 +44,11 @@ import { useDownloadStore } from './src/stores/downloadStore';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { DebugLogsScreen } from './src/components/DebugLogsScreen';
 import { LoadingDots } from './src/components/LoadingDots';
-import { AnalyticsConsentPrompt } from './src/components/AnalyticsConsentPrompt';
-import {
-  startAnalytics,
-  trackScreen,
-} from './src/services/analytics/analytics';
-import { featureSnapshot } from './src/services/analytics/featureSnapshot';
-import { usageSnapshot } from './src/services/analytics/usageSnapshot';
 import { startEnginePacks } from './src/services/enginePacks';
 
 LogBox.ignoreAllLogs(); // Suppress all logs
 
 let stopStartupProbe: (() => void) | null = null;
-let stopAnalytics: (() => void) | null = null;
 // Every build mirrors logger output into the in-app Debug Logs viewer and the size-capped log
 // file, so Report a problem carries a trace from a store build too. Log lines hold metadata only,
 // never chat content (docs/ANALYTICS.md, Report a problem). The console stays dev-only (logger.ts).
@@ -407,9 +399,6 @@ function App() {
       logger.log('[BOOT] startup complete');
       setIsInitializing(false);
 
-      // Settings are hydrated: analytics starts only now, and only if the person opted in.
-      stopAnalytics = startAnalytics(featureSnapshot, usageSnapshot);
-
       // Android: settle an engine pack on trial (test prompt) and look for a newer llama.cpp.
       // Off the boot gate; it never throws, and iOS does nothing here.
       startEnginePacks();
@@ -447,8 +436,6 @@ function App() {
     return () => {
       startupGeneration.current += 1;
       stopNetworkReconnectWatcher();
-      stopAnalytics?.();
-      stopAnalytics = null;
     };
   }, [initializeApp]);
 
@@ -495,7 +482,6 @@ function App() {
           onReady={() => {
             applyPendingProRedirect();
             openPendingImprove().catch(() => undefined);
-            trackScreen(appNavigationRef.getCurrentRoute()?.name);
           }}
           onStateChange={() => {
             applyPendingProRedirect();
@@ -533,7 +519,6 @@ function App() {
         >
           <AppNavigator />
         </NavigationContainer>
-        <AnalyticsConsentPrompt />
         {__DEV__ && showSyncStatusBar ? <DevSyncStrip /> : null}
         </AliveProvider>
       </SafeAreaProvider>
