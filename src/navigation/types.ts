@@ -7,7 +7,7 @@ export type RootStackParamList = {
   AnalyticsInfo: undefined;
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
   // Former ChatsStack
-  Chat: { conversationId?: string; projectId?: string };
+  Chat: { conversationId?: string; projectId?: string; startVoice?: boolean };
   // Former ProjectsStack
   ProjectDetail: { projectId: string };
   ProjectEdit: { projectId?: string };
