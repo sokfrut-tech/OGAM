@@ -65,4 +65,7 @@ test('system assistant invokes the shared recorder only when a voice backend exi
   assert.match(screen, /recordingController\.start\(\)/);
   assert.match(controller, /this\.handlers\.canStart && !this\.handlers\.canStart\(\)/);
   assert.match(voice, /canStart: \(\) => voiceAvailableRef\.current/);
+  assert.match(screen, /result === 'unavailable' \|\| result === 'no-recorder'/);
+  assert.match(screen, /Open speech models/);
+  assert.match(screen, /initialTab: 'transcription'/);
 });
