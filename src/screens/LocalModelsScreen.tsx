@@ -19,6 +19,7 @@ import {
   type ScannedModelArtifact,
 } from '../services/modelScannerService';
 import { importWhisperModelFromUri } from '../services/whisperModelFiles';
+import { useWhisperStore } from '../stores/whisperStore';
 import { pickMmProjForModel } from '../services/mmproj';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList, 'LocalModels'>;
@@ -128,6 +129,9 @@ export const LocalModelsScreen: React.FC = () => {
         await importWhisperModelFromUri(uri, artifact.name);
       } else {
         throw new Error('This artifact is not a standalone model. Its full pack and runtime compatibility must be validated first.');
+      }
+      if (artifact.kind === 'whisper') {
+        await useWhisperStore.getState().refreshPresentModels();
       }
       await refreshInventory();
       Alert.alert('Import complete', `${artifact.name} is now available in the local model library.`);
