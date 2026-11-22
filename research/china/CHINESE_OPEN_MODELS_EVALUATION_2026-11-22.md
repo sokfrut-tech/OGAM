@@ -309,3 +309,10 @@ A second concrete Android implementation was found:
 - https://k2-fsa.github.io/sherpa/onnx/tts/supertonic.html
 - https://k2-fsa.github.io/sherpa/onnx/tts/all/Russian/supertonic-3-ru.html
 - https://github.com/XDcobra/react-native-sherpa-onnx
+
+
+### Qwen3-TTS Android release artifact / maturity check
+- The upstream Android app has a public v0.1.0 arm64 APK release (49,955,560 bytes / about 46.7 MiB): https://github.com/Danmoreng/qwen3-tts-android/releases/download/v0.1.0/qwen3-tts-android-0.1.0-arm64-v8a.apk
+- The APK does not include the model; the first-run flow downloads the model package into app-private storage.
+- The repository has an Android release workflow which builds arm64 APK with JDK 17, NDK 27.2.12479018, Android 36 and CMake 3.22.1, but the reviewed tree contains no dedicated unit/instrumentation test suite.
+- This makes it a useful ready-made smoke-test reference, not a proven production component. Check APK signing, release source commit, dependency/submodule licenses and model checksum before installing/redistributing.
