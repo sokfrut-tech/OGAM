@@ -250,3 +250,18 @@ This audit read public source and READMEs. It did not:
 - produce or install an APK.
 
 Upstream performance claims are labeled as upstream claims, not device evidence. No Russian TTS winner is selected and no always-on/duplex microphone behavior is claimed.
+
+
+## 2.4 JNI streaming refinement — correction after a deeper native wrapper pass
+
+A deeper inspection of the pinned submodule found that the JNI C++ file already contains a function named `nativeSynthesizeStreaming` (in addition to batch `nativeSynthesize`). This narrows the gap:
+
+- The JNI C++ function already accepts chunk duration, left-context duration, collect-audio flag and a callback object.
+- It resolves an `onAudioChunk` callback method, copies each native PCM chunk into a Java `FloatArray`, passes sample rate and chunk/text-alignment metadata to Kotlin, and maps callback `false` to native cancellation.
+- The native implementation calls the C streaming APIs for normal, reference-voice and speaker-embedding synthesis.
+- However the audited Kotlin `QwenEngine.kt` (122 lines) declares only `nativeSynthesize` and no `nativeSynthesizeStreaming` external method, no AudioChunk callback interface, and no public `synthesizeStreaming` wrapper. Therefore the native JNI streaming symbol is currently **not reachable through the shipped Kotlin API** in this inspected revision.
+- The JNI callback stores the current `JNIEnv*`; the native C++ stream path appears synchronous (the callback executes during the native call), but any OGAM wrapper must verify the callback thread/lifetime contract and never retain native chunk pointers after the callback returns.
+- With `collect_audio=false`, the streaming API can avoid accumulating the complete waveform for the final result; OGAM should test this path to reduce duplicate PCM memory. The exact final-result behavior still needs an Android integration test.
+- The Kotlin wrapper's default `NativeParams.languageId` is 2050 (English), while Russian is 2069. Jarvis must always pass 2069 explicitly rather than relying on the wrapper default.
+
+Updated implementation opportunity: OGAM may only need a thin Kotlin API exposure over the already-present JNI function, plus tests and proper backend/PCM lifecycle integration. This is narrower than implementing a new C++ streaming layer from scratch. It remains a planned change, not a completed feature.
