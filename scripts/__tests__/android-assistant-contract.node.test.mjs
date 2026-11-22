@@ -25,7 +25,7 @@ test('system-assistant route cannot be triggered by an external browsable deep l
   assert.match(manifest, /name="ai\.offgridmobile\.voice\.JarvisAssistantBridgeActivity"[\s\S]*?android:exported="false"/);
   assert.ok(session.includes('JarvisAssistantBridgeActivity::class.java'));
   assert.ok(bridge.includes('JarvisAssistantLaunchGuard.issue()'));
-  assert.ok(guard.includes('fun consume(candidate: String?): Boolean'));
+  assert.match(guard, /fun consume\\(\\s*candidate: String\\?,\\s*nowMs: Long = SystemClock\\.elapsedRealtime\\(\\),\\s*\\): Boolean/);
   assert.ok(activity.includes('JarvisAssistantLaunchGuard.consume(token)'));
 });
 
