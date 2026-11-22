@@ -485,7 +485,6 @@ function App() {
           }}
           onStateChange={() => {
             applyPendingProRedirect();
-            trackScreen(appNavigationRef.getCurrentRoute()?.name);
           }}
           theme={{
             dark: isDark,
