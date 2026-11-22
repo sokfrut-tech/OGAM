@@ -5339,7 +5339,7 @@
     },
     {
       "filename": "Поиск-6.0.apk",
-      "role_group": "oppo_coloros_breeno_ecosystem",
+      "role_group": "third_party_or_companion",
       "size_bytes": 11111427,
       "sha256": "72dc03e99e9cf4aff31155545844e8a222c70096160b8653c5ac080ba21125ed",
       "package": "reactivephone.msearch",
@@ -7457,7 +7457,16 @@
         "github.com",
         "issuetracker.google.com",
         "odin.allawntech.com"
-      ]
+      ],
+      "notable_manifest_processes": {
+        "process_name_pattern": ":worker0 through :worker200",
+        "service_declarations": 201,
+        "exported": false,
+        "isolated_process": false,
+        "interpretation": "Non-exported worker services/processes using the application's UID; these are not Android isolated-process sandboxes.",
+        "evidence_type": "Decoded AndroidManifest.xml; static declaration only",
+        "runtime_behavior_verified": false
+      }
     },
     {
       "filename": "Сканирование Breeno-16.3.15.apk",
@@ -9033,5 +9042,26 @@
       "db_filenames": [],
       "https_hosts": []
     }
-  ]
+  ],
+  "inventory_classification": {
+    "total_apk_files": 26,
+    "core_oppo_coloros_breeno_system_records": 19,
+    "oem_family_records_including_browser_reader_companions": 21,
+    "companion_and_third_party_records": 7,
+    "unrelated_third_party_apps": 5,
+    "notes": [
+      "reactivephone.msearch is a third-party Russian search app, not an OPPO/ColorOS system package; its role_group is third_party_or_companion.",
+      "HeyTap Browser and Reader are OEM-adjacent products but are treated as non-core companion records in role_group.",
+      "Counts are APK file records, not unique package names; multiple versions of Breeno and Pantanal are separate records."
+    ]
+  },
+  "evidence_interpretation": {
+    "apk_size_bytes": "Exact total APK archive length in bytes; ZIP-compressed container size.",
+    "notable_native_lib_size_bytes": "Exact uncompressed ZIP-entry length in bytes for the listed native .so entry.",
+    "human_readable_units": "Human-readable MB values in the companion Markdown use decimal megabytes (1 MB = 1,000,000 bytes). No MiB is implied unless explicitly labeled.",
+    "manifest": "Shows declared package metadata, permissions, components, process attributes and intent filters; not runtime invocation evidence.",
+    "dex_markers": "Class descriptors, namespaces, AIDL names, URI/database strings and hostnames are structural indicators, not proof of runtime call paths or data flows.",
+    "native_libraries_and_assets": "Names and entry sizes show packaged artifacts, not proof they are loaded, executed, or used by a particular feature.",
+    "runtime_claims": "Require method-level decompilation/call graphs and/or controlled device traces."
+  }
 }
