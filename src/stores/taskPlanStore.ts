@@ -50,21 +50,26 @@ export const useTaskPlanStore = create<TaskPlanStoreState>()(
       runs: {},
 
       createPlan: draft => {
+        if (!draft || !Array.isArray(draft.steps)) return null;
         const now = new Date().toISOString();
-        const plan: TaskPlan = {
+        const candidate = {
           ...draft,
-          id: generateId(),
-          version: 1,
-          status: 'draft',
+          id: 'draft-validation',
+          version: 1 as const,
+          status: 'draft' as const,
           createdAt: now,
           updatedAt: now,
-          steps: draft.steps.map(step => ({
+        } as TaskPlan;
+        if (!validateTaskPlan(candidate).valid) return null;
+        const plan: TaskPlan = {
+          ...candidate,
+          id: generateId(),
+          steps: candidate.steps.map(step => ({
             ...step,
             input: { ...step.input },
             dependsOn: [...step.dependsOn],
           })),
         };
-        if (!validateTaskPlan(plan).valid) return null;
         set(state => ({ plans: [...state.plans, plan] }));
         return plan;
       },
@@ -72,19 +77,20 @@ export const useTaskPlanStore = create<TaskPlanStoreState>()(
       updateDraft: (id, updates) => {
         const existing = get().plans.find(plan => plan.id === id);
         if (!existing || existing.status !== 'draft') return false;
-        const updated: TaskPlan = {
+        const candidate: TaskPlan = {
           ...existing,
           ...updates,
-          steps: updates.steps
-            ? updates.steps.map(step => ({
-                ...step,
-                input: { ...step.input },
-                dependsOn: [...step.dependsOn],
-              }))
-            : existing.steps,
           updatedAt: new Date().toISOString(),
         };
-        if (!validateTaskPlan(updated).valid) return false;
+        if (!validateTaskPlan(candidate).valid) return false;
+        const updated: TaskPlan = {
+          ...candidate,
+          steps: candidate.steps.map(step => ({
+            ...step,
+            input: { ...step.input },
+            dependsOn: [...step.dependsOn],
+          })),
+        };
         set(state => ({ plans: state.plans.map(plan => plan.id === id ? updated : plan) }));
         return true;
       },
