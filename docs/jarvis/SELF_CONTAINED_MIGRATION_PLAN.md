@@ -649,3 +649,15 @@ Commit `3f0e74defa41cb6d9cb8f1aeb6c45330348d63d4` adds an OGAM-owned filename cl
 Follow-up commit migrates the local-file import guard away from `@offgrid/models` and explicitly refuses imatrix calibration files as non-model artifacts. This closes a separate path where an imatrix GGUF could previously be imported as if it were a runnable model.
 
 The catalogue-backed `mtpHeadForPrimaryFile` remains intentionally unmigrated for now. It returns a published descriptor (name, URL, size, checksum) for a particular primary model; that mapping is data, not a filename-only rule. The public OGAM integration contract confirms a Gemma 4 E4B head named `mtp-gemma-4-E4B-it-Q8_0.gguf` with size 98,653,248 bytes and a SHA-256 requirement, but does not expose the full mapping. Replacing it with a guessed or one-entry registry would silently remove MTP availability for other catalog models. Keep the upstream dependency until the complete mapping and its tests/fixtures can be recovered, then migrate the data with provenance and checksums.
+
+
+
+### File-size formatter extraction and consumer migration
+
+The public upstream implementation and its original unit tests were inspected before replacing `@offgrid/models.formatFileSize`. Its established contract is `0 B` for zero and two decimal places for non-zero values (`500.00 B`, `1.00 KB`, `2.50 MB`, `4.20 GB`). This is intentionally distinct from OGAM's pre-existing `formatBytes` helper, whose precision differs; reusing that helper would alter download-refusal copy.
+
+Added `src/utils/formatFileSize.ts` with an independent implementation preserving the established values while safely normalizing negative/non-finite inputs and supporting larger units. Migrated the runtime consumers `src/services/freeSpace.ts` and `src/components/models/PicksRow.tsx`. Four integration tests now import the local helper instead of requiring it from the shared package. Added Jest and dependency-free Node contract tests and inserted the Node test into the OGAM-only audit workflow.
+
+The new standalone formatting test passed in audit run [45019017951](https://github.com/sokfrut-tech/OGAM/actions/runs/45019017951) for the utility/test/workflow commit. Runtime-consumer and integration-test import changes are in later commits and are being verified by the latest branch audit. This remains a targeted contract check, not a full Jest or Android build.
+
+Upstream evidence inspected: [public OGAM formatter](https://github.com/off-grid-ai/OGAM/blob/ff6abb8babdeb0836bb64d1df61dd90dd39cfd42/src/services/huggingface.ts) and [its formatter tests](https://github.com/off-grid-ai/OGAM/blob/ff6abb8babdeb0836bb64d1df61dd90dd39cfd42/__tests__/unit/services/huggingface.test.ts). No source code was copied.
