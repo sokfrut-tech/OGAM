@@ -98,6 +98,7 @@
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="offgrid" android:host="oauth" />
             <data android:scheme="offgrid" android:host="pro" />
+            <data android:scheme="offgrid" android:host="assistant" />
         </intent-filter>
       </activity>
 
