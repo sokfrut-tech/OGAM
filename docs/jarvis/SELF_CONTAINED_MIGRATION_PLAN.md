@@ -618,3 +618,16 @@ Additional repository-wide counts: **468 package imports**, **73 `../shared` wor
 - UI/content/settings policy: model cards, media styles, guide flows, image parameter policy, text generation settings and boost-promo presentation.
 
 Migration order should start with isolated pure functions whose exact outputs are characterized by tests, not with the catalog or runtime estimator. Preserve the shared catalog and RAM-fit invariants until their full test matrix is executable in OGAM-only CI.
+
+
+### First independent model-contract extraction: split GGUF filename set
+
+Commit `509d3c6ae58a01c5dfa8b5e8523c6176822f108e` adds `src/utils/ggufSplitFiles.ts` and routes both `modelArtifactClassifier.ts` and `modelManager/scan.ts` through the OGAM-owned helper instead of importing `splitGgufPartNames` from `@offgrid/models`.
+
+Contract: standard llama.cpp/ GGUF names use a five-digit, one-based shard index (`-00001-of-00003.gguf`). Given any valid shard, the helper returns the full ordered filename set. Non-split and malformed names are returned unchanged. It does not claim to validate the shard contents; native GGUF metadata and loader checks remain authoritative.
+
+Reference evidence: [GGUF naming convention in ggml documentation](https://github.com/ggml-org/ggml/blob/master/docs/gguf.md) and [Go GGUF package split naming description](https://pkg.go.dev/github.com/zerfoo/zerfoo/model/gguf). No third-party source code was copied; the small filename helper is an independent implementation of the documented convention.
+
+Added Jest tests at `__tests__/unit/utils/ggufSplitFiles.test.ts`. Also add a dependency-free Node test to the OGAM-only audit workflow so the helper is verified even while private shared workspaces remain absent. The existing audit workflow success at [run 39](https://github.com/sokfrut-tech/OGAM/actions/runs/45018191742) predates this standalone test step and therefore does not yet verify the new helper.
+
+Full application CI is still blocked by absent `@offgrid/models`, `@offgrid/sync`, and Pro source/workspace directories. At run [45018030621](https://github.com/sokfrut-tech/OGAM/actions/runs/45018030621), the workspace setup and install completed but Jest reported 87 failed suites / 18 passed and 393 failed tests / 147 passed; the representative failures are module resolution errors for the missing private workspace packages and Pro sources. ESLint and native video helper tests passed; typecheck, dependency-cruiser and knip failed in the same run. This is a pre-existing standalone migration blocker, not evidence that the new helper failed.
