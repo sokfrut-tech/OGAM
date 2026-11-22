@@ -343,3 +343,17 @@ Sources:
 - Meta MMS license and model details: https://huggingface.co/facebook/mms-tts
 
 No archive or model weights were downloaded in this audit. No Sherpa APK/AAR was integrated into OGAM.
+
+
+### 2.5 Streaming memory and JNI callback semantics — source-confirmed refinement
+
+A focused read of the pinned C++ stream implementation establishes more detail than the API signature alone:
+
+- `chunked_audio_stream::push_frame()` appends decoded PCM to `result.audio` only inside `if (collect_audio_ && collected_audio_)`. With `collect_audio=false`, the complete waveform is not accumulated in that result buffer.
+- The C++ pipeline still retains the generated acoustic-code sequence in `generated_codes` for the turn, so this is not constant-memory synthesis. It removes full-waveform accumulation, but not model memory or generated-code memory.
+- The native JNI wrapper copies every chunk into a new Java FloatArray, synchronously invokes `onAudioChunk(...)`, then deletes the local reference. Its C++ callback maps a false return to a native streaming stop.
+- `make_native_result()` only constructs a Java audio array when the native result has a non-zero `audio_len`; with `collect_audio=false`, Kotlin should expect a null full-waveform field and treat callback chunks as the only audio output.
+- The C++ callback is invoked during the synchronous `qwen3_tts_synthesize_streaming` call in the JNI method, and the JNI state stores the calling thread's `JNIEnv*`. The Kotlin consumer must therefore not retain the JNI-provided samples reference asynchronously or move JNI calls onto another thread; it should consume/copy the Java FloatArray in the callback and pass it to the playback queue in-order. Verify this on-device with a JNI instrumented smoke test.
+- For a real-time Jarvis path, use `collect_audio=false`, a bounded playback queue, sample-rate validation, monotonic sample/chunk indices, and generation-aware cancellation. The native result should report completion/error/timing only; it is not the audio transport.
+
+This is source-inspected behavior, not a measured Android benchmark. The method is still inaccessible from the current Kotlin `QwenEngine.kt` public API until that wrapper exposes it.
