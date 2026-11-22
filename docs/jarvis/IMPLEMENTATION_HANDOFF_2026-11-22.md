@@ -614,3 +614,10 @@ Added source-only implementation on this branch:
 - This success covers the repository's Node source-contract suite, including assistant bridge, PCM playback source contract, TTS backend boundary, speech chunker structure and Supertonic patch contract. It does NOT compile Kotlin, run the JUnit tests, build the APK or test PGEM10.
 - A separate duplicate audit run was still in progress at the last check. The primary completed run 423 is success.
 - The full CI run 181 remained pending at the last check. Do not report Gradle/JUnit success.
+
+
+### Latest verification snapshot — 2026-11-22
+- Current PR #1 head: `781d6e68ebc11b971892f521c05e3020b5f9d2a9`.
+- External dependency audit run 426 completed successfully on this exact head: https://github.com/sokfrut-tech/OGAM/actions/runs/45058165618
+- The passing audit includes the TTS backend/chunker source contract, assistant bridge source contracts, PCM playback source contract and the other configured Node-only checks.
+- Full CI run 182 is still pending/no job result at last inspection. Gradle/JUnit, APK build and PGEM10 tests are not verified.
