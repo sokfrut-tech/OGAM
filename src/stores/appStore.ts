@@ -16,7 +16,8 @@ import {
   DEFAULT_SILENCE_AFTER_SPEECH_MS,
   DEFAULT_SPEAKER_DRAIN_MS,
 } from '../utils/voiceTurnSettings';
-import { DEFAULT_MAX_TOOL_CALLS, MOBILE_MTP_DRAFT_TOKENS, REASONING_BUDGET_AUTO } from '@offgrid/models';
+import { DEFAULT_MAX_TOOL_CALLS, MOBILE_MTP_DRAFT_TOKENS } from '@offgrid/models';
+import { REASONING_BUDGET_AUTO } from '../utils/reasoningBudget';
 import { APP_CONFIG } from '../constants';
 import type { ChatGroupBy, ChatSortBy } from '../utils/chatGrouping';
 import { createHydrationGatedStorage } from '../utils/hydrationGatedStorage';
