@@ -35,6 +35,8 @@ test('PCM generations invalidate stale chunks and make finish/cancel idempotent'
 test('Android unit tests cover write order, interruption, stale startup, sample-rate validation and focus', () => {
   const unit = read('android/app/src/test/java/ai/offgridmobile/voice/JarvisPcmStreamPlayerTest.kt');
   assert.equal((unit.match(/@Test/g) ?? []).length, 8);
+  assert.ok(unit.includes('val firstGeneration = player.begin(24_000)!!'));
+  assert.ok(unit.includes('firstGeneration.set(player.begin(24_000))'));
   for (const name of [
     'writesPartialChunksInOrderAndFinishesTheCurrentGeneration',
     'cancelInvalidatesLateChunksAndReleasesTheTrackImmediately',
