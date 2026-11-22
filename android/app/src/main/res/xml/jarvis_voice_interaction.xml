@@ -8,6 +8,5 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:sessionService="ai.offgridmobile.voice.JarvisVoiceInteractionSessionService"
     android:recognitionService="ai.offgridmobile/ai.offgridmobile.voice.JarvisVoiceInteractionService"
-    android:settingsActivity="ai.offgridmobile.MainActivity"
     android:supportsAssist="true"
     android:supportsLocalInteraction="false" />
