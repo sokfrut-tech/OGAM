@@ -192,3 +192,7 @@ The source survey now includes Chinese platforms and Chinese-language projects (
 
 ## Wake-word and background microphone research
 - [Android wake-word and background microphone policy audit](../voice/OGAM_WAKEWORD_AND_BACKGROUND_MICROPHONE_RESEARCH_2026-11-22.md) — openWakeWord Android ports, Sherpa-ONNX, licensing boundaries, Android 12–16 microphone/foreground-service restrictions, and the PGEM10 benchmark plan. No KWS model selected or integrated.
+
+
+## OGAM voice implementation reality audit
+- [Voice stack source/API reality audit](../../docs/jarvis/OGAM_VOICE_STACK_REALITY_AUDIT_2026-11-22.md) — independently inspected the actual PR #1 Kotlin/React Native voice source and Android hotword API boundaries. Confirms that system-assistant invocation is implemented in source, but wake-word, DSP hotword, neural VAD and a production Russian TTS model are not yet established.
