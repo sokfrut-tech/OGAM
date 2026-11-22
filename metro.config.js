@@ -24,7 +24,6 @@ const ragPackagePath = path.resolve(sharedRoot, 'packages/rag');
 // @offgrid/models: cross-platform model contracts (catalog, reasoning-budget rule) shared
 // with desktop. Out-of-root like rag, prebuilt CJS in dist/.
 const modelsPackagePath = path.resolve(sharedRoot, 'packages/models');
-const uiPackagePath = path.resolve(sharedRoot, 'packages/ui');
 // @offgrid/design: the one token source for desktop and mobile (colours, type, spacing, motion).
 const designPackagePath = path.resolve(sharedRoot, 'packages/design');
 // @offgrid/speech: voice-turn decisions (when a spoken turn begins and ends) shared with desktop.
@@ -69,7 +68,6 @@ const config = {
     writingPackagePath,
     notesPackagePath,
     notesEditorPackagePath,
-    uiPackagePath,
     designPackagePath,
     sharedNodeModulesPath,
     ...linkedNodeModulesPaths,
@@ -97,7 +95,6 @@ const config = {
       '@offgrid/rag/documents': path.resolve(ragPackagePath, 'dist/documents/index.js'),
       '@offgrid/models': path.resolve(modelsPackagePath, 'dist/index.js'),
       '@offgrid/speech': path.resolve(speechPackagePath, 'dist/index.cjs'),
-      '@offgrid/ui': path.resolve(uiPackagePath, 'dist/index.js'),
       '@offgrid/writing': path.resolve(writingPackagePath, 'dist/index.cjs'),
       '@offgrid/notes': path.resolve(notesPackagePath, 'dist/index.cjs'),
       '@offgrid/notes-editor/webview-html': path.resolve(notesEditorPackagePath, 'dist/webview-html.js'),
