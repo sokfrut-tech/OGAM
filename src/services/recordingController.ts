@@ -35,6 +35,8 @@ interface RecordingHandlers {
   start: () => void | Promise<void>;
   stop: () => void | Promise<void>;
   cancel: () => void;
+  /** Current backend/model availability. False leaves the session idle and the mic untouched. */
+  canStart?: () => boolean;
 }
 
 type Listener = (phase: RecordPhase) => void;
@@ -89,6 +91,7 @@ class RecordingController {
    */
   start(): void {
     if (this.getPhase() !== 'idle' || !this.handlers) return;
+    if (this.handlers.canStart && !this.handlers.canStart()) return;
     voiceSession.dispatch('userStart');
     void this.handlers.start();
   }
