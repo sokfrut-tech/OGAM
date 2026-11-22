@@ -21,6 +21,8 @@ jobs:
         run: node --test scripts/__tests__/audit-offgrid-imports.test.mjs
       - name: Verify standalone progress contract
         run: node --experimental-strip-types --test scripts/__tests__/progress-core.node.test.mjs
+      - name: Verify companion artifact classification
+        run: node --experimental-strip-types --test scripts/__tests__/model-companion-files.node.test.mjs
       - name: Verify split GGUF filename contract
         run: node --experimental-strip-types --test scripts/__tests__/gguf-split-files.node.test.mjs
       - name: Generate complete source/config inventory
