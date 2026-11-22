@@ -94,3 +94,10 @@ Do not replace this with a lossy partial port and then claim general Russian cor
 ## Current decision
 
 tiny-voca-ru is the leading compact Russian prototype because the model is small and the code/weights have permissive licenses. It is not yet integrated: exact Russian model hashes/revision, voice provenance, full frontend parity, Android runtime size and SM8550 performance remain open. CosyVoice3-MNN is demoted to batch-quality experiment after its published Flow-only real-time gate failure. Supertonic remains conditional on OpenRAIL-M acceptance and a rebuilt callback-stop fix.
+
+
+## Update: CosyVoice3-MNN is an advanced high-resource experiment, not batch-only
+
+The initial 10-step Stage-1 Flow estimate (~3.69 RTF) is superseded by a later upstream 2-step distillation proof of concept. The newer report records a cool Honor BKQ_AN90/Adreno 840 concurrent pipeline at RTF 0.63, but a hot run after preparation at RTF 1.29. The two-step student was trained/evaluated on only 20 training and 4 held-out Chinese utterances from one speaker, so it is not broad release validation. The full runtime still needs ~2.25 GB PSS, ~1.3 GiB model storage, cold startup around 10–15 s, and has only SM8850 device validation.
+
+Therefore tiny-voca-ru remains the compact first prototype, while CosyVoice3-MNN remains a separate high-quality/high-resource candidate. Do not call CosyVoice batch-only, and do not claim its SM8850 result transfers to OPPO SM8550.
