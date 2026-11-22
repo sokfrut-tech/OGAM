@@ -605,3 +605,12 @@ Added source-only implementation on this branch:
 - Important: these tests have been added but no Gradle/JUnit run has been confirmed. The manual Android APK workflow remains default-branch-only; no APK/device verification.
 - No Sherpa, Qwen, CosyVoice, Supertonic or other TTS dependency/model has been added yet. The new contract is intentionally model-neutral and keeps the selected model decision separate.
 - The Supertonic callback-stop patch remains a proposed patch file and has not been applied to a compiled AAR.
+
+
+## CI source-contract verification after TTS groundwork
+
+- Added `scripts/__tests__/jarvis-tts-backend.node.test.mjs` and wired it into `.github/workflows/ogam-external-dependency-audit.yml`.
+- The external dependency audit completed successfully on commit `a8113ac77c35108dc9f2a88da9f990923e9bbd08`, workflow run 423: https://github.com/sokfrut-tech/OGAM/actions/runs/45058086277
+- This success covers the repository's Node source-contract suite, including assistant bridge, PCM playback source contract, TTS backend boundary, speech chunker structure and Supertonic patch contract. It does NOT compile Kotlin, run the JUnit tests, build the APK or test PGEM10.
+- A separate duplicate audit run was still in progress at the last check. The primary completed run 423 is success.
+- The full CI run 181 remained pending at the last check. Do not report Gradle/JUnit success.
