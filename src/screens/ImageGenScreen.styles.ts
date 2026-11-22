@@ -36,6 +36,7 @@ export const createStyles = (colors: ThemeColors, _shadows: ThemeShadows) => ({
   },
   seedField: { marginTop: SPACING.md },
   unsupportedNote: { color: colors.textMuted, fontSize: 12, marginTop: SPACING.md, lineHeight: 18 },
+  statusText: { color: colors.text, fontWeight: '600' as const },
   statusHeader: {
     flexDirection: 'row' as const, alignItems: 'center' as const,
     justifyContent: 'space-between' as const,
