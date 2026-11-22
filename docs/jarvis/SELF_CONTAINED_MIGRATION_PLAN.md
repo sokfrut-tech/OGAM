@@ -955,3 +955,41 @@ Added `src/stores/taskPlanStore.ts` and exported `useTaskPlanStore`:
 - Added Jest store tests for draft validation/editing, approval-gated execution state, and deletion guards.
 
 Still missing before end-user release: plan editor/HUD, durable recovery after process death during an external side effect, executor idempotency, encrypted-at-rest handling for sensitive plan content, and native approval/cancellation UI. The current store is state persistence only; it does not execute skills itself.
+
+
+### Android platform parity research — current OGAM native baseline (2026-11-22)
+
+Official Android documentation confirms the native route for Siri-like integration:
+
+- `VoiceInteractionService` is the system-selected global assistant entry point. Android keeps it alive for hotword support; its implementation must stay lightweight, while the heavier `VoiceInteractionSessionService` / session handles an active interaction. The user must select Jarvis as the active assistant; the app cannot silently replace the current assistant.
+- A `VoiceInteractionSession` can receive assist data as `AssistStructure` and a screenshot through the documented assist callbacks. This is the supported basis for optional on-screen awareness; access must be explicitly configured, visible and minimized. It is not a licence to record or scrape the screen continuously.
+- Android App Shortcuts provide static, dynamic and pinned entry points. Shortcuts can be surfaced by launchers and assistants; pinned shortcuts require user approval. Sensitive personal data must not be placed in shortcut metadata because launchers can access it.
+- WorkManager is Android's recommended mechanism for persistent background work, including work that survives app exits/reboots, constraints, retries and chains. Long-running work uses a foreground service/notification and Android 16 introduces job-quota considerations for long-running workers. Voice capture and immediate interactive work must not be moved blindly into WorkManager.
+- Foreground services must be noticeable and are restricted when started from background. Jarvis must choose between in-process coroutines, WorkManager, alarms and a foreground service according to the work type and Android version, rather than assuming arbitrary background execution is permitted.
+
+Current OGAM audit:
+- `AndroidManifest.xml` declares microphone, camera, calendar, notification, media/storage, network and several foreground-service permissions.
+- It already has native modules for download management, local image generation, PDF extraction, LiteRT, device memory, clipboard/process-text, screenshot, directory/download sharing, local-network mesh and engine packs.
+- It already has a working Android process-text selection action and a separate "Improve" action; these are useful Siri-like contextual entry points.
+- No `VoiceInteractionService`, `VoiceInteractionSessionService`, assist-session implementation, App Shortcuts XML or React Navigation deep-link map was found in the current Android manifest/tree inspection. Therefore system-assistant activation and shortcut routing are not yet implemented.
+- Existing microphone recording and React Native voice input are in-app capabilities; they do not by themselves make OGAM a selectable Android system assistant.
+
+Implementation order:
+1. Add a dedicated native `VoiceInteractionService` + `VoiceInteractionSessionService` pair with correct bind permission, metadata and lifecycle. Keep the service light; defer model loading until a session is opened.
+2. Define a typed, consent-gated bridge from the native session to the React Native Jarvis session. Pass only explicit assist data selected by the user; strip/redact password, payment and private autofill fields. If assist data is unavailable or disabled, continue with voice-only mode.
+3. Add deep-link routing to the assistant home, new conversation, voice mode and task-plan detail; then expose static/dynamic/pinned shortcuts that contain opaque IDs, not private content.
+4. Use WorkManager only for durable non-interactive plan steps and downloads; use a visible foreground service only for work that must stay active now (e.g. an explicitly started voice interaction or user-visible long task). Respect Android 14+ service types and Android 16 quotas.
+5. Test selection as default assistant, wake/session lifecycle, screen-off/locked behavior, cancellation, permission revocation, app process death, Android API 24 minimum and current Android versions. OPPO/ColorOS background policies require device testing; emulator success is not enough.
+
+Official references:
+- VoiceInteractionService: https://developer.android.com/reference/android/service/voice/VoiceInteractionService
+- Assistant implementation and assist context: https://developer.android.com/training/articles/assistant
+- AssistStructure: https://developer.android.com/reference/android/app/assist/AssistStructure
+- App Shortcuts overview: https://developer.android.com/develop/ui/compose/system/shortcuts
+- Shortcut creation and pinning consent: https://developer.android.com/develop/ui/compose/system/shortcuts/creating-shortcuts
+- Shortcut privacy and management: https://developer.android.com/develop/ui/compose/system/shortcuts/managing-shortcuts
+- Background work selection: https://developer.android.com/develop/background-work/background-tasks
+- Persistent work and chains: https://developer.android.com/develop/background-work/background-tasks/persistent
+- Long-running worker limits: https://developer.android.com/develop/background-work/background-tasks/persistent/how-to/long-running
+
+All Android integrations are original OGAM/Jarvis code using public Android APIs. No proprietary Apple code or assets are involved.
