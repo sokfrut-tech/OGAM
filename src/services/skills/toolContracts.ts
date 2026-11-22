@@ -11,10 +11,25 @@ function propertyType(type: string): SkillValueType {
   return 'string';
 }
 
+// Fail closed: a newly added tool must be explicitly classified before it can execute.
+const TOOL_RISKS: Record<string, SkillContract['risk']> = {
+  generate_video: 'reversible-write',
+  make_film: 'reversible-write',
+  web_search: 'read-only',
+  calculator: 'read-only',
+  get_current_datetime: 'read-only',
+  get_device_info: 'read-only',
+  search_knowledge_base: 'read-only',
+  read_url: 'read-only',
+}
+
 /** Convert the existing OGAM tool registry into the shared Jarvis skill contract. */
 export function getToolSkillContract(toolName: string): SkillContract | null {
   const tool = offeredTools().find(candidate => candidate.name === toolName);
   if (!tool) return null;
+
+  const risk = TOOL_RISKS[tool.id];
+  if (!risk) return null;
 
   const properties = Object.fromEntries(
     Object.entries(tool.parameters).map(([name, parameter]) => [
@@ -27,7 +42,6 @@ export function getToolSkillContract(toolName: string): SkillContract | null {
     ]),
   );
 
-  const isGeneration = tool.id === 'generate_video' || tool.id === 'make_film';
   return {
     id: `tool.${tool.id}`,
     version: 1,
@@ -43,7 +57,7 @@ export function getToolSkillContract(toolName: string): SkillContract | null {
     },
     requiredCapabilities: [`tool:${tool.id}`],
     ...(tool.requiresNetwork ? { requiresNetwork: true } : {}),
-    risk: isGeneration ? 'reversible-write' : 'read-only',
+    risk,
     confirmation: 'never',
     executionMode: 'foreground',
     timeoutMs: 30_000,
