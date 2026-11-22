@@ -77,3 +77,29 @@ The repository README is only a project-continuation placeholder and says the re
 - No copied OPPO code/assets unless clearly redistributable under verified license.
 - Public repo receives only original analysis, source links, hashes, non-sensitive metadata and properly licensed code.
 - Any hook or local bridge must be optional, version-gated, loopback-only, authenticated and disabled by default until tested.
+
+
+## Source-level audit: breeno-rikkahub (2026-11-22)
+The repository tree and primary Kotlin files were inspected through GitHub's public source interface: BreenoHook.kt, RikkaClient.kt, Config.kt, Entry.kt, AndroidManifest.xml, Gradle config and build workflow. This is a source reading only; no APK was built or run.
+
+### Confirmed implementation mechanics
+- Xposed entry point filters package com.heytap.speechassist and can be disabled by Config.ENABLED.
+- It hooks two Breeno data-center variants: pluginAdapter.aichat.AIChatDataCenter (addChatBeanData / notifyUpdateView) and legacy aichat.AIChatDataCenter (obfuscated J / E).
+- It reads AIChatViewBean fields through reflection, intercepts TYPE_QUERY, forwards text to RikkaHub POST /api/conversations/{id}/messages, consumes SSE snapshot/node_update events and creates TYPE_ANSWER beans to update the existing UI.
+- It cancels an in-flight stream for the same room and posts UI updates on the main thread.
+- The manifest requests INTERNET and ACCESS_NETWORK_STATE only; Gradle targets SDK 35, min SDK 26, Java 17, Kotlin 2.0.21, AGP 8.7.3, Gradle 8.11.1. GitHub Actions builds a debug APK artifact.
+
+### Code-level risks and limitations found
+1. Transport is plain HTTP and unauthenticated. The README/config rely on 127.0.0.1 and disabling JWT. Loopback reduces exposure but does not provide application-level authentication; do not reuse this transport design as-is.
+2. SSE connection accepts any response code before reading inputStream and uses an unbounded read timeout; error handling is minimal. Jarvis needs explicit HTTP status validation, bounded lifecycle, reconnect/backoff, cancellation and structured errors.
+3. baselineMessageCount is passed as 0, so the comment about filtering messages created after stream start does not provide meaningful stale-message protection in this integration.
+4. Duplicate suppression uses a global lastInputKey composed of roomId and query; identical consecutive utterances may be dropped even when intentional. Use turn/request IDs and bounded idempotency windows instead.
+5. Hooking both data-center classes and dynamically tracing constructors/methods is fragile and may create duplicate interception or performance/logging/privacy issues. Debug trace should be off by default and logs must redact user content.
+6. Reflection relies on Breeno classes, bean getters/setters, enum/type constants and obfuscated method names. The README itself states compatibility is version-sensitive. Add package version/signature fingerprint checks and fail closed.
+7. It suppresses native TYPE_ANSWER events and injects the replacement into Breeno's UI. A hook failure after suppression could leave the user without an answer. A robust bridge needs rollback/fallback to native Breeno or a separate Jarvis UI.
+8. Bridge is text-only and sets interceptStreamTTS; README says Breeno TTS remains responsible for speech output. This is not a reusable ASR/TTS stack.
+9. Config supports a master switch and dry-run, but no in-app settings or capability health screen. The module is not a normal third-party assistant and requires Xposed injection into Breeno.
+10. Build workflow produces debug artifact only; no release signing, unit/instrumentation tests, compatibility matrix or automated device tests were identified in the inspected files.
+
+### OGAM decision
+Do not port the Xposed hook into OGAM core. Adopt only general architecture lessons: model-provider adapter, streaming response contract, explicit conversation/session IDs, cancelable generation handles, UI-independent orchestrator, versioned compatibility probes and fail-safe fallback. The preferred OGAM implementation remains its own native voice assistant and UI using public Android APIs. A Breeno UI bridge may be a separate, disabled-by-default experiment only after legal, device, firmware, privacy and security review.
