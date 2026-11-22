@@ -296,3 +296,12 @@ Do not add a second AudioRecord or React Native AudioRecorder for KWS. The KWS e
 ## 10. Work not performed
 
 No training pipeline was run; no model file was generated, downloaded or hashed; no TFLite/Android runtime was integrated; no QNN delegate was built; no APK was built or installed; no microphone recording or PGEM10 battery/thermal/recall/FAR test was performed. This document is source-level research and a prototype design, not an implemented feature.
+
+
+## 11. Alkove and Voicute comparison
+
+The follow-up audit [OGAM_ALKOVE_VOICUTE_ANDROID_KWS_AUDIT_2026-11-22.md](OGAM_ALKOVE_VOICUTE_ANDROID_KWS_AUDIT_2026-11-22.md) compares two more Android paths:
+- Alkove (Apache-2.0) has a caller-supplied PCM Processor API suitable for OGAM's existing single recorder. Its Spot/Lex models support only fr/en/es/pt/it/ca/ro. Manual IPA can represent an approximate «Джарвис» pronunciation, but this does not add Russian acoustic training or Russian-calibrated thresholds. Treat only as an experimental comparator and optional Focus/Cue voice-isolation test.
+- Voicute (MIT) provides an Android Java/ONNX engine and hard-negative optimisation architecture; its public model catalogue and hosted custom training cover seven languages but not Russian. Its demo opens its own AudioRecord and uses a sliding-window ONNX frontend, so OGAM must not reuse its capture class or mix its model format with microWakeWord.
+
+The decision is unchanged: microWakeWord remains the first Russian KWS training/benchmark candidate. Alkove is a possible auxiliary shared-PCM test; Voicute is a source/false-trigger strategy reference only. No code or model has been integrated and no PGEM10 test has been run.
