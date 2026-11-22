@@ -942,3 +942,16 @@ Extended `src/services/planner/taskPlan.ts` with a pure run-state transition lay
 Added tests for approval, rejection, execution-state transitions, output capture, failure/retry, pause/resume and cancellation guards. This is still a pure state layer: no native tool is invoked, no background job is started, and persistence/UI/executor integration are not yet wired. A real executor must cancel native work before confirming pause/cancel, persist state before/after side effects, and use idempotency keys to avoid duplicate writes after process death.
 
 Current Actions run for the newest test commit: `45021671152` (check its final conclusion before calling this slice green).
+
+
+### Progress update — local persistent plan store (2026-11-22)
+
+Added `src/stores/taskPlanStore.ts` and exported `useTaskPlanStore`:
+- Draft plans are validated before storage and receive app-generated IDs/timestamps.
+- Draft editing is allowed only before activation; activation creates a run ledger with per-step state.
+- The store exposes guarded claim, approval, complete, fail, retry, pause, resume, cancel and delete operations by delegating to the pure planner transitions.
+- Plan definitions, step progress, outputs and bounded error text are persisted through OGAM's hydration-gated storage adapter.
+- Plan storage is local-only by default and is deliberately not emitted to OGAM's device-sync mutation bus. This is not encryption; OS app-sandbox protection and the device's storage security still apply. Any future cloud/LAN sync needs a separate explicit opt-in and privacy review.
+- Added Jest store tests for draft validation/editing, approval-gated execution state, and deletion guards.
+
+Still missing before end-user release: plan editor/HUD, durable recovery after process death during an external side effect, executor idempotency, encrypted-at-rest handling for sensitive plan content, and native approval/cancellation UI. The current store is state persistence only; it does not execute skills itself.
