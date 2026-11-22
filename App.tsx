@@ -15,6 +15,7 @@ import { openPendingImprove, startScribeEntry } from './src/services/scribeEntry
 import { startProCheckoutReturn } from './src/services/proCheckout';
 import { AliveProvider } from './src/components/AliveProvider';
 import { AppNavigator } from './src/navigation';
+import { jarvisVoiceLinking } from './src/navigation/jarvisVoiceLinking';
 import { getRegisteredScreens } from './src/navigation/screenRegistry';
 import {
   appNavigationRef,
@@ -478,6 +479,7 @@ function App() {
         <SystemBars style={isDark ? 'light' : 'dark'} />
         {AppRoot ? <AppRoot /> : null}
         <NavigationContainer
+          linking={jarvisVoiceLinking}
           ref={appNavigationRef}
           onReady={() => {
             applyPendingProRedirect();
