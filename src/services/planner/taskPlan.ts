@@ -231,13 +231,12 @@ export function resolveTaskStepApproval(
     return { run, error: 'This step is not awaiting approval.' };
   }
   if (!approved) {
+    const stepStates = { ...run.stepStates, [stepId]: 'cancelled' as const };
+    for (const [id, status] of Object.entries(stepStates)) {
+      if (status === 'pending' || status === 'awaiting-approval') stepStates[id] = 'cancelled';
+    }
     return {
-      run: {
-        ...run,
-        status: 'cancelled',
-        stepStates: { ...run.stepStates, [stepId]: 'cancelled' },
-        updatedAt: now,
-      },
+      run: { ...run, status: 'cancelled', stepStates, updatedAt: now },
     };
   }
   return {
