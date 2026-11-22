@@ -3,6 +3,8 @@ package ai.offgridmobile
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import ai.offgridmobile.voice.JarvisAssistantBridgeActivity
+import ai.offgridmobile.voice.JarvisAssistantLaunchGuard
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import com.facebook.react.ReactActivity
@@ -29,12 +31,35 @@ class MainActivity : ReactActivity() {
    * React Native's Linking integration consumes ACTION_VIEW intents for the Jarvis assistant
    * hand-off. Preserve the new intent for cold/warm app-start and forward it to RN.
    */
+  private fun isJarvisAssistantIntent(intent: Intent?): Boolean {
+    val data = intent?.data ?: return false
+    return intent.action == Intent.ACTION_VIEW &&
+      data.scheme == "offgrid" &&
+      data.host == "assistant" &&
+      data.path == "/voice"
+  }
+
+  private fun acceptJarvisAssistantIntent(intent: Intent): Boolean {
+    if (!isJarvisAssistantIntent(intent)) return true
+    val token = intent.getStringExtra(JarvisAssistantBridgeActivity.EXTRA_LAUNCH_TOKEN)
+    if (!JarvisAssistantLaunchGuard.consume(token)) return false
+    intent.removeExtra(JarvisAssistantBridgeActivity.EXTRA_LAUNCH_TOKEN)
+    return true
+  }
+
   override fun onNewIntent(intent: Intent) {
+    // An explicit VIEW intent is not trusted just because it targets our exported launcher.
+    // Only the non-exported bridge can mint the one-time in-process token.
+    if (!acceptJarvisAssistantIntent(intent)) return
     super.onNewIntent(intent)
     setIntent(intent)
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    if (isJarvisAssistantIntent(intent) && !acceptJarvisAssistantIntent(intent)) {
+      // Strip an untrusted assistant URI before React Native Linking reads the initial URL.
+      setIntent(Intent(this, MainActivity::class.java).apply { action = Intent.ACTION_MAIN })
+    }
     // Switch from SplashTheme back to AppTheme once React Native loads
     setTheme(R.style.AppTheme)
     // Edge-to-edge (required for API 35+) with fully transparent system bars and
