@@ -369,3 +369,40 @@ No source code was copied in this pass. These projects are architecture/behavior
 2. inspect the exact source and licence of the candidate implementation and every non-platform dependency it pulls in;
 3. map old behavior to OGAM tests and add missing regression tests;
 4. port the smallest independent vertical slice, then run focused Jest/TypeScript checks and a clean install.
+
+
+## OGAM consumer-side compatibility map — direct source review (2026-11-22)
+
+Opened the following current OGAM files on `feature/jarvis-step-2-storage-privacy`:
+
+### Documents / RAG — `@offgrid/rag/documents`
+
+- `src/services/documents/index.ts` composes `DocumentIngestService` and `DocumentTurnService` with OGAM-owned ports: extractor, persistent store, scheduler, embedder, conversation/project membership, keyword search, progress and warning callbacks.
+- `src/services/documents/models.ts` supplies normalized MiniLM-family or user-selected embeddings through OGAM's `embeddingService`.
+- `src/services/rag/index.ts` owns project knowledge-base membership and sync identity; actual extraction, indexing, retrieval and citations are delegated to the document engine.
+- Therefore, a replacement must preserve the ingest lifecycle, document identity/deduplication, garbage collection, project/conversation scoping, keyword + vector retrieval, citations, progress, scheduler yielding, and error reporting. A generic top-K RAG sample is not a compatible replacement.
+- Candidate patterns: OfflineMate source-diversified retrieval and fallback warning; Vesta document retrieval + tool-loop design; ToolNeuron's Room-backed installed-RAG lifecycle and embedding validation. These are references, not yet a complete drop-in implementation.
+
+### Sync — `@offgrid/sync`
+
+- `src/services/sync/engine.ts` composes the platform-neutral `SyncEngine` with `RnTcpTransport`, injected TCP module and byte codec.
+- The engine contract includes pairing, passphrase/shared-secret, mesh admission, pairing persistence, membership persistence/revocation, route changes, app messages, transport caps and error callbacks.
+- This is security-sensitive networking. Do not replace it with a basic local HTTP/MCP server or copy a superficially similar transport. Need the complete protocol, crypto, replay protection, pairing state machine, version negotiation and sync regression tests before selecting an alternative.
+
+### Speech — `@offgrid/speech`
+
+- `src/services/voiceSession.ts` uses a shared deterministic state machine: `initialVoiceSession`, `nextVoiceSession`, `micShouldBeOpen`, `speechMayPlay`.
+- OGAM deliberately has one owner for listening/speaking/stopped state to avoid duplicated locks and races between microphone capture, generation and playback.
+- Vesta/OfflineMate voice hooks and native voice activities are candidate references, but any port must preserve the single-owner state machine and OGAM's current voice-mode behavior. Replacing this with independent booleans/hooks would reintroduce known race classes.
+
+### Models — `@offgrid/models`
+
+- `src/stores/modelCatalogStore.ts` owns local state and persistence ports; the shared package supplies the remote catalog URL, parsing, validation, merge/diff and cache helpers.
+- Startup loads cached data and does not fetch; the user explicitly taps to check for new models. Bundled lists remain fallback and locally added entries are merged after remote entries.
+- Keep the previously documented catalog, recommendation, quantization, GGUF sidecar and model-card contracts. Candidate registries from Vesta/OfflineMate are useful only for installed-model metadata/download lifecycle; they are not substitutes for the catalog behavior.
+
+### First implementation priority — revised
+
+Do not start by replacing the entire RAG package. The source review shows the highest-value safe first slice is likely a **small pure helper contract** from `@offgrid/models` (catalog parsing/merge or model metadata classification) only after its exact consumer and tests are fully mapped. In parallel, build a complete document-engine contract map. Sync and speech remain later slices because they are stateful/security-sensitive and already sit on critical app paths.
+
+No runtime source was changed in this pass. This update records the exact OGAM compatibility boundaries so future reuse of external code cannot silently remove existing features.
