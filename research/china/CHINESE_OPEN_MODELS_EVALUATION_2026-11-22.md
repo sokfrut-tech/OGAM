@@ -83,3 +83,58 @@ As of this note, none of CosyVoice3-MNN, Qwen3-ASR, FunASR or SenseVoice has bee
 - https://github.com/QwenAudio/SenseVoice
 - https://github.com/modelscope/FunASR
 - https://github.com/modelscope/FunASR/blob/main/docs/model_selection.md
+
+
+## 2026-11-22 deeper source audit (CosyVoice3-MNN v1.2.0)
+
+The public repository currently exposes v1.2.0 material (not only the earlier v1.1.0 README context). Audited these source artifacts on its main branch:
+- `LICENSE`
+- `app/build.gradle.kts`
+- `app/src/main/AndroidManifest.xml`
+- `CosyVoiceRuntime.kt`, `CosyVoiceStore.kt`, `CosyVoiceModelDownloader.kt`
+- `CosyVoiceDesignService.kt`, `CosyVoiceInstruction.kt`, `CosyVoiceVoiceProfile.kt`
+- `mnn-jni/CosyVoiceLlmJni.cpp`, `mnn-jni/CosyVoiceFlowJni.cpp`
+- `RELEASE_NOTES_v1.2.0.md`, `release-manifest.json`
+
+### Positive implementation details confirmed in source
+- Android application source declares Apache-2.0; model card for the converted MNN package says Apache-2.0; official QwenAudio/CosyVoice repository is Apache-2.0. Preserve license/NOTICE and verify the license of each native dependency and prebuilt binary separately before redistribution.
+- App uses Android minSdk 26, targetSdk 36, Kotlin/Compose, MNN 3.6.1, arm64-v8a, and external model package with fixed size and SHA-256 checks.
+- ZIP import stages files, validates expected names/sizes/hashes and moves them into the model directory. Downloader supports resume and verifies the whole archive before import.
+- LLM JNI serializes calls with a native mutex. The Kotlin voice-profile model carries a schema version, model ID, prompt metadata and profile hash.
+- Long-text release notes describe a real fix to sampling pipeline: adding repetition penalty (1.15), dynamically sizing maxTokens from prefix+text, tightening EOS/collapse quality checks and clipping trailing idle tokens. This matters for Jarvis long answers.
+- Voice-design work is isolated into a separate Android process and foreground service. Source comments document a peak memory footprint around 7 GB for the design task and a 30-minute partial wake lock. This is a high-memory optional feature, NOT appropriate for default Jarvis MVP on PGEM10.
+- The service serializes design jobs because parallel runs contend for shared MNN global executor and can exhaust memory. This is a useful concurrency lesson.
+- Release manifest currently says v1.2.0, APK ~12.38 MB, and model archive ~1.399 GB; model files are downloaded separately.
+
+### Risks / questions found during source inspection
+- README's strongest performance and Hexagon claims are still SM8850-specific. No SM8550/OPPO Find X6 Pro test evidence found. Never import SM8850 Hexagon stub/skeleton or q_proj path into OGAM.
+- Source manifest requests INTERNET, foreground service/dataSync, notifications, legacy storage permissions capped by API level, and marks backup enabled. OGAM must not copy these wholesale: model files are private app data, and backup/data-exfiltration implications must be reviewed. INTERNET is only needed for explicit model download; offline inference itself should work with network disabled.
+- App has an isolated :design process, but it still shares application files and native libraries; process separation does not make the operation low-memory or sandbox model input. It is an optional experimental capability.
+- The README's own performance table is from one SM8850 handset. The project itself lists non-Qualcomm devices and CPU fallback as unverified. On SM8550, MNN CPU/OpenCL support is plausible but not established by source review.
+- Prebuilt .so binaries and Hexagon DSP artifacts have a distinct provenance/license chain. Source LICENSE alone does not prove every shipped binary is reproducible or redistributable under the same license.
+- Model archive is 1.3 GiB; optional voice enrollment extension is ~998 MB. Keep these as user-triggered, hash-verified downloads outside APK. Do not make them a required Jarvis install dependency.
+- v1.2.0 long-text and voice-design fixes were read from release notes/source; they are not independently reproduced by OGAM and not verified on PGEM10.
+
+### New ASR deployment lead: Qualcomm AI Hub
+Qualcomm AI Hub currently lists Qwen3-ASR 0.6B and 1.7B as mobile model offerings with Q8_0 GGUF weights and a llama.cpp-based GenieX runtime:
+- 0.6B weights are listed at ~0.80 GB (audio encoder excluded); the page lists Galaxy S25/S26 and Snapdragon 8 Elite/Elite Gen 5 support.
+- 1.7B weights are listed at ~2.17 GB (audio encoder excluded); the same device generation limitation is shown.
+- The model card advertises 30 languages and 22 Chinese dialects; Apache-2.0 model license is listed.
+This is stronger evidence of a mobile deployment route than the official Qwen Python package alone, but the listed device support does NOT include Snapdragon 8 Gen 2 / SM8550. It is not yet a candidate for direct integration; first determine if the exported GGUF and audio encoder can run on generic llama.cpp/sherpa-onnx on SM8550.
+
+A separate GitHub project called `rounma/mobile-agent` describes Qwen3-ASR + sherpa-onnx, but its README model installation instructions appear to download a Chinese Zipformer model rather than a verified Qwen3-ASR checkpoint. Treat this as a questionable reference, not proof of Qwen3-ASR Android support.
+
+### Updated decision
+- CosyVoice3-MNN v1.2.0 is a high-value reference implementation, but the only safe OGAM step now is a clean-room adapter plan and an isolated benchmark flavor. Do not import binaries or copy the app wholesale.
+- TTS first test should use the regular reading pipeline only. Defer VoiceDesign/enrollment (~7 GB peak design memory / ~1 GB extension) until a separate resource study.
+- Qwen3-ASR 0.6B is a research candidate only; Qualcomm AI Hub's current listed devices exclude our SM8550. Continue with current Sherpa-ONNX/Silero baseline while exploring portable ONNX/GGUF routes.
+- No code or model files were added to OGAM by this audit; this is documentation-only.
+
+### Additional sources
+- https://github.com/Nian27/CosyVoice3-MNN/blob/main/RELEASE_NOTES_v1.2.0.md
+- https://github.com/Nian27/CosyVoice3-MNN/blob/main/release-manifest.json
+- https://github.com/Nian27/CosyVoice3-MNN/blob/main/app/src/main/AndroidManifest.xml
+- https://github.com/QwenAudio/CosyVoice
+- https://aihub.qualcomm.com/mobile/models/qwen3_asr_0_6b
+- https://aihub.qualcomm.com/mobile/models/qwen3_asr_1_7b
+- https://github.com/rounma/mobile-agent
