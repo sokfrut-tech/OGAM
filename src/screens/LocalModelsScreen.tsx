@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -77,6 +77,10 @@ export const LocalModelsScreen: React.FC = () => {
   }, [refreshInventory]);
 
   const chooseFolder = useCallback(async () => {
+    if (Platform.OS !== 'android') {
+      Alert.alert('Folder scanning', 'Direct SAF folder scanning is currently available on Android.');
+      return;
+    }
     setScanning(true);
     setError(null);
     try {
@@ -191,7 +195,7 @@ export const LocalModelsScreen: React.FC = () => {
           testID="local-models-choose-folder"
           style={{ minHeight: 48, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, marginBottom: SPACING.md }}
         >
-          {scanning ? <ActivityIndicator color={colors.primary} /> : <Icon name="folder-search" size={18} color={colors.primary} />}
+          {scanning ? <ActivityIndicator color={colors.primary} /> : <Icon name="folder" size={18} color={colors.primary} />}
           <Text style={{ color: colors.text, fontWeight: '600' }}>Choose folder</Text>
         </TouchableOpacity>
 
