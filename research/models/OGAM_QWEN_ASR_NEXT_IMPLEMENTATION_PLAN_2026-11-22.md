@@ -163,3 +163,35 @@ The Jarvis planner and action layer must not depend on any vendor runtime. Deter
 - The public model card says the GGUF was converted with convert_hf_to_gguf.py. PR #32571 explicitly says existing GGUFs need re-conversion to get the corrected Qwen3-ASR chat template. The currently indexed public files were uploaded before that correction (the mmproj page shows 3 weeks ago, while the converter correction is 2026-11-20), so do not assume the current main branch artifacts contain the corrected template.
 - Before changing the OGAM catalog, compare its exact primary and mmproj sizes/SHA-256 to the upstream files, pin a model repository revision/commit rather than mutable main, and inspect the GGUF metadata/chat template. The mmproj hash above is upstream evidence only; it is not asserted to be the catalog hash until compared.
 - Sources: https://huggingface.co/ggml-org/Qwen3-ASR-0.6B-GGUF; https://huggingface.co/ggml-org/Qwen3-ASR-0.6B-GGUF/blob/main/mmproj-Qwen3-ASR-0.6B-Q8_0.gguf; https://github.com/ggml-org/llama.cpp/commit/919794500475862f6768c353255469dc661cb734
+
+
+## 9. Follow-up source audit — shared catalog boundary and upstream mobile implementation (2026-11-22)
+
+### Repositories and exact source inspected
+- The public organization contains separate repositories `off-grid-ai/OGAM` (mobile), `off-grid-ai/OGAD` (desktop) and `off-grid-ai/OGAC` (server/control plane). The organization-wide repository search did not reveal a public repository named `shared` or a public `packages/models` source repository.
+- Recursive Git tree inspection of OGAM, OGAD and OGAC found no tracked `shared/packages/models` directory. OGAM's `package.json` still declares `@offgrid/models` as `file:../shared/packages/models`, alongside sibling local workspaces such as `@offgrid/speech`, `@offgrid/design`, `@offgrid/rag` and `@offgrid/ui`. The public `off-grid-ai/mobile-pro` URL returned 404 to the repository-content API in this audit; do not treat it as a verified public source.
+- Therefore the exact shared package source and its full `CATALOG` entry remain unavailable through the inspected public repository trees. The earlier catalog audit blocker is confirmed, not resolved. Do not reconstruct or guess missing catalog fields.
+
+### What the public mobile repository does expose
+- The current public `off-grid-ai/OGAM` main tree was inspected at tree commit `ff6abb8babdeb0836bb64d1df61dd90dd39cfd42`. Its `src/services/qwenAsrModel.ts` is available and explicitly identifies `ggml-org/Qwen3-ASR-0.6B-GGUF` as the phone-sized 0.6B model (1.7B is desktop's).
+- That adapter resolves the entry from the imported shared `CATALOG`, then selects `primary` and `mmproj` roles. It requires both files to have a nonzero `sizeBytes`; it passes through the catalog URL, filename, byte size and optional SHA-256. The shared catalog remains the single source of truth for the actual artifacts.
+- The public mobile app's tracked `catalog/models.json` is not that shared model catalog. It has top-level `schemaVersion`, `updatedAt`, and `sections`; its `sections.transcription` currently contains only a Whisper large-v3-turbo entry. It has no Qwen3-ASR artifact entry. This explains why inspecting the mobile JSON cannot recover Qwen filenames, URLs, sizes or hashes.
+- The same current public upstream `src/services/qwenAsrEngine.ts` still uses llama.rn `initLlama`, 4096 context, 1024 output cap, a paired mmproj and CPU-only Android configuration. For a pinned language it formats the audio chat and appends `language <Name><asr_text>`; for auto language it sends the audio message directly. It logs transcript length and duration, not transcript content.
+- This public source does not add vocabulary/hotword context to the Qwen request. The current source audit therefore does not change WP-A: optional bounded system-role vocabulary remains a proposed improvement, not an already implemented upstream feature.
+- Current public upstream `src/services/qwenAsrModel.ts` now imports `transcriptionEngineOf` and engine-availability checks from `@offgrid/models`, and checks platform, engine build compatibility, catalog `minRamGb`, and `loadsOnPhone`. This reinforces that the missing shared workspace is operationally important; the mobile adapter alone cannot define a valid artifact.
+
+### Exact conclusions / no overclaim
+1. Qwen3-ASR 0.6B is still the mobile target in the public upstream source; the 1.7B model is explicitly reserved for desktop.
+2. The mobile source confirms the two-file GGUF + mmproj contract and catalog-driven integrity metadata, but this audit cannot verify the exact file names, URLs, byte sizes, SHA-256 values or immutable model revision because those values are in the unavailable shared package.
+3. The current public app catalog JSON is a different, narrower catalog and must not be substituted for `@offgrid/models`.
+4. No model weights were downloaded, no GGUF metadata was inspected, no native inference was run, and no APK/device test was performed in this follow-up.
+5. Next viable route: continue with source/test design that does not depend on unknown catalog values; in parallel, inspect any user-provided checkout/archive of the shared workspace if it becomes available, or obtain the package through an authorized project workspace. Do not bypass the catalog by hardcoding guessed URLs or checksums.
+
+### Source links
+- https://github.com/off-grid-ai/OGAM/tree/ff6abb8babdeb0836bb64d1df61dd90dd39cfd42
+- https://github.com/off-grid-ai/OGAM/blob/ff6abb8babdeb0836bb64d1df61dd90dd39cfd42/src/services/qwenAsrModel.ts
+- https://github.com/off-grid-ai/OGAM/blob/ff6abb8babdeb0836bb64d1df61dd90dd39cfd42/src/services/qwenAsrEngine.ts
+- https://github.com/off-grid-ai/OGAM/blob/ff6abb8babdeb0836bb64d1df61dd90dd39cfd42/catalog/models.json
+- https://github.com/off-grid-ai/OGAM/blob/ff6abb8babdeb0836bb64d1df61dd90dd39cfd42/package.json
+- https://github.com/off-grid-ai/OGAD/tree/69768e90b5f7485b645f65ad4ad1f895831a46d7
+- https://github.com/off-grid-ai/OGAC/tree/97afc9cc6ff298a2d6d17dcefff9e576c05ae35e
