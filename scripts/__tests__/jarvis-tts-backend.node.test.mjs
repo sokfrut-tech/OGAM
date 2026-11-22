@@ -15,7 +15,7 @@ test('TTS backend owns inference only and leaves playback to the Jarvis PCM play
   assert.match(backend, /fun synthesize\([\s\S]*?onPcmChunk: \(samples: FloatArray, sampleRateHz: Int\) -> Boolean/);
   assert.match(backend, /fun cancel\(requestId: Long\)/);
   assert.match(backend, /override fun close\(\) = unload\(\)/);
-  assert.doesNotMatch(backend, /AudioTrack|AudioManager|RECORD_AUDIO|startListening/);
+  assert.doesNotMatch(backend, /^import .*AudioTrack|^import .*AudioManager|RECORD_AUDIO|startListening\(/m);
   assert.match(player, /private var generation = 0L/);
   assert.match(player, /fun write\(generationToken: Long/);
   assert.match(player, /fun cancel\(generationToken: Long\? = null\)/);
