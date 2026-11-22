@@ -336,3 +336,20 @@ Canonical GitHub: https://github.com/badhope/pocketmind
 - Source audit confirms server/runtime-enforced risk approval before tool execution, fail-closed if approval callback is missing, unknown tool approval, global deny precedence, session/global allow, timeout-default-deny, safe-only retries and durable file checkpoints/undo.
 - Its Termux runtime and standalone APK have different tool counts/capabilities; do not conflate them.
 - See PHTOMT_POCKETMIND_SOURCE_AUDIT.md.
+
+
+## Deep audits: AzCode and Aries AI (2026-11-22)
+
+### AzCode
+https://github.com/Azapp888/AzCode — MIT.
+- Android local agent with multi-step AgentRunner, Accessibility, voice input, sessions, skills, memory, image/document workflows and local companion bridge.
+- Its inspected manifest uses AssistActivity/VOICE_COMMAND but not VoiceInteractionService; treat as overlay-entry reference, not a full system assistant.
+- Optional bridge binds 127.0.0.1:8848; inspected route handler did not show request authentication. Loopback is not an auth boundary; do not reuse unchanged.
+- Source audit: AZCODE_ARIES_SOURCE_AUDIT.md.
+
+### Aries AI
+https://github.com/ZG0704666/Aries-AI — AGPL-3.0.
+- Android UI automation with Shizuku-backed VirtualDisplay, separate focus/input control, non-black screenshot checks, screenshot cache/throttle and overlay hide/restore.
+- Task states include pause/resume and terminal outcomes. Internal automation dispatch uses a process-local 256-bit random token and constant-time comparison. PathGuard rejects traversal and paths outside trusted roots.
+- Virtual display requires Shizuku and target ROM/device verification; not a Jarvis core dependency. Qwen3.5-9B MNN and X-ASR-zh-en are not evidence of Russian quality.
+- Source audit: AZCODE_ARIES_SOURCE_AUDIT.md.
