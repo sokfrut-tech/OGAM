@@ -661,3 +661,10 @@ Added `src/utils/formatFileSize.ts` with an independent implementation preservin
 The new standalone formatting test passed in audit run [45019017951](https://github.com/sokfrut-tech/OGAM/actions/runs/45019017951) for the utility/test/workflow commit. Runtime-consumer and integration-test import changes are in later commits and are being verified by the latest branch audit. This remains a targeted contract check, not a full Jest or Android build.
 
 Upstream evidence inspected: [public OGAM formatter](https://github.com/off-grid-ai/OGAM/blob/ff6abb8babdeb0836bb64d1df61dd90dd39cfd42/src/services/huggingface.ts) and [its formatter tests](https://github.com/off-grid-ai/OGAM/blob/ff6abb8babdeb0836bb64d1df61dd90dd39cfd42/__tests__/unit/services/huggingface.test.ts). No source code was copied.
+
+
+### Companion classifier and file-size formatter: current audit evidence
+
+The current branch audit [45019110983](https://github.com/sokfrut-tech/OGAM/actions/runs/45019110983) completed successfully on commit `b52aba5cc62d110763ed520cb6a675b9cf9137e6`. All standalone checks passed: import scanner, progress core, local file-size formatter, companion artifact classifier, split-GGUF naming, full inventory generation and artifact upload.
+
+The generated audit artifact [ogam-import-audit](https://github.com/sokfrut-tech/OGAM/actions/runs/45019110983/artifacts/14753390487) was downloaded and inspected. It reports 1,950 files scanned and **zero source imports from `@offgrid/models`** for `formatFileSize`, `isDraftModelFile`, `isMtpHeadFile`, `isImatrixFile`, `isCompanionFile`, and `splitGgufPartNames`. This verifies those six contracts are no longer imported by application source from the unavailable package. It does not imply that all `@offgrid/models` imports or full application CI are resolved.
