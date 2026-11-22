@@ -29,6 +29,7 @@ export type RootStackParamList = {
   DeviceInfo: undefined;
   StorageSettings: undefined;
   LocalModels: undefined;
+  ImageGen: undefined;
   SearchModel: undefined;
   SecuritySettings: undefined;
   EngineUpdates: undefined;
