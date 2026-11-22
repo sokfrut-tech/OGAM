@@ -206,6 +206,9 @@ class ImageGenerationService {
     job: ImageJob,
     params: GenerateImageParams,
   ): Promise<string> {
+    if (params.promptIsFinal) {
+      return params.styleWords ? `${params.prompt.trim()}, ${params.styleWords}` : params.prompt;
+    }
     const prompt = await enhanceImagePrompt(
       params,
       status => this._setEnhancementState(job, params, status),
