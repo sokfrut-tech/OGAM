@@ -174,3 +174,5 @@ The source survey now includes Chinese platforms and Chinese-language projects (
 - [Phtomt + PocketMind provider/approval audit](PHTOMT_POCKETMIND_SOURCE_AUDIT.md)
 
 - [AzCode + Aries AI automation audit](AZCODE_ARIES_SOURCE_AUDIT.md)
+
+- [OGAM native system assistant implementation brief](OGAM_NATIVE_ASSISTANT_IMPLEMENTATION_BRIEF.md) — maps the research into a phased Android implementation plan using OGAM's existing RN/Whisper/Qwen/Kokoro runtime.
