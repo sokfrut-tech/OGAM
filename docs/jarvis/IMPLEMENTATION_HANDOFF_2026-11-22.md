@@ -424,3 +424,35 @@ Next model-migration slices:
 5. M7 guide/promo copy can be simplified for the Jarvis standalone product.
 
 The @offgrid/rag and @offgrid/sync migrations remain separate workstreams. No shared/private package source was copied into OGAM.
+
+## M2 clean-room migration checkpoint — reasoning and tool-loop budgets (2026-11-22)
+
+### OGAM-owned modules added
+- `src/utils/toolResultBudget.ts` — 24k hard cap, head-preserving truncation notice.
+- `src/utils/reasoningBudget.ts` — automatic/explicit reasoning budgets, labels, native llama.rn token-limit payload and OpenRouter `reasoning` config.
+- `src/utils/toolLoopBudget.ts` — per-turn max tool calls, prompt-size estimate, conservative remaining-context result cap, tool-limit instruction, recovery result formatter.
+
+### Consumers migrated
+- `src/services/tools/toolResult.ts`
+- `src/services/llmHelpers.ts`
+- `src/components/settings/textGenAdvancedSections.tsx`
+- `src/services/providers/openAICompatibleProvider.ts` (OpenRouter request payload only)
+- `src/services/generationToolLoop.ts`
+- `src/hooks/useTextGenerationSettings.ts`
+- `src/stores/appStore.ts`
+
+The single remaining M2 symbol still imported from `@offgrid/models` is `reasoningBudgetPayload` in the remote-vision branch of `openAICompatibleProvider.ts`. Preserve that wire contract until the exact remote-vision server consumer is found or an OGAM-owned explicit contract is added; do not silently map it to OpenRouter semantics.
+
+### Standalone verification
+- `scripts/__tests__/tool-result-budget.node.test.mjs`
+- `scripts/__tests__/reasoning-budget.node.test.mjs`
+- `scripts/__tests__/tool-loop-budget.node.test.mjs`
+- All three are wired into `.github/workflows/ogam-external-dependency-audit.yml`.
+- External dependency audit [#45051550585](https://github.com/sokfrut-tech/OGAM/actions/runs/45051550585) passed all steps on commit `3d88e21792dcf2c764cebf98c6006f5339c9b127`.
+- The full React Native CI is a separate gate; it continues to report missing workspace imports because the shared/pro checkouts are skipped when the private token is absent. Android Gradle verification was cancelled by the workflow's latest-commit concurrency and remains pending; the earlier valid Kotlin compiler run was the one that found the four source errors recorded above.
+
+### Next
+1. Trace/define the remaining remote-vision `reasoningBudgetPayload` without changing the OpenAI-compatible wire contract.
+2. Continue M3 media styles/defaults, then M4 naming/classification.
+3. M5 device/backend/residency contracts require strict test parity and no threshold changes without evidence.
+4. Complete M6 catalog and M7 Jarvis standalone simplification before removing the final `@offgrid/models` package declaration.
