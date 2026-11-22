@@ -8,8 +8,8 @@ This file is the durable continuation point for the current OGAM fork work. It r
 - Active branch: `feature/jarvis-step-2-storage-privacy`
 - PR: [#1 — Jarvis Step 2: privacy and Android storage permission bridge](https://github.com/sokfrut-tech/OGAM/pull/1)
 - PR state: open, draft, not merged; base `main`
-- PR head observed before this pass: `59dd17e604e7fba2cc721ae8406804c3a251c548`; `main` conflict resolved in merge commit `b7c06988`.
-- Companion research PR (26-APK Breeno / ColorOS 16 static analysis): [#2 (`docs/research-breeno-coloros-2026-11-22`)](https://github.com/sokfrut-tech/OGAM/pull/2) at `e4ef6016`.
+- PR #1 branch head before this reconciliation: `90fbe175ffa5bcca5e23369ecc287df190240a97`; base `main` is unchanged. Earlier merge conflict was resolved in merge commit `b7c06988`.
+- Companion research PR (26-APK Breeno / ColorOS 16 static analysis): [#2 (`docs/research-breeno-coloros-2026-11-22`)](https://github.com/sokfrut-tech/OGAM/pull/2), latest inspected head `a5d5c71dafcfd91f487b4430c43a8710fa23c3e6`.
 - Do not merge the PR or publish an APK as a way to bypass the missing-source blocker.
 
 ## Product contract
@@ -124,3 +124,83 @@ Do not ask the user for `PRO_SUBMODULE_PAT` or add fake no-op stubs. Continue po
   - Local `node scripts/audit-offgrid-imports.mjs` measured: `filesScanned: 1983`, `localFileDependencies: 4` (`8 → 4`), total external hits `1,339` (`1,354 → 1,339`), `packageImports: 450` (`@offgrid/design: 2 → 0`, `@offgrid/speech: 9 → 4`), `sharedWorkspacePaths: 65` (`73 → 65`), `0` external hits in newly added files.
 - **Same strict verification limits still apply:** The open-core Node test suite does **not** compile Kotlin, execute Gradle/JUnit, run `tsc` or full Jest (`npm test`), build an arm64 APK, or verify runtime/audio behavior on OPPO Find X6 Pro.
 - Continue from the active branch using [`TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md`](TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md) as the exact symbol checklist.
+
+## Full-session reconciliation — 2026-11-22 evening
+
+This section reconciles the user discussions available for 2026-11-22 with the repository state. Use this section together with this handoff as the current continuation point.
+
+### Today's decisions and requirements captured
+
+1. **Project identity and ownership**
+   - Continue as the user's own fork in `sokfrut-tech/OGAM`; keep the repository named `OGAM`. Do not move development into another owner's project.
+   - Preserve useful Off Grid AI foundations but remove private/proprietary workspace dependency through contract-based, license-cleared migration. No fake no-op stubs and no silently dropped features.
+
+2. **Assistant product definition**
+   - Russian-first Android assistant for OPPO Find X6 Pro / PGEM10, with natural conversation and continuity like Siri, planning/execution, personal context and user-visible outcomes.
+   - Original Iron Man / Stark-inspired Jarvis HUD; visual identity remains original. Keep assistant identity separate from replaceable model/runtime providers.
+   - Local/offline is the default. No mandatory paid API, hosted provider, account, telemetry or silent cloud fallback.
+   - The model may suggest actions; OGAM's deterministic capability broker controls Android permissions, approval, execution and result verification.
+
+3. **Open-source research rule**
+   - If a required capability or source is unavailable, continue research across public platforms and regional ecosystems (not GitHub alone), compare actual source/build/tests/licenses/provenance and independently adapt or implement the behaviour.
+   - Chinese and Indian sources are included when relevant. This is now saved as a global Factory rule: [OPEN_SOURCE_FALLBACK_AND_CLEAN_ROOM_RULE.md](https://github.com/sokfrut-tech/Universal-AI-Factory/blob/main/coordination/shared/OPEN_SOURCE_FALLBACK_AND_CLEAN_ROOM_RULE.md), referenced by the updated [AGENT_EXCHANGE_PROTOCOL.md](https://github.com/sokfrut-tech/Universal-AI-Factory/blob/main/coordination/shared/AGENT_EXCHANGE_PROTOCOL.md).
+   - The global rule explicitly forbids copying proprietary OPPO/Apple code, private APIs, signing/auth keys, protected assets or restricted binaries; public documentation and open-source code are architecture references subject to license review.
+
+4. **Siri / Apple capability research**
+   - The 3-way Siri / Apple Intelligence vs Breeno ColorOS 16 vs OGAM/Jarvis parity blueprint is saved at `docs/jarvis/SIRI_APPLE_INTELLIGENCE_PARITY_BLUEPRINT_2026-11-22.md`.
+   - It maps system invocation, duplex voice, local personal context/RAG, screen awareness, typed actions, multi-step plans, local model profiles, communication approval, continuity, multimodality, proactive assistance and HUD/presentation.
+   - Apple APIs/UX are public-product references only. No private Apple code, assets or APIs are to be copied.
+
+5. **Models and reduced-overrefusal requirement**
+   - The versioned candidate registry lists Qwen3.5-4B baseline, Qwen3.5-4B-Uncensored-v2, Huihui abliterated Qwen, Aurum 4B Uncensored and Gemma 4 E2B/E4B.
+   - User's preference for less-restricted model behaviour is explicitly captured as a research requirement, but "uncensored" is not accepted as proof. Keep at least one ordinary control model; test unnecessary refusals separately from unsafe compliance.
+   - The six entries are candidates only. No exact revisions, artifact hashes, license approvals, downloaded weights, on-device output benchmarks or production default are confirmed yet.
+   - Russian evaluation infrastructure contains 14 fixed scenarios, at least 3 runs per candidate, identical settings/runtime/device, human scoring and hard-failure flags for prompt injection, false action success and unapproved risky actions. It scores recorded runs; it does not run/download models itself.
+
+6. **Russian voice and audio**
+   - Existing OGAM Whisper realtime and Qwen3-ASR paths are preserved. New transcription profiles use Russian when the app/device locale is Russian; existing persisted language selections remain unchanged.
+   - Research options include T-one (streaming candidate), GigaAM-v3 (batch/correction), Silero VAD, sherpa-onnx and Russian TTS candidates including tiny-voca-ru / Supertonic-3. Each has independent model/data/license and Android compatibility gates.
+   - Full pipeline target: capture → VAD/endpointing → streaming ASR → single conversation turn → LLM streaming → sentence chunking → local TTS PCM → ordered playback; barge-in cancels active speech/generation. No raw audio logging by default.
+   - `JarvisPcmStreamPlayer` is only an engine-neutral PCM/AudioTrack/AudioFocus primitive. There is no production Russian TTS engine connected yet, and no always-on KWS/wakeword claim.
+
+7. **Breeno / ColorOS research**
+   - 26 owner-supplied local APKs were acquired outside Git and inspected offline/read-only. Exact-build matches: Breeno 13.4.3 `08c04e4_261110`, Breeno Memory 16.11.5 `008719b_260901`, and SearchService 16.16.80 `2f5f245_260902`.
+   - Instructions APK in that set is 17.2.4 only; installed device build 17.7.2 `91aa93e_261102` remains outstanding.
+   - Analysis supports hashes/ZIP inventory, certificate fingerprints, decoded manifests/components/permissions, DEX structural identifiers and string inventory, and native/asset inventory.
+   - Full JADX method-level decompilation, full-body `apksigner` verification, runtime execution/tracing and target-device behaviour were not performed. Do not describe structural class/string evidence as verified method logic.
+   - No APKs, proprietary DEX/Smali, native binaries, OPPO assets, signing/auth secrets or private code were committed.
+   - Updated technical plan: [DEX_DECOMPILATION_AND_OGAM_TRANSFER_PLAN_2026-11-22.md](https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/breeno/DEX_DECOMPILATION_AND_OGAM_TRANSFER_PLAN_2026-11-22.md).
+
+8. **Native Android assistant source**
+   - PR #1 source now contains VoiceInteractionService, VoiceInteractionSessionService, session lifecycle, non-exported bridge, one-use in-process launch token, RoleManager.ROLE_ASSISTANT request UI, role/service status snapshot and native PCM player.
+   - Source paths, metadata interpretation, tests and unverified gates are recorded in [PR1_NATIVE_ASSISTANT_SOURCE_VERIFICATION_2026-11-22.md](https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/breeno/PR1_NATIVE_ASSISTANT_SOURCE_VERIFICATION_2026-11-22.md).
+   - The open-core workflow run #45039077226 passed one static/source-contract job, including assistant contract, RoleManager UI wiring, one-shot voice invocation, URI mapping and PCM source contracts. It did not run Gradle, Kotlin/JUnit, full Jest/TypeScript, create an APK or test on PGEM10.
+   - System assistant support is source-implemented for API 31+ but not build/runtime/device verified. Android 7–11 system assistant RecognitionService is not implemented. No always-on wakeword is implemented.
+
+9. **OGAM migration and remaining dependency work**
+   - Exact consumer/contract map: `docs/jarvis/TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md`.
+   - Already completed in OGAM-owned source: @offgrid/design removed from runtime imports; @offgrid/notes, @offgrid/notes-editor and @offgrid/writing removed as zero-importer dependencies; speech helpers wavTrimPlan, speechEndpoint and voiceTurnSettings ported.
+   - Measured at the documented Slice 3A–3D checkpoint: `file:../shared/packages/*` dependencies reduced from 8 to 4. Remaining packages: @offgrid/speech, @offgrid/rag, @offgrid/models and @offgrid/sync. Remaining target sizes: 3 speech source files (plus one test fixture), 31 RAG symbols, 148 model symbols across M2–M7; sync is split into pure Half A and Personal Mesh Half B.
+   - `pro/` is a separate private mobile-pro submodule. Keep only the existing nullable Pro boundary until standalone parity is implemented. Do not ask the user for `PRO_SUBMODULE_PAT` as a shortcut; the goal is a clean OGAM-only build.
+   - Migration must use OGAM's own MIT pre-extraction Git history where applicable and consumer contracts for unseen AGPL/private modules; perform file-level license checks before reuse.
+
+### Repository and collaboration state at this checkpoint
+
+- PR #1: [Jarvis Step 2](https://github.com/sokfrut-tech/OGAM/pull/1), open/draft/unmerged. Last inspected feature branch head before this handoff reconciliation: `90fbe175ffa5bcca5e23369ecc287df190240a97`. No PR review submissions or inline review threads were returned by GitHub during this check.
+- PR #2: [Breeno / ColorOS research](https://github.com/sokfrut-tech/OGAM/pull/2), open/draft/unmerged. Latest inspected head: `a5d5c71dafcfd91f487b4430c43a8710fa23c3e6`. Its description was updated to distinguish structural APK inspection from full JADX/runtime analysis.
+- Gemini task: [OGAM-BREENO-DEX-AUDIT-2026-11-22](https://github.com/sokfrut-tech/Universal-AI-Factory/blob/main/coordination/gemini/inbox/2026-11-22_OGAM_breeno_dex_audit.md) is in Gemini inbox. The dispatcher created an [automatic receipt](https://github.com/sokfrut-tech/Universal-AI-Factory/blob/main/coordination/gemini/outbox/ACK_2026-11-22_OGAM_breeno_dex_audit.md). It is explicitly only a technical GitHub receipt; no substantive Gemini review/report has been observed yet.
+- The current Factory dispatcher watches `coordination/gemini/inbox/*.md` as well as Claude and ChatGPT inboxes. No dispatcher-folder blocker was observed in this check.
+- PRs remain drafts and unmerged. Do not publish a release or claim device readiness.
+
+### Ordered continuation — start here next time
+
+1. Finish @offgrid/speech migration: port `transcriptionLanguages` and the complete voiceSession state machine using all existing audio/replay tests as the contract.
+2. Port @offgrid/sync Half A pure parsers/helpers without touching encryption, TCP or Personal Mesh.
+3. Port @offgrid/rag from OGAM's own MIT history; then build OGAM-owned encrypted local RAG/personal-context storage with source provenance and explicit capture/delete/export controls.
+4. Port @offgrid/models slices M2–M7, preserving runtime/model lifecycle and matching existing tests.
+5. Decide and implement @offgrid/sync Half B and @offgrid/automation; remove the remaining external workspace dependencies and private-submodule requirement only when standalone parity is proven.
+6. Wire SkillContract v1 + TaskPlan/TaskPlanRun to real Android capability executors behind a runtime-enforced, fail-closed approval preview. Start with safe/read-only and draft-only actions; never auto-send messages.
+7. Validate assistant RoleManager/session on emulator and PGEM10; run Gradle compile, manifest merge, Kotlin/JUnit, Jest, TypeScript, lint and clean standalone install/build gates.
+8. Continue Breeno deep study: obtain exact Instructions 17.7.2 APK; run pinned JADX and apksigner on authorized local artifacts; extract class/method call paths for SpeechService, OmniMind, AnalogSkillService, Memory and DMP. Then implement clean-room OGAM equivalents.
+9. Benchmark local Russian model candidates and connect a license-cleared Russian TTS/VAD/AEC/KWS stack on OPPO. No candidate becomes default until measured.
+10. Keep every result, evidence link, commit and next step in this handoff and the relevant PR. Continue without asking the user to repeat already-recorded requirements; request user input only when an owner-controlled artifact, device action or permission is genuinely essential.
