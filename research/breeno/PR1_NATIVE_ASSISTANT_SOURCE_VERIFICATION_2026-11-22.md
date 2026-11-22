@@ -95,3 +95,45 @@ Their presence is confirmed; their execution is not confirmed by run #4503907722
 ## Status
 
 PARTIAL — native assistant/session/bridge/RoleManager source and static tests are present; one open-core source-contract workflow passed. Gradle build, Kotlin/JUnit execution, runtime invocation and PGEM10 validation remain outstanding.
+
+
+## Independent Gemini audit reconciliation — 2026-11-22
+
+Source: `sokfrut-tech/Universal-AI-Factory/coordination/gemini/outbox/REPORT_2026-11-22_OGAM_breeno_dex_audit.md` (status: `completed_with_findings`; inspected PR #1 at `8ad6a6fd`, PR #2 at `a5d5c71d`).
+
+The audit findings were checked against the later OGAM source and CI evidence. The original Gemini report is retained as an independent audit record; dispositions below distinguish source fixes from runtime-only gates.
+
+### B1 — React Native callback / Activity access: source fix compiled
+
+- The earlier Kotlin compiler failure was reproduced in CI: `onActivityResult(Activity?)` did not override the pinned RN 0.83.1 interface, and the synthetic `currentActivity` access was unresolved.
+- Corrective commits: `53ef299f378a4c070c10a36879dd63cc50cab42b` (Role module) and `20650c137cb1fe3f66de450d8d1d706a28f2e18f` (PCM `setVolume` return type).
+- Later Android CI run [#45052196801](https://github.com/sokfrut-tech/OGAM/actions/runs/45052196801) reached and passed `:app:compileDebugKotlin`, `:app:compileDebugJavaWithJavac`, and manifest processing on commit `a65dbca1`.
+- The same run exposed a Kotlin test-fixture JVM signature clash; the fake backing property was renamed to `currentVolume`. Do not claim the Kotlin unit tests passed from the main-source compile alone.
+
+### B2 — `FLAG_ACTIVITY_NEW_TASK`: Gemini hypothesis not reproduced
+
+- OGAM invokes `VoiceInteractionSession.startAssistantActivity()` on API 26+ and `startVoiceActivity()` on the fallback path. Android's public API contract creates the assistant/voice activity in a new task and applies `FLAG_ACTIVITY_NEW_TASK`.
+- No redundant flag patch was applied. ColorOS 16 background-activity-launch, lock-screen and task behavior still require PGEM10 testing.
+
+### B3 — recognitionService metadata: supported-range interpretation corrected
+
+- The metadata value remains non-empty. AOSP specifies that the component value is ignored from Android 12 onward; below API 31 OGAM disables both system-assistant services through the versioned boolean resource.
+- This is not evidence of a debug `.dev` package failure on the supported API 31+ path. Android 7–11 system-assistant support remains intentionally unavailable until a real legacy `RecognitionService` exists.
+- Manifest merge/resource behavior still requires the full Android build and device verification.
+
+### B4 — forged assistant URI: route-normalization bypass mitigated; token expiry remains open
+
+- The native guard now matches the URI route case-insensitively, normalizes repeated/trailing slashes, handles percent-encoded unreserved static characters, and ignores query/fragment when deciding whether an ACTION_VIEW URL targets `assistant/voice`.
+- `MainActivity` rejects/strips matching external VIEW intents unless the non-exported bridge supplies the one-use token. This closes the route-spelling mismatch identified by Gemini at source level.
+- **Remaining hardening:** the in-process pending token still has no explicit monotonic-clock TTL. Add a short expiry and lifecycle/reset tests before treating stale-token exposure as closed. Adversarial Activity-level tests and PGEM10 invocation tests are also outstanding.
+
+### B5 — service/API and audio lifecycle: partially addressed
+
+- Both `JarvisVoiceInteractionService` and `JarvisVoiceInteractionSessionService` use the same API-level enabled resource; the companion service gate and its source-contract assertion were committed as `a781a873ad1f99c03ba6b3e66578f1b6ba75c2ad` and `9c6863aea09aa66cbc3ed7147dd714098f11f6a1`.
+- Remaining: Android audio usage should be reviewed for assistant speech semantics; the PCM write backoff must be bounded without a high-frequency busy loop; production TTS is not connected; lock-screen/background/service-restart/audio-focus behavior and permission-denial matrix remain unverified. Do not change audio policy without focused tests.
+
+### Audit boundary and next gates
+
+- Gemini's workstation did not have JADX/JDK/apksigner/aapt2/apktool/adb; its APK analysis is an independent static cross-check, not method-level DEX or runtime proof.
+- The 26 APK inventory remains read-only. No OPPO APK, DEX/Smali, native library, private key or OEM asset is imported into OGAM.
+- The successful Android main-source compile is not an APK release or device pass. Require Kotlin/JUnit completion, APK assembly, and PGEM10 checks for role selection, cold/warm/locked invocation, microphone handoff, audio focus and denial paths.
