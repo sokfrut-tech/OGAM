@@ -27,7 +27,8 @@ export function scanFileContent(file, content) {
   const hits = [];
   const importPattern = /(?:\bfrom\s*|\bimport\s*(?:\(\s*)?|\brequire\s*\(\s*)['"](@offgrid\/(?:models|rag|sync|speech|notes|notes-editor|ui|writing|design|automation|pro)(?:\/[^'"]*)?)['"]/g;
   const sharedPattern = /(?:file:)?\.\.\/shared(?:\/[^\s"'\x60]*)?/g;
-  const privatePattern = /(?:PRO_SUBMODULE_PAT|off-grid-ai\/mobile-pro|off-grid-ai\/shared|git submodule)/gi;\n  const proPathPattern = /(?:\.\.\/|\.\/|\/)pro\//g;
+  const privatePattern = /(?:PRO_SUBMODULE_PAT|off-grid-ai\/mobile-pro|off-grid-ai\/shared|git submodule)/gi;
+  const proPathPattern = /(?:\.\.\/|\.\/|\/)pro\//g;
   const lines = content.split(/\r?\n/);
 
   for (let index = 0; index < lines.length; index += 1) {
