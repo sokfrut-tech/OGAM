@@ -42,11 +42,13 @@ test('incremental speech chunker handles punctuation, abbreviations, decimals, f
   assert.match(chunker, /fun flush\(\): List<String>/);
   assert.match(chunker, /fun reset\(\)/);
   assert.match(chunker, /isNonTerminalPeriod\(index\)/);
+  assert.match(chunker, /isSpacedRussianAbbreviationPeriod\(index\)/);
+  assert.match(chunker, /CLOSING_QUOTES_AND_BRACKETS/);
   assert.match(chunker, /pending\[index - 1\]\.isDigit\(\) && pending\[index \+ 1\]\.isDigit\(\)/);
   for (const abbreviation of ['"г"', '"т.д"', '"ул"', '"dr"', '"e.g"']) {
     assert.ok(chunker.includes(abbreviation), `Missing abbreviation guard: ${abbreviation}`);
   }
-  for (const scenario of ['Встретимся в г.', '21.5', 'А. С. Пушкин', 'flushEmitsAnUnterminatedFinalFragment', 'resetDiscardsStaleText']) {
+  for (const scenario of ['Встретимся в г.', '21.5', 'А. С. Пушкин', 'keepsSpacedRussianAbbreviationsInsideTheSameSentence', 'closesQuotedSentenceBeforeStartingTheNextSentence', 'flushEmitsAnUnterminatedFinalFragment', 'resetDiscardsStaleText']) {
     assert.ok(tests.includes(scenario), `Missing chunker regression test: ${scenario}`);
   }
 });
