@@ -530,3 +530,46 @@ The dependency-free OGAM-only workflow completed successfully at branch head `15
 The main CI run `45017602205` for the same head remains in GitHub's `pending` state and has not exposed any jobs yet. Therefore Jest, TypeScript, lint, dependency-cruiser, and Android/iOS build results for the integrated app remain **unverified**. The passing standalone tests prove the pure progress contract in isolation only; they do not prove the complete React Native app builds or that the shared progress package's inaccessible implementation is byte-for-byte behaviorally identical.
 
 Next migration target remains `@offgrid/models`, beginning with a complete OGAM-owned export/consumer contract and catalog provenance—not a wholesale replacement with the older 16-entry list.
+
+
+## Model-package replacement contract — consumer imports and safety gates (2026-11-22)
+
+The current OGAM branch was re-read directly. The model package is consumed by these runtime modules:
+
+| Consumer | Required export(s) | Responsibility |
+| --- | --- | --- |
+| `src/constants/models.ts` | `CATALOG`, `ModelEntry`, `MobileTextCatalogModel` | Curated catalog, model modality/availability filtering, phone recommendation shape |
+| `src/screens/ModelsScreen/useTextModels.ts` | `CATALOG`, `MobileTextCatalogModel` | Curated model detail lookup and display |
+| `src/services/modelManager/scan.ts` | `isCompanionFile`, `splitGgufPartNames` | Sidecar classification and multi-part GGUF discovery |
+| `src/services/modelManager/index.ts` | `splitGgufPartNames` | Model file grouping |
+| `src/services/modelScannerService.ts` | `splitGgufPartNames` | Disk-scan recovery of split models |
+| `src/services/modelCardReasoning.ts` | `modelCardUrl`, `modelCardDeniesReasoning` | Revision-aware Hugging Face model-card fetch and conservative reasoning metadata |
+| `src/services/modelCatalogFiles.ts` | `prefersQ4_0` | Android CPU/NPU vs Android GPU/iOS quantization order |
+| `src/utils/modelHelpers.ts` | `CATALOG` | Video model display names |
+| `src/utils/recommendedModels.ts` | `MobileTextCatalogModel` | Typed device-fit recommendations |
+| `src/stores/modelCatalogStore.ts` | `MOBILE_CATALOG_URL`, `diffMergedCatalog`, `loadCachedCatalog`, `mergeCatalogEntries`, `mobileCatalogKey`, `parseMobileCatalogSections`, `refreshRemoteCatalog`, `CatalogCache`, `CatalogFetch`, `MobileCatalogSections` | Offline-first remote catalog validation, cache, merge, diff and refresh |
+| `src/services/modelDownloadService/types.ts` | `ModelEntry` | Video model download request type |
+
+### Non-negotiable model-catalog invariants
+
+- `CATALOG` is the full bundled source of truth, not just the mobile recommended-text subset. It includes text, vision, image and video entries and the metadata consumed by model loading, download, capability, licensing and UI flows.
+- `catalog/models.json` is a remote delta/override, not a replacement bundled catalog. Startup must remain offline and read cached data; network refresh is an explicit user action.
+- Remote parsing must reject malformed/unsafe entries without discarding the last known good cache or bundled baseline.
+- Merge and diff must be deterministic, key by the existing per-section identity, preserve local additions, and report changes without duplicate IDs.
+- Existing installed models remain discoverable even if no longer recommended; recommendation eligibility and runtime loadability are separate decisions.
+- Model files must preserve primary/auxiliary roles, size metadata, projector matching, split GGUF part grouping, and companion-file behavior.
+- Quantization preference stays Android CPU/NPU: Q4_0 first when available, else Q4_K_M; Android GPU and iOS: Q4_K_M first.
+- Model-card fetch failure/offline/missing card must leave reasoning metadata unknown rather than asserting either capability. The explicit "denies reasoning" rule must be tested against representative card text.
+- Video model catalog names must remain available; the historical 16-entry standalone fork catalog is not an acceptable full catalog source.
+
+### Required focused tests before replacing imports
+
+1. Catalog schema/type fixtures for every modality and optional field used by consumers; full-catalog uniqueness and valid-file invariants.
+2. GGUF split naming: numbered and unnumbered single files, part order, gaps, malformed suffixes, case variants and non-GGUF neighbors.
+3. Companion classifier: projector, MTP/auxiliary files, metadata/sidecars, unrelated files and case/extension variants.
+4. Quantization preference truth table across Android CPU, Android NPU, Android GPU and iOS.
+5. Model-card URL revision encoding, missing revision, HTTP card variants, explicit non-reasoning language, neutral/unknown cards and malformed content.
+6. Remote catalog parser/merge/cache: malformed JSON, unsupported schema, duplicate IDs, invalid modality/files, remote deletion/update, local additions, stale cache and failed refresh preserving last known good data.
+7. Regression suite: all existing model screen, scanner, download, model selection, device-pick, video, vision/projector, licensing and onboarding tests.
+
+Implementation order: first create independent, fixture-backed tests for the pure helpers and model-catalog contract; then port pure helpers; only after the full catalog provenance is resolved, migrate the catalog and remote cache layer. Do not point the package name at a partial stub or move model screens to an incomplete catalogue.
