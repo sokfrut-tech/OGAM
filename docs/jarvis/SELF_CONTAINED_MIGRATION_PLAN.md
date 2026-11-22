@@ -776,3 +776,17 @@ Phase F — Verification and release:
 - Legacy SiriKit guidance points developers to App Intents for modern Siri AI integration: https://developer.apple.com/documentation/sirikit
 
 These are product-behaviour references only. No Apple private implementation, source code, assets, model weights or proprietary interface artwork are to be copied.
+
+
+### Progress update: full feature scope and first Jarvis skill contract
+
+- Added the full OGAM + Siri parity scope and delivery phases to this plan.
+- Added the detailed study and source-audit results to docs/jarvis/MODEL_RESEARCH_AND_SIRI_LIKE_AGENT_ARCHITECTURE_2026-11-22.md.
+- Confirmed from upstream Apple developer docs that modern Siri integrations are based on typed App Intents, with long-running, cancellable and undoable actions. Jarvis will use its own platform-neutral skill contract and Android execution layer.
+- Audited the current OGAM tool registry, dispatch loop, voice session, audio recorder, screenshot and clipboard boundaries, sync engine and Tools screen.
+- Important recovered gaps: email/calendar tools are implemented in the absent private Pro submodule; voiceSession imports an unavailable @offgrid/speech state machine; generationToolLoop still imports shared @offgrid/models budget/prompt helpers. These are migration targets, not reasons to drop those capabilities.
+- Voice implementation currently uses a cloud/system recognition provider through react-native-voice and starts with en-US; local Whisper/audio PCM infrastructure also exists. Full hands-free echo cancellation is not currently available on Android. Do not claim wake-word or full-duplex voice until implemented and device-tested.
+- Added OGAM-owned first contract at src/services/skills/contract.ts. It describes typed skill metadata, input validation, capability requirements, network declaration, execution mode, cancellation/undo metadata and an approval rule that cannot be disabled for external communication, destructive or financial actions.
+- Added __tests__/unit/services/skills/contract.test.ts for valid/invalid inputs, capability denial, network gating and mandatory approval. This is a source/test addition only; it is not yet wired into the existing tool loop or Android executor.
+- Latest commit at this progress point: 4382366c943e1a7ffbfd74f209508bcfcb9bfd1e. Audit workflow run 45020177196 was queued at last check. No full Jest/TypeScript/Android build result is claimed.
+- Next: wire the skill contract into tool definitions and dispatch in a backwards-compatible manner, then add an explicit approval/progress/cancel execution record. In parallel, design the voice state machine from recovered exact contracts or a newly specified OGAM-owned transition table with tests.
