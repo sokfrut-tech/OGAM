@@ -173,3 +173,16 @@ P2: ColorOS/Breeno hook and OEM personal memory bridge; advanced Shizuku/root/AD
 
 ### License gate
 Eta is GPL-3.0 and Phtomt is AGPL-3.0 in the canonical GitHub repositories. PocketMind is Apache-2.0. OGAM should prefer independent reimplementation of ideas. Any code reuse requires file-level license review and a conscious decision about OGAM distribution obligations. A mirror's displayed license must not override the canonical upstream LICENSE.
+
+
+## AzCode / Aries AI additions (2026-11-22)
+
+- **Agent event protocol:** standardize thinking, assistant text, tool start/result, user question, notice, failure and cancel events so the same runtime can drive main chat, voice overlay and system assistant.
+- **IPC security:** a 127.0.0.1 listener is reachable by local apps unless authenticated; prefer Binder for local same-device access or use 256-bit random process/session tokens, constant-time validation, narrow scopes and replay protection.
+- **Screen observation:** node-first Accessibility, bounded tree, screenshot cache and throttle, non-black-frame check, hide/restore overlays around capture, always release UI state on cancellation/failure.
+- **Automation lifecycle:** explicit RUNNING/PAUSED/SUCCEEDED/FAILED/CANCELLED states, pause acknowledgement and terminal state invariants.
+- **Virtual display:** optional Shizuku route only; require capability probe for display creation, focus isolation, IME behavior, screenshot and input routing. Fall back to foreground interaction if any condition fails.
+- **File safety:** canonicalize all file paths within explicit allowed roots and reject traversal/symlink escapes.
+- **Language:** Chinese Qwen/ASR model choices are architecture references only; Russian ASR/TTS/LLM require separate benchmark and model packs.
+
+Updated priority: P0 event protocol, IPC authentication, task lifecycle, Accessibility bounds and path guard; P1 screenshot and overlay lifecycle; P2 optional Shizuku virtual display after target-device validation.
