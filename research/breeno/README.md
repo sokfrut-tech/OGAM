@@ -154,3 +154,8 @@ Third-party catalog metadata for Breeno 13.3.2 shows a broad manifest permission
 A separate reference register now exists at research/breeno/REFERENCE_PROJECTS.md. The most actionable newly discovered repository is timetetng/breeno-rikkahub: it documents an experimental bridge that intercepts Breeno chat input, forwards it to a local RikkaHub conversation API and streams the generated answer back into Breeno's UI. Its README states MIT, but the full LICENSE/dependency tree and source implementation still need review. It requires LSPosed and the README's no-JWT configuration is not acceptable for Jarvis; do not copy that security choice. Its TTS remains Breeno-owned, demonstrating why Jarvis must keep its own speech lifecycle.
 
 Additional references reviewed: MindTriggerAssist (Find X7 / ColorOS 16 long-press rerouting through Shizuku); BreenoNext_Bypass (beta-verification bypass, explicitly excluded from implementation); Xiaobu Memory to Obsidian (memory export/OCR workflow); and the owner's sokfrut-tech/breeno-apks repository, whose README is only an empty-project placeholder, not a verified APK archive.
+
+
+## Research documents
+- [Open-source reference project register and source-level audits](REFERENCE_PROJECTS.md)
+- [Breeno-to-OGAM capability mapping and implementation backlog](OGAM_CAPABILITY_MAPPING.md)
