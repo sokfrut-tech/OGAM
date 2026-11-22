@@ -12,17 +12,19 @@ function detectLocale(): AppLocale {
     I18nManager?: { localeIdentifier?: string };
     PlatformConstants?: { LocaleIdentifier?: string; localeIdentifier?: string };
   };
-  const candidates = Platform.OS === 'ios'
-    ? [
+  const intlLocale = Intl.DateTimeFormat().resolvedOptions().locale;
+  const candidates = [
+    intlLocale,
+    ...(Platform.OS === 'ios' ? [
         native.SettingsManager?.settings?.AppleLocale,
         native.SettingsManager?.settings?.AppleLanguages?.[0],
         native.I18nManager?.localeIdentifier,
-      ]
-    : [
+      ] : [
         native.I18nManager?.localeIdentifier,
         native.PlatformConstants?.LocaleIdentifier,
         native.PlatformConstants?.localeIdentifier,
-      ];
+      ]),
+  ];
   const deviceLocale = candidates.find(value => typeof value === 'string' && value.length > 0) ?? 'en';
   return deviceLocale.replace('_', '-').toLowerCase().startsWith('ru') ? 'ru' : 'en';
 }
