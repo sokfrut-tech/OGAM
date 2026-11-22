@@ -305,3 +305,16 @@ India scan:
 - IndicF5 is 0.4B, 11 Indic languages, MIT, reference-audio conditioned; no Russian/Android proof.
 - IndicConformer 600M MIT covers 22 Indic languages, and card recommends newer Indic-Transcribe (25 Indic languages); neither supports Russian.
 - These are useful future Indic-language research, not Russian core candidates.
+
+
+## Additional China/India model shortlist: visual brain + local planner (2026-11-22)
+
+Expanded scan saved on research branch:
+`research/china-india/CHINESE_INDIAN_ON_DEVICE_SPEECH_SCAN_2026-11-22.md`
+Latest research commit: `118caa591c5780d72f852eeac429df7f3fc0bd95`.
+
+- **MiniCPM-V 4.7 1B**: new OpenBMB visual model with Android Kotlin/Gradle demo via MiniCPM-V-Apps; supports images, multi-image, documents and video; 1.55B params, Apache-2.0, BF16 file ~3.13 GB with quantized variants. Candidate for Jarvis camera/screenshot/document perception. No PGEM10 benchmark yet.
+- **MiniCPM5-2B**: OpenBMB released Sept 2026 for on-device/resource-constrained use; candidate for offline planner benchmark, but Russian quality/tool reliability and actual phone runtime must be tested.
+- **MiniCPM-o 4.5**: 9.37B / ~20.05 GB, vision+speech+text full duplex. Keep as architecture reference, not phone default.
+- **Bharat-Tiny-LLM v3**: 1.7B Hindi/Hinglish/English, Q4_K_M ~1 GB claim; no Russian target, and its model card reports 29% on pinned 100-item GSM8K-Hindi subset (higher prior figure retracted). Research only for future language pack.
+- This does not change current TTS priorities or production model defaults. Continue to keep visual model, planner, ASR and TTS as separable modules.
