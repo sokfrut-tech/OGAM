@@ -357,3 +357,83 @@ A focused read of the pinned C++ stream implementation establishes more detail t
 - For a real-time Jarvis path, use `collect_audio=false`, a bounded playback queue, sample-rate validation, monotonic sample/chunk indices, and generation-aware cancellation. The native result should report completion/error/timing only; it is not the audio transport.
 
 This is source-inspected behavior, not a measured Android benchmark. The method is still inaccessible from the current Kotlin `QwenEngine.kt` public API until that wrapper exposes it.
+
+
+## 3.3 VoxSherpa TTS — fresh Android implementation audit and a concrete Russian ONNX lead
+
+Repository: https://github.com/CodeBySonu95/VoxSherpa-TTS
+Inspected main tree commit: 7f05a35762f033a39c3c8be0d3ff8db982737ea7
+Repo metadata at audit: updated 2026-11-22; v4.15 changelog; root license GPL-3.0.
+Key blobs:
+- MmsCatalog.java: f989ed19c218fc4c9060a9a16c353499fa7844f1
+- languages-supported.json: b153e1b915a58bb84d0b1c7f83d9eff40fd8a31a
+- VoxSherpaTtsService.java: b8993ec34f492a83e0db9bcde03aadb1003c2a52
+- VoiceEngine.java: 2d7639fcd04a8c9706b4549ae03222fc95c79ffe
+- AndroidManifest.xml: fa6aa2f9901cbb4141ad6bf3e5f648159a13acc5
+- app/build.gradle: 725c2becabf4f5bb8454ab62713547c984e20623
+
+### 3.3.1 What is reusable as architecture
+
+VoxSherpa is a working-shape Android app with:
+- platform TextToSpeechService registered through android.intent.action.TTS_SERVICE;
+- a model manager and a local ONNX model import path;
+- separate Kokoro and Piper/VITS engines;
+- Sherpa-ONNX JNI runtime, with XNNPACK then CPU fallback;
+- local model paths, tokens, language metadata and per-model speaker selection;
+- system TTS locale/voice resolution;
+- sentence segmentation, cancellation, and writes to Android SynthesisCallback;
+- optional foreground media playback service.
+
+This is a practical integration reference for OGAM's TTS service boundary and system-wide Android TTS exposure. However, its application code is GPL-3.0 and must not be copied into OGAM's MIT application. Only clean-room design ideas should be used.
+
+### 3.3.2 Exact Russian ONNX model catalogue hit
+
+The app's committed languages-supported.json contains 1,143 entries. The exact Russian record is:
+- ISO code: rus
+- language name: Russian
+- ONNX Exists=true
+- Sample Exists=true
+- model path constructed by the app: https://huggingface.co/willwade/mms-tts-multilingual-models-onnx/resolve/main/rus/model.onnx
+- token path constructed by the app: https://huggingface.co/willwade/mms-tts-multilingual-models-onnx/resolve/main/rus/tokens.txt
+- sample path: .../rus/sample.wav
+
+The repository's MmsCatalog.java builds these URLs from the ISO code and imports the models as type MMS. The Hugging Face ONNX repository identifies itself as auto-converted Meta MMS TTS ONNX models, and its license is CC BY-NC 4.0. The underlying facebook/mms-tts-rus model card also reports CC BY-NC 4.0, a Russian VITS model with 36.3M parameters and about 145 MB FP32 weights. The app estimates all MMS downloads as "~63 MB", which is a generic catalogue estimate and should not be assumed to be the exact Russian artifact size.
+
+This is a concrete Russian ONNX + Android runtime lead; it is not a license-cleared production model for a generally distributable/commercial OGAM build. It can be considered only for a personal/non-commercial experiment after the exact ONNX files, hashes, token files, and license notices are inspected.
+
+### 3.3.3 Streaming is sentence-level, not acoustic-model streaming
+
+The inspected current system TTS service:
+- splits the user text into sentences;
+- calls VoiceEngine.generateAudioPCM() separately for each sentence;
+- that method uses OfflineTts.generate() to produce the complete FloatArray for the sentence, then converts the full sentence audio to PCM bytes;
+- only after the full sentence waveform is generated does the TTS service push smaller byte chunks through SynthesisCallback.audioAvailable().
+
+This gives sentence-by-sentence early playback, but the model itself is not streaming PCM token/chunk generation. It can still have a full-sentence memory peak. That is weaker than Qwen3-TTS C++ native chunk streaming already found, but gives a useful compatibility comparison.
+
+### 3.3.4 Caution: MMS initialization in system TTS path needs regression verification
+
+The audited VoiceEngine has an explicit overload accepting explicitIsMms; that flag controls whether the engine skips Piper/espeak front-end data and performs the MMS-specific initialization path. The inspected VoxSherpaTtsService.onSynthesizeText() calls the four-argument loadModel(context, model, tokens, language) overload, which forwards false for explicitIsMms, rather than passing the selected MMS type. The standalone app generation path may use a different call. Therefore, do not assume the rus ONNX entry is correctly exposed through the system TTS service without testing it; this path needs an upstream test/fix or a controlled reproduction.
+
+### 3.3.5 Version and privacy boundaries
+
+- Current build config: minSdk 30, targetSdk 36, arm64-v8a + x86_64, Java 11, sherpa-onnx 1.12.26.
+- Manifest has INTERNET permission plus Firebase Database SDK components and allowBackup=true. This does not prove that transcripts or generated text are sent anywhere, but it contradicts any blanket assumption that the app binary itself has no network-capable dependencies. A full call-path/privacy audit is required before relying on README claims.
+- README says no telemetry and all processing local after model download, but the model download path obviously requires network; static manifest and Firebase components need separate source tracing before a stronger privacy claim.
+- The bundled Hindi pratham medium model card in assets states CC BY-NC-SA 4.0. This demonstrates why each installed voice model must carry its own provenance/license record instead of inheriting the app or runtime license.
+
+Decision:
+- Keep VoxSherpa as a technical reference only; no GPL code copied.
+- The Russian MMS ONNX entry is a personal/non-commercial benchmark candidate only.
+- If OGAM adopts Sherpa-ONNX, implement a small OGAM-owned Kotlin backend around its OfflineTts.generateWithCallback API and pair it with a separately license-cleared Russian voice.
+- For low-latency Jarvis speech, compare Sherpa sentence-level output with Qwen3-TTS JNI audio-chunk streaming. Do not call the former true streaming inference.
+
+Sources:
+- VoxSherpa source and GPL-3.0 license: https://github.com/CodeBySonu95/VoxSherpa-TTS/tree/7f05a35762f033a39c3c8be0d3ff8db982737ea7
+- Russian entry and all 1,143 language records: https://github.com/CodeBySonu95/VoxSherpa-TTS/blob/7f05a35762f033a39c3c8be0d3ff8db982737ea7/app/src/main/assets/languages-supported.json
+- MMS catalog URL builder: https://github.com/CodeBySonu95/VoxSherpa-TTS/blob/7f05a35762f033a39c3c8be0d3ff8db982737ea7/app/src/main/java/com/CodeBySonu/VoxSherpa/MmsCatalog.java
+- ONNX MMS model repository and license: https://huggingface.co/willwade/mms-tts-multilingual-models-onnx
+- Meta Russian MMS model card and license: https://huggingface.co/facebook/mms-tts-rus
+- Android system TTS service: https://github.com/CodeBySonu95/VoxSherpa-TTS/blob/7f05a35762f033a39c3c8be0d3ff8db982737ea7/app/src/main/java/com/CodeBySonu/VoxSherpa/system/VoxSherpaTtsService.java
+
+No model file, voice package or APK was downloaded or run. No OGAM code was changed.
