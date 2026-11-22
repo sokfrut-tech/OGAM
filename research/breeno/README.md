@@ -167,3 +167,8 @@ The source survey now includes Chinese platforms and Chinese-language projects (
 
 ## New deep-audit result
 - [ZorvAI source audit and OGAM transfer notes](ZORVAI_SOURCE_AUDIT.md) — tool registry, ACI/Binder, plugin framework, permission tiers, native ASR isolation, orchestration and security findings.
+
+
+## New source audits
+- [Eta ColorOS system-assistant audit](ETA_COLOROS_SOURCE_AUDIT.md)
+- [Phtomt + PocketMind provider/approval audit](PHTOMT_POCKETMIND_SOURCE_AUDIT.md)
