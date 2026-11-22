@@ -71,7 +71,7 @@ import {
   pauseTaskPlanRun,
   resumeTaskPlanRun,
   cancelTaskPlanRun,
-} from '../../src/services/planner/taskPlan.ts';
+} from '../../src/services/planner/taskPlanRun.ts';
 
 test('claims dependency-ready steps and waits for approval when required', () => {
   const plan = makePlan();
