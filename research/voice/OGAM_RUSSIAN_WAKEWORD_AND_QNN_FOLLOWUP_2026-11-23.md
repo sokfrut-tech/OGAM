@@ -176,3 +176,19 @@ PR #1 remains open and Draft; current fetched head is `67159e2f821b14616eebcaf0e
 - Public-document verified: openWakeWord language limitation/training guidance; KWS API design; Russian offline sherpa models; SM8550/V73 and LiteRT QNN SoC support.
 - Author-reported only: community "Мост" recall/false-trigger figures; these are not independently reproduced.
 - Not performed: custom Russian KWS training, artifact download/hash verification, Android KWS integration, QNN build, APK build, PGEM10 audio capture or benchmark.
+
+
+## 6. New Russian microWakeWord trainer — 2026-11-22 follow-up
+
+A dedicated follow-up audit is saved at [OGAM_RUSSIAN_MICROWAKEWORD_ANDROID_AUDIT_2026-11-22.md](OGAM_RUSSIAN_MICROWAKEWORD_ANDROID_AUDIT_2026-11-22.md). It adds the following evidence:
+- The MIT repository interkelstar/microwakeword-trainer has a Russian production config for «Джарвис», four Piper Russian voices, punctuation variants, adversarial near-match phrases and a 50k-sample training setup.
+- The author reports 47/50 held-out real activations (94%), 1/140 mined hard-negative false activations and an 82.5 KB streaming TFLite model. The test set is small; the 1/140 result is not FAR/hour; the actual model binary is not present in the inspected repository.
+- The underlying microWakeWord framework is Apache-2.0. It uses a 16 kHz / 40-feature MicroFrontend and a stateful streaming classifier. The trainer export prose says uint8, but its inference helper's quantization test checks int8; inspect the real exported tensor dtype/scale before Android implementation.
+- The Golos crowd dataset referenced by the other trainer has licence marked "other" with attribution/reserved conditions. Do not bundle or train on it until exact terms are reviewed. Piper voice licences must be verified per voice/revision.
+- Android implementation remains a prototype: preserve AudioRecorderService as the only physical capture owner; validate the MicroFrontend and the exported TFLite graph in LiteRT; no KWS model or Android integration has been committed.
+
+### Android microphone-policy clarification
+
+The Android VoiceInteractionService exemption must not be described as a blanket background microphone permission or general foreground-service launch exemption. Android documents it specifically in the while-in-use microphone restrictions. General background FGS-start rules remain a separate check. The selected VoiceInteractionService is kept running by the system, but its public API does not grant ordinary apps the hidden/SystemApi DSP hotword methods requiring MANAGE_HOTWORD_DETECTION, and the Automotive software-hotword route uses hidden HOTWORD capture permission/source. Android 15+ also blocks microphone FGS startup from BOOT_COMPLETED for target API 35+ apps. Start an opted-in microphone session from a visible user action unless a current explicit platform exemption is verified; never claim ColorOS 16 behavior until PGEM10 testing.
+
+Sources: https://developer.android.com/reference/android/service/voice/VoiceInteractionService ; https://developer.android.com/develop/background-work/services/fgs/restrictions-bg-start ; https://developer.android.com/develop/background-work/services/fgs/service-types ; https://developer.android.com/about/versions/15/behavior-changes-15 ; https://source.android.com/docs/automotive/voice/voice_interaction_guide/app_development .
