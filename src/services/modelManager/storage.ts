@@ -11,7 +11,8 @@ import { collapseDuplicateFileRows, collapseDuplicateImageRows } from './collaps
 import { reconcilePrimaryPaths, resolveStoredPath } from './reconcileStoredPaths';
 import { useAppStore } from '../../stores';
 import { isLiteRTFileName } from '../../utils/modelHelpers';
-import { CATALOG, splitGgufPartNames } from '@offgrid/models';
+import { CATALOG } from '@offgrid/models';
+import { splitGgufPartNames } from '../../utils/ggufSplitFiles';
 
 const MODELS_STORAGE_KEY = '@local_llm/downloaded_models';
 const IMAGE_MODELS_STORAGE_KEY = '@local_llm/downloaded_image_models';

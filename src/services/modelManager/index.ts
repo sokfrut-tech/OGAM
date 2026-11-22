@@ -1,6 +1,6 @@
 import { videoModelsDirectory } from '../videoModelFiles';
 import RNFS from 'react-native-fs';
-import { splitGgufPartNames } from '@offgrid/models';
+import { splitGgufPartNames } from '../../utils/ggufSplitFiles';
 import logger from '../../utils/logger';
 import { getMmProjFileSize } from '../../utils/modelHelpers';
 import { DownloadedModel, ModelFile, BackgroundDownloadInfo, ONNXImageModel, PersistedDownloadInfo } from '../../types';

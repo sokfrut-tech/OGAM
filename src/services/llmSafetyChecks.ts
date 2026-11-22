@@ -1,4 +1,5 @@
-import { isDraftModelFile, isImatrixFile, isLoadableOnDevice, isMtpHeadFile, splitGgufPartNames } from '@offgrid/models';
+import { isDraftModelFile, isImatrixFile, isLoadableOnDevice, isMtpHeadFile } from '@offgrid/models';
+import { splitGgufPartNames } from '../utils/ggufSplitFiles';
 import { LlamaContext } from 'llama.rn';
 import RNFS from 'react-native-fs';
 import { statFile } from '../utils/fileStat';

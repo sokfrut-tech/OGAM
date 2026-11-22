@@ -4,7 +4,7 @@ import type { NativeDirectoryCandidate } from './sync/nativeDirectorySource';
 import { classifyModelArtifact, type ModelArtifactKind } from './modelArtifactClassifier';
 export { classifyModelArtifact } from './modelArtifactClassifier';
 export type { ModelArtifactKind } from './modelArtifactClassifier';
-import { splitGgufPartNames } from '@offgrid/models';
+import { splitGgufPartNames } from '../utils/ggufSplitFiles';
 import { modelManager } from './modelManager';
 import { listDownloadedModels as listWhisperModels } from './whisperModelFiles';
 import { readModelHeader } from './modelHeader';
