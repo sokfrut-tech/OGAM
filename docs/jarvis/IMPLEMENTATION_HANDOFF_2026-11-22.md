@@ -543,3 +543,16 @@ The single remaining M2 symbol still imported from `@offgrid/models` is `reasoni
 - Before adding sherpa native dependency, confirm official Kotlin AAR coordinates/version, arm64-only packaging, exact transitive ONNX Runtime license notices and APK-size impact; use Swift XCFramework separately for iOS.
 - Generic ONNX support is not Qualcomm NPU proof; upstream Qwen3 sherpa examples specify CPU provider. No SM8550 hardware test is yet established.
 - Research details: [Chinese model evaluation](https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/china/CHINESE_OPEN_MODELS_EVALUATION_2026-11-22.md).
+
+
+## React Native sherpa-onnx TurboModule candidate (2026-11-22)
+
+- New candidate: `XDcobra/react-native-sherpa-onnx`, a React Native TurboModule with Android + iOS support and explicit `qwen3_asr` model type. Current main package.json says SDK 0.4.4; pinned prebuilt tag files in main say sherpa-onnx 1.12.35-1 and Android ONNX Runtime QNN build 1.24.4-qnn2.43.1.260218-1. The README still describes SDK 0.3.0 / bundled 1.12.35, so pin a real release/tag and reconcile this version drift before use.
+- This is a closer fit than writing a new Kotlin bridge: OGAM is React Native and already uses native TurboModules. However no package added and no build attempted.
+- SDK docs list QNN on SM8550, but QNN needs QNN-compatible model files or a QNN context. A generic Qwen3-ASR INT8 ONNX model is not proven QNN-compatible. A default `getQnnSupport()` validates only a small test model; use the actual Qwen model for model-specific initialization and run a full decode.
+- SDK's Qwen3 TypeScript options expose hotwords/decode limits but no language hint; current OGAM llama.rn implementation supports a language-prefill prompt. Qwen can auto-detect, but this difference should be measured.
+- Qwen3-ASR is offline/utterance-level. SDK streaming STT uses streaming-capable model types; do not label Qwen3-ASR as token-streaming.
+- License review: wrapper MIT; sherpa-onnx Apache-2.0; ONNX Runtime MIT; SDK inventory also contains LGPL FFmpeg/Shine and BSD components. Review actual flags/notices; test disabling unused FFmpeg to reduce binary/licensing scope.
+- Android ABI filters currently include arm64, armeabi-v7a, x86, x86_64. iOS XCFramework downloaded during pod install. Audit package size and reproducibility.
+- Existing OGAM QNN runtime assets may collide with wrapper's QNN/ORT native libs; audit names, versions, load paths, packaging and existing asset-copy logic before QNN enablement.
+- Next: isolated dependency spike on a throwaway branch, pin exact release, include only STT/Qwen, CPU/XNNPACK baseline, then compare with existing llama.rn Qwen on PGEM10. No production dependency, model or code changed by this note.
