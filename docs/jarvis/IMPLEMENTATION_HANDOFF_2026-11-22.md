@@ -496,3 +496,15 @@ The single remaining M2 symbol still imported from `@offgrid/models` is `reasoni
 - **`egnch/tiny-voca-ru` (~21.4 MB ONNX, Apache 2.0):** Requires Python-to-Kotlin phonetics/stress frontend port + ONNX Runtime Android + PGEM10 real-device latency benchmark.
 - **Breeno APK inventory:** `26` ColorOS/Breeno local APKs have been audited (`research/breeno/`, PR #2 `3c4bf87c`), including `Breeno 13.4.3`, `Breeno Memory 16.11.5`, and `Инструкции Breeno 17.2.4`; `Breeno Instructions 17.7.2` remained unavailable due to external Chinese catalog download failures.
 
+
+
+## Gemini audit follow-through — bridge-token expiry hardening (2026-11-22 evening)
+
+- Independent Gemini report reviewed from `sokfrut-tech/Universal-AI-Factory/coordination/gemini/outbox/REPORT_2026-11-22_OGAM_breeno_dex_audit.md`.
+- PR #2's native-source verification document now contains an explicit B1–B5 disposition, distinguishing fixed source issues, rejected API hypotheses and remaining runtime gates: [audit reconciliation](https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/breeno/PR1_NATIVE_ASSISTANT_SOURCE_VERIFICATION_2026-11-22.md), commit `1e7b0131b71ad258d06fbd26005c41363eeb1780`.
+- Gemini's B4 route-normalization bypass had already been mitigated in `JarvisAssistantLaunchGuard.matchesAssistantVoiceRoute` and `MainActivity`; a further weakness remained: the one-use bridge token had no expiry.
+- Added a monotonic-clock TTL to `JarvisAssistantLaunchGuard`: pending bridge authorization expires after **10 seconds**, expired or clock-rollback tokens fail closed, successful consumption clears token and timestamp, and a newer issue replaces the prior pending token.
+- Added deterministic unit coverage for expiry after the TTL, exact TTL boundary acceptance, clock rollback rejection and one-use behavior.
+- Commits on `feature/jarvis-step-2-storage-privacy`: `794bdadf327beee7925755b43fb28395ad1f59bb` (guard) and `da23c21ba5d76eedbaae99973635d183e8587d6d` (tests).
+- **Verification not yet established for this slice:** commit-triggered workflow lookup returned no PR workflow runs for the test commit at the time of this update. Do not claim Kotlin/JUnit passed. Require a fresh Android CI run to execute `:app:compileDebugKotlin`, `:app:compileDebugUnitTestKotlin` and `:app:testDebugUnitTest`.
+- Remaining Android audit items: PGEM10 background/lock-screen/service restart and audio-focus tests; PCM assistant-usage/backoff review; production Russian TTS integration; explicit permission-denial/airplane-mode matrix.
