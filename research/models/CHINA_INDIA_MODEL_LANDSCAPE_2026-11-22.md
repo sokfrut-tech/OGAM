@@ -256,3 +256,49 @@ Official LiteRT-LM Omni source and model card now provide a much clearer integra
 - No source code from fini is approved for copying at this stage because the repository license file was not found in this audit.
 - Port the architecture lessons only: serialized native inference access, observable model lifecycle state, explicit warm-up, deterministic intent parser before LLM, typed tool registry, proposal/confirmation for destructive operations, and robust model-download integrity.
 - Add negative tests for missing hash, mismatched file size, malicious redirect, interrupted resume, corrupt GGUF, unavailable backend, concurrent generation, cancellation and native context cleanup to OGAM's model manager test plan.
+
+
+## OGAM in-repository source audit — correction and implementation baseline (2026-11-22)
+
+A direct audit of PR #1's actual feature branch changed the next-step priority. OGAM already has Qwen3-ASR and LiteRT-LM integration; this is not a greenfield addition.
+
+### Existing Qwen3-ASR integration in OGAM PR #1
+- Branch: feature/jarvis-step-2-storage-privacy; inspected HEAD 67159e2f821b14616eebcaf0e6da997633cd7aa4. PR #1 remains open/draft, not merged.
+- src/services/qwenAsrModel.ts selects catalog entry ggml-org/Qwen3-ASR-0.6B-GGUF; it expects a primary GGUF and paired mmproj audio projector.
+- src/services/whisperModelDownloads.ts downloads both files, uses exact catalog byte sizes and SHA-256 values, and routes through the shared background download queue.
+- src/services/qwenAsrEngine.ts loads via llama.rn initLlama, initializes the audio projector, uses 4096 context tokens and caps transcript output at 1024 tokens. Android explicitly uses CPU (devices: ['CPU'], n_gpu_layers: 0); iOS uses Metal. This is not the SM8550 NPU path.
+- The selected language is prefixed before <asr_text>; the existing test covers Russian language selection. No user/domain hotwords/context object was found in this source pass.
+- Qwen3-ASR is not live-streaming in the current service: it records a WAV and transcribes after stop. Whisper's realtime path remains separate.
+- On Qwen failure, whisperService.ts releases Qwen's context, loads a compatible downloaded Whisper model and reports fallback. Native work is serialized to protect model contexts.
+- __tests__/integration/audio/qwen3AsrTranscription.rendered.test.tsx covers model cards, paired downloads, checksum forwarding, memory guard, Russian language prompt, composer output and fallback. The native llama.rn boundary is mocked, so these are integration/contract tests, not real speech-quality or device benchmarks.
+- The test comments show a 3 GB catalog admission floor. This is not measured memory usage or proof that the target PGEM10 can sustain Qwen plus the rest of the app.
+
+### Existing LiteRT-LM Android integration in OGAM PR #1
+- android/app/build.gradle already pins com.google.ai.edge.litertlm:litertlm-android:0.19.1; do not add another copy or switch to latest.release.
+- android/app/src/main/java/ai/offgridmobile/litert/LiteRTModule.kt wraps the official Kotlin Engine/Conversation API and can build Content.AudioBytes from complete WAV container bytes.
+- In the inspected native module, the audio submodel is explicitly configured to CPU (audioBackend = Backend.CPU()), while the main model engine supports CPU/GPU/NPU tiers.
+- src/services/litert.ts currently downgrades requested NPU selection to GPU and then CPU in this release. Native NPU initialization/fallback code exists, but the JS layer does not expose it as an active production selection.
+- Thus OGAM already has a general LiteRT Kotlin audio-input bridge, but this does not prove that the special Qwen3-ASR Omni .litertlm artifact can load in the ordinary Engine/Conversation API or provide streaming ASR. Prove exact artifact/API compatibility with a minimal real inference first.
+
+### Corrected LiteRT integration distinction
+- General LiteRT-LM Android Kotlin Engine/Conversation API: official Android documentation provides model lifecycle, streaming text generation, GPU/NPU backend configuration and tool registration. Guide: https://developers.google.com/edge/litert-lm/android
+- Qwen3-ASR LiteRT Omni: special self-contained package intended for LiteRT-LM Omni OmniEngine/omni_runner, with separate C++ experimental architecture. Do not assume it is interchangeable with an ordinary chat model .litertlm bundle.
+- Qwen3-ASR direct LiteRT graph: standalone .tflite requires host-side preprocessing and tokenization; SoC-specific AOT NPU graphs are separate, larger FP32 artifacts. The model card lists Qualcomm_SM8550 as a target family: https://huggingface.co/litert-community/Qwen3-ASR-0.6B
+- Current OGAM Qwen3-ASR GGUF path is a third separate route through llama.cpp/llama.rn.
+
+### Hotwords/context issue — newly identified blocker
+- LiteRT-LM issue #4360 is open and reports that Qwen3-ASR Omni does not expose system-context/hotwords input. The reporter's synthetic English alphanumeric-code test showed exact code accuracy increasing from 13/31 to 21/31 after a local context-prefill patch; later numbers in the issue include additional export changes and are not an independent benchmark. Issue: https://github.com/google-ai-edge/LiteRT-LM/issues/4360
+- Jarvis needs local context for Russian names, app names, places, device labels and mixed Cyrillic/Latin codes. This should be tested first on the already integrated llama.rn Qwen path; the LiteRT Omni route must be evaluated separately.
+- Context terms must be optional, bounded, local-only, excluded from analytics/logs, and never uploaded or synced by default.
+
+### Updated decision and next steps
+1. Do not build a second Qwen3-ASR implementation from scratch. First extend the existing llama.rn Qwen3-ASR path with a typed, bounded hotwords/context option after confirming the GGUF chat-template semantics.
+2. Keep current Whisper fallback, paired-file SHA-256 validation, memory gate and native lifecycle protections.
+3. Add Russian audio benchmark corpus and real acoustic metrics; current mocked tests do not establish WER/CER or actual runtime performance.
+4. In parallel, use the existing LiteRT-LM 0.19.1 Kotlin bridge for a compatibility spike. Do not assume Omni .litertlm is accepted by regular Engine/Conversation.
+5. If needed, isolate Omni C++ via JNI/ARM64 runner behind a replaceable ASR interface. Keep it experimental until tested.
+6. Only test the SM8550 AOT NPU graph after confirming OPPO firmware, driver/delegate and QNN/LiteRT runtime compatibility.
+7. Implementation-level detail and acceptance gates are recorded in research/models/OGAM_QWEN_ASR_NEXT_IMPLEMENTATION_PLAN_2026-11-22.md.
+
+### Verification boundary
+This was a read-only source audit through GitHub. No model weights were downloaded, no new code was changed in the OGAM application, no APK/runner was built, and no acoustic benchmark or PGEM10 test was performed.
