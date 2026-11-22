@@ -1011,3 +1011,20 @@ The detailed, license-aware voice study is now in `docs/jarvis/VOICE_STACK_RESEA
 - Earlier split-module test runs failed because Node ESM could not resolve an extensionless TypeScript import. The planner was split into `taskPlan.ts` and `taskPlanRun.ts`, the import was corrected to `.ts`, and the latest audit passed.
 - The new Zustand task-plan store has Jest tests in the repository, but the standalone audit does not run Jest. Do not treat those store tests, TypeScript typecheck, full Jest suite, Android build or device runtime as verified.
 - PR #1 remains open/draft. The APK workflow still depends on private Pro checkout; no APK build or release is claimed.
+
+---
+
+### Two-directory forensic resolution & MIT history recovery (2026-11-22)
+
+- **Main conflict resolved (`b7c06988`):** Merged `origin/main` (`14b27f7c`) keeping PR #1's OGAM-owned `../utils/ggufSplitFiles` import in `src/services/modelArtifactClassifier.ts`.
+- **Forensic contract map completed (`docs/jarvis/TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md`):**
+  - Decoded all **56** `@offgrid/pro/*` subpaths referenced in tests and proved `src/` contains only **2** dynamic `require('@offgrid/pro')` sites (`src/bootstrap/loadProFeatures.ts`, `src/services/demoSeed.ts`), already safely stubbed by `src/bootstrap/proStub.js`.
+  - Recovered MIT-licensed pre-extraction commits inside `sokfrut-tech/OGAM` itself: `efc85a70` (`@offgrid/design` palettes & typography/spacing/radius/living-field), `aaf68870` (`SpeechEndpointTimer` prior to `@offgrid/speech`), `6ba7d5cb` (`src/services/rag/{chunking,retrieval,vectorMath}.ts` prior to `@offgrid/rag/documents`), plus pre-Pro TTS history (`908af16a`, `767e0b91`).
+  - Split the 171 symbols of `@offgrid/sync` into **Half A** (pure chat/thinking/markdown/queue utilities with zero crypto/networking) vs **Half B** (Personal Mesh TCP/NaCl/HKDF/mDNS).
+- **Executed slices (`8 → 4` `package.json` external deps):**
+  - `@offgrid/design` completely eliminated via `src/theme/designTokens.ts` (`2 → 0` imports).
+  - Zero-importer Pro-only deps (`@offgrid/notes`, `@offgrid/notes-editor`, `@offgrid/writing`) removed from `package.json`, `metro.config.js`, and `jest.config.js`.
+  - `@offgrid/speech` migrated `5` of `8` `src/` files (`9 → 4` imports): `src/utils/wavTrimPlan.ts`, `src/utils/voiceTurnSettings.ts`, and `src/utils/speechEndpoint.ts`.
+- **Cross-linked research added:** `docs/jarvis/BREENO_COLOROS16_REFERENCE_SUMMARY_2026-11-22.md` (linking PR #2 `e4ef6016`) and `docs/jarvis/SIRI_APPLE_INTELLIGENCE_PARITY_BLUEPRINT_2026-11-22.md`.
+- **Verified locally (Node `v26.13.1`):** All **17** open-core Node test suites (`68/68` test cases incl. `design-tokens`, `wav-trim-plan`, and `speech-endpoint`) passed locally; audit delta measured `1,983` files, `1,339` total refs (`1,354 → 1,339`), `4` `localFileDependencies` (`8 → 4`), `0` external hits in newly added files.
+

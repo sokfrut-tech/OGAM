@@ -8,8 +8,8 @@ This file is the durable continuation point for the current OGAM fork work. It r
 - Active branch: `feature/jarvis-step-2-storage-privacy`
 - PR: [#1 — Jarvis Step 2: privacy and Android storage permission bridge](https://github.com/sokfrut-tech/OGAM/pull/1)
 - PR state: open, draft, not merged; base `main`
-- PR head observed before this handoff refresh: `5d46865a1ec8ba9120e83bb6d232ba8b1bad0f61`
-- PR metadata at that snapshot: 357 commits, 143 changed files, +8,614/-399 lines.
+- PR head observed before this pass: `59dd17e604e7fba2cc721ae8406804c3a251c548`; `main` conflict resolved in merge commit `b7c06988`.
+- Companion research PR (26-APK Breeno / ColorOS 16 static analysis): [#2 (`docs/research-breeno-coloros-2026-11-22`)](https://github.com/sokfrut-tech/OGAM/pull/2) at `e4ef6016`.
 - Do not merge the PR or publish an APK as a way to bypass the missing-source blocker.
 
 ## Product contract
@@ -84,43 +84,43 @@ This file is the durable continuation point for the current OGAM fork work. It r
 - Proactive suggestions only as opt-in, local, rate-limited signals with quiet hours and explanation.
 - Original Jarvis HUD states: idle/listening/thinking/speaking/executing/approval/error, with readable progress and one-handed accessibility.
 
-## Self-contained migration blocker — do not bypass
+## Self-contained migration blocker — solved map & active vertical progress
 
-The open PR still depends on private upstream source:
-- Git submodule `pro` → `off-grid-ai/mobile-pro`.
-- Nine `file:../shared/packages/*` dependencies: design, models, notes, notes-editor, rag, speech, sync, ui, writing.
-- Metro/Jest and setup scripts resolve/build the sibling `../shared` workspace.
-- APK workflow currently requires `PRO_SUBMODULE_PAT`.
+Two-directory mystery (`pro/` and `../shared/packages/*`) is now completely decoded and mapped at the symbol level in [`docs/jarvis/TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md`](TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md):
+- **`pro/` (`off-grid-ai/mobile-pro`):** Core `src/` already builds/runs open-core with **only 2** `require('@offgrid/pro')` sites (`src/bootstrap/loadProFeatures.ts` and `src/services/demoSeed.ts`), isolated by `src/bootstrap/proStub.js` and hook/slot/screen registries (enforced by `.dependency-cruiser.js`). The other 153 `@offgrid/pro/*` imports are inside `__tests__/` and ignored automatically by `jest.config.js` when `pro/package.json` is absent. All 56 imported subpaths are decoded and assigned parity decisions.
+- **`../shared/packages/*` (reduced `8 → 4` `package.json` deps):**
+  - **MIT pre-extraction source exists inside `sokfrut-tech/OGAM` git history:** `@offgrid/design` (`efc85a70`), `@offgrid/speech` `speechEndpoint.ts` (`aaf68870`), `@offgrid/rag` chunking/retrieval/vectorMath (`6ba7d5cb`), plus pre-Pro TTS wiring (`908af16a`, `767e0b91`).
+  - **Completed & tested in OGAM-owned source (2026-11-22):**
+    - `@offgrid/design` **100% eliminated** (`2 → 0` imports) via MIT tokens restored in `src/theme/designTokens.ts` (`scripts/__tests__/design-tokens.node.test.mjs`, 4/4 pass).
+    - Pro-only zero-importer shared entries (`@offgrid/notes`, `@offgrid/notes-editor`, `@offgrid/writing`) removed from `package.json`, `metro.config.js`, and `jest.config.js`.
+    - `@offgrid/speech` migrated `5` of `8` `src/` files (`9 → 4` imports): `src/utils/wavTrimPlan.ts`, `src/utils/voiceTurnSettings.ts`, and `src/utils/speechEndpoint.ts` (`scripts/__tests__/wav-trim-plan.node.test.mjs` 4/4 pass; `scripts/__tests__/speech-endpoint.node.test.mjs` 4/4 pass).
+  - **Remaining 4 `file:../shared/packages/*` dependencies:** `@offgrid/speech` (3 `src/` files: `voiceSession`, `transcriptionLanguages`), `@offgrid/rag` (`31` symbols), `@offgrid/models` (`148` symbols in slices `M2..M7`), and `@offgrid/sync` (split into **Half A** pure chat/thinking/markdown/queue helpers vs **Half B** Personal Mesh TCP/NaCl/mDNS).
 
-The connected GitHub integration cannot read the private upstream repositories (404). Do not ask the user for a private upstream token as a shortcut. Do not add empty directories, fake packages, or no-op implementations. A previous CI run (run 18, head `1c271e3b97d5d65b922732aa25d7fb5b6d004b25`) was cancelled; its recorded failures were caused by unresolved shared/Pro imports after private checkout steps were skipped. This is not green evidence and not a clean standalone build.
+Do not ask the user for `PRO_SUBMODULE_PAT` or add fake no-op stubs. Continue porting real vertical slices from `TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md`.
 
-A public fork survey found:
-- `wednesday-solutions/off-grid-mobile-ai`: older standalone open-core snapshot `0.0.81`, no current Pro/shared split; useful as a historical reference, not parity.
-- `cristiannegru/off-grid-mobile-ai`: retains private Pro submodule and sibling shared dependencies; optional CI skip is only a contributor fallback, not independence.
+## Research additions (2026-11-22): Breeno ColorOS 16 & Siri / Apple Intelligence parity
+
+- **OPPO / ColorOS 16 Breeno static analysis summary:** See [`docs/jarvis/BREENO_COLOROS16_REFERENCE_SUMMARY_2026-11-22.md`](BREENO_COLOROS16_REFERENCE_SUMMARY_2026-11-22.md), cross-linked to PR #2 (`docs/research-breeno-coloros-2026-11-22`, commit `e4ef6016`, `research/breeno/OPPO_LOCAL_APK_STATIC_ANALYSIS_2026-11-22.md` & `research/breeno/OPPO_APK_MANIFEST_AND_NATIVE_INVENTORY_2026-11-22.json`). Key proof: none of the 26 ColorOS APKs (including exact phone build `Breeno 13.4.3_08c04e4_261110`) declares `VoiceInteractionService`; OEM `signature` certs lock private providers; OPPO's clean separation (`Voice` / encrypted SQLCipher+vector `com.oplus.dmp` / shared `com.oplus.aiunit` / `aimemory` / `shortcuts`) validates OGAM's public Android 16 architecture while keeping `com.opos.ads` adware and commercial bloat out.
+- **Siri / Apple Intelligence clean-room 3-way blueprint:** See [`docs/jarvis/SIRI_APPLE_INTELLIGENCE_PARITY_BLUEPRINT_2026-11-22.md`](SIRI_APPLE_INTELLIGENCE_PARITY_BLUEPRINT_2026-11-22.md) comparing Apple Siri / Apple Intelligence vs Breeno ColorOS 16 vs OGAM / Jarvis across all 12 subsystems, with TypeScript contract targets (`PersonalContextRecord`, `ScreenContextSnapshot`, `ApprovalDecision`, `JarvisHudState`) and no proprietary Apple code/assets.
 
 ## Ordered next work
 
-1. **Finish the real dependency inventory from the active branch.** Run `scripts/audit-offgrid-imports.mjs` in CI and preserve the JSON artifact. Include exact importer paths, source/test/build-config scope, direct/transitive package dependencies, native/build references and the `@offgrid/automation` Metro-only package. Do not rely on default-branch code search to prove absence.
-2. **Classify each package API** as free-runtime essential, optional feature, Pro-only, or build/test tooling. Prioritise small pure helpers already characterized by tests; do not remove a package wholesale.
-3. **Migrate one vertical slice at a time** into OGAM-owned source, with behaviour-level tests. First-party implementations must preserve contracts and existing tests. For inaccessible source, inspect multiple public implementations and independently specify/test equivalent behaviour; record source links and licenses.
-4. **Resolve shared core boundaries**: document/RAG, sync engine + RN adapter, speech-turn state machine, models/runtime policies, design tokens, writing/Scribe, notes/editor and automation. These are real features, not disposable build scaffolding.
-5. **Separate Pro-only code safely** while preserving free-core functionality. Remove the Pro gitlink and private-token checkout only after all imports, tests, native hooks and runtime entry points have been replaced or deliberately removed with documented parity decisions.
-6. **Complete Siri/Jarvis execution layer**: skill catalogue → permission/capability broker → approval preview → deterministic executor → progress/cancel/result ledger → plan editor/HUD. Keep the model outside the authority boundary.
-7. **Build a versioned Russian/tool-use model benchmark** and compare Qwen3.5-4B, Aurum 4B and Gemma 4 E2B/E4B on identical prompts and the actual OPPO device. Do not select a default from model-card claims alone.
-8. **Complete voice stack** in order: migrate turn contract → measure existing Whisper → benchmark VAD/T-one/GigaAM → verify TTS license and voice quality → integrate one local Russian TTS engine with the OGAM-owned PCM player → barge-in/duplex → wake word → OPPO system-assistant validation. The system-assistant source handoff is already implemented; it is not yet a device-verified release feature.
-9. **Release gate**: clean OGAM-only checkout, lockfile/install, TypeScript, ESLint, Jest, dependency-cruiser/knip, actionlint, Android unit tests, arm64 APK + SHA-256, install/launch and OPPO Find X6 Pro smoke tests. Every failure must be classified; skipped private-dependent suites do not count as success.
+1. **Finish `@offgrid/speech` (`3` remaining `src/` files → removes dep `4 → 3`):** Implement OGAM-owned `transcriptionLanguages` and full contract-verified `voiceSession` state machine (`src/utils/voiceSessionMachine.ts`) after checking all `__tests__/` audio suites for replay event names.
+2. **Extract `@offgrid/sync` Half A pure chat/markdown/queue helpers (~9 `src/` files):** Migrate `parseChatModelOutput`, `parseChatThinkingContent`, `splitInlineReasoning`, `preprocessChatMarkdown`, `chatQueueHeld`, `chatThread`, `chatStreamPreviewRows` cleanly without touching cryptography or TCP.
+3. **Port `@offgrid/rag` & `@offgrid/rag/documents` (removes dep `3 → 2`):** Start from OGAM's own MIT pre-extraction source (`6ba7d5cb:src/services/rag/*`), implementing pure helpers (`estimateTokens`, `splitCitations`, etc.) first and local SQLite/SQLCipher chunked RAG (`com.oplus.dmp`-inspired) for Jarvis personal context.
+4. **Port `@offgrid/models` slices `M2`–`M7` (removes dep `2 → 1`):** Tackle pure `M2` (reasoning budget & tool-loop limits) → `M3` (SD checkpoint header & media styles) → `M4` (model naming/classification) → `M5` (fit budget & eviction) → `M6`/`M7` (catalog & guide), pinning every slice against existing Jest specs.
+5. **Decide & migrate `@offgrid/sync` Half B (Personal Mesh) + `@offgrid/automation` (removes last dep `1 → 0`)** and isolate or clean test-only `@offgrid/pro/*` gates so clean OGAM-only `npm ci` + Jest + TSC + Gradle APK builds succeed standalone.
+6. **Complete Siri/Jarvis execution layer & fail-closed Approval Broker:** Wire `SkillContract v1` + `taskPlan` / `taskPlanRun` to deterministic Android executors (Calendar, Draft Email/Message, local knowledge search) behind mandatory Approval Preview UI.
+7. **Benchmark RU/tool models & complete duplex Russian voice stack on OPPO Find X6 Pro:** Pin/benchmark Qwen3.5-4B, Uncensored-v2, Huihui abliterated, Aurum 4B, and Gemma 4 E2B/E4B; wire `tiny-voca-ru` / sherpa-onnx TTS to `JarvisPcmStreamPlayer` + AEC/barge-in + `VoiceInteractionService` hardware validation.
+8. **Release gate:** Clean OGAM-only checkout, lockfile/install, TypeScript, ESLint, Jest, dependency-cruiser/knip, actionlint, Android unit tests, arm64 APK + SHA-256, and OPPO Find X6 Pro verification.
 
 ## Current verified status at handoff
 
-- PR #1 remains open/draft/unmerged; do not merge to bypass the private-source blocker.
-- At the source snapshot reviewed before this documentation refresh, PR head was `316981b3e16270b825079297a57feeb3f693817f`; metadata reported 337 commits, 140 changed files, +8,364/-399 lines. The documentation refresh itself will advance the head.
-- Latest completed open-core audit run for that source snapshot: [run #45039159486](https://github.com/sokfrut-tech/OGAM/actions/runs/45039159486), conclusion success. It ran 6 Android-assistant/security contract tests, 3 system-role tests, 2 one-shot voice tests (including failed-start cleanup), 1 URI mapping test, 4 PCM source-contract tests and existing open-core Node suites; the import audit scanned 1,976 files and reported 1,354 external dependency references. Artifact `ogam-import-audit`, ID `14761275690`.
-- The PCM playback static test now also asserts the corrected Kotlin test declarations. Two malformed declarations in `JarvisPcmStreamPlayerTest.kt` were found and corrected: the stale-generation test now stores the first token as a `Long`, and the async test writes its result through `AtomicReference.set()`.
-- New Android source now includes the in-app RoleManager picker/status bridge, a non-exported assistant bridge with one-time in-process launch authorization, one-shot ChatScreen invocation, preservation of existing drafts/attachments, and an engine-neutral mono Float32 AudioTrack player with AudioFocus, generation tokens, cancellation and eight Kotlin/JUnit cases. Whisper startup/model-load failures now return the voice-session state to idle and clear Jarvis's one-shot flag.
-- The system-assistant URI is no longer externally BROWSABLE. The VoiceInteractionSession launches a non-exported bridge Activity; it mints an in-process one-time token, and MainActivity rejects forged/externally supplied assistant VIEW intents before React Native Linking can consume them. Kotlin/JUnit token tests are present but not yet run in Gradle.
-- New compact Russian TTS candidate: `tiny-voca-ru` (4.53M parameters, ~21.4 MB ONNX, 24 kHz mono, two synthetic voices) is now the top compact prototype candidate. Code/weights Apache-2.0, bundled ruaccent assets MIT, dataset CC BY 4.0 with attribution. Its frontend is Python-only today and must be ported to Kotlin with 61-symbol parity fixtures; model/runtime has not been added or measured on OPPO. See `docs/jarvis/VOICE_STACK_RESEARCH_RU_2026-11-22.md` section 12 and `docs/jarvis/LOCAL_RUSSIAN_TTS_RUNTIME_EVALUATION.md`.
-- The PCM player is currently a standalone native primitive. No Sherpa/Vosk/Supertonic/Piper TTS runtime or voice model is wired to it; the TTS evaluation document is research only and license review/model profiling remain open.
-- The successful open-core Node audit does **not** compile Kotlin, execute Gradle/JUnit, merge the manifest, build an APK, run Jest/TypeScript, or verify the assistant picker/microphone on OPPO Find X6 Pro.
-- The manual arm64 APK workflow still requires the private `PRO_SUBMODULE_PAT` and upstream `mobile-pro`/shared workspace. Do not ask the user for a private upstream token or create fake package stubs. Continue the self-contained migration plan.
-- PR mergeability remains false at the reviewed snapshot. No APK artifact, clean standalone install, or OPPO device verification has been demonstrated.
-- Continue from the active branch and current source, not by replaying completed work above.
+- PR #1 remains open/draft/unmerged (do not merge prematurely while `../shared` / `pro` build work continues).
+- **Merge conflict resolved (`b7c06988`):** Merged `origin/main` (`14b27f7c`) cleanly, keeping PR #1's `src/utils/ggufSplitFiles` import in `src/services/modelArtifactClassifier.ts` (`main` conflict cleared).
+- **Previous baseline run on source `59dd17e6`:** [run #45039205432](https://github.com/sokfrut-tech/OGAM/actions/runs/45039205432) (`1,976` files, `1,354` external refs).
+- **Updated local Node audit & test verification (before pushing latest commits):**
+  - Executed all **17** open-core Node test suites (`68` test cases total: `13` plain Node tests + `55` `--experimental-strip-types` TS tests) locally on Node `v26.13.1` → **68/68 passed, 0 failed, 0 skipped**.
+  - Local `node scripts/audit-offgrid-imports.mjs` measured: `filesScanned: 1983`, `localFileDependencies: 4` (`8 → 4`), total external hits `1,339` (`1,354 → 1,339`), `packageImports: 450` (`@offgrid/design: 2 → 0`, `@offgrid/speech: 9 → 4`), `sharedWorkspacePaths: 65` (`73 → 65`), `0` external hits in newly added files.
+- **Same strict verification limits still apply:** The open-core Node test suite does **not** compile Kotlin, execute Gradle/JUnit, run `tsc` or full Jest (`npm test`), build an arm64 APK, or verify runtime/audio behavior on OPPO Find X6 Pro.
+- Continue from the active branch using [`TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md`](TWO_DIRECTORIES_CONTRACT_MAP_2026-11-22.md) as the exact symbol checklist.
