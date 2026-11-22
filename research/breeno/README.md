@@ -196,3 +196,8 @@ The source survey now includes Chinese platforms and Chinese-language projects (
 
 ## OGAM voice implementation reality audit
 - [Voice stack source/API reality audit](../../docs/jarvis/OGAM_VOICE_STACK_REALITY_AUDIT_2026-11-22.md) — independently inspected the actual PR #1 Kotlin/React Native voice source and Android hotword API boundaries. Confirms that system-assistant invocation is implemented in source, but wake-word, DSP hotword, neural VAD and a production Russian TTS model are not yet established.
+
+
+## Russian TTS and microphone/backend audit
+- [Voice research index](../voice/README.md) — consolidated wake-word, TTS, microphone-owner, AEC and benchmark decisions.
+- [Russian Android TTS backend audit](../voice/OGAM_RUSSIAN_TTS_ANDROID_BACKEND_AUDIT_2026-11-22.md) — new RuVoice (noncommercial code/model) reference, Qwen3-TTS Kotlin/JNI and C++ streaming gap, Sherpa-ONNX candidate, current OGAM mic owner and half-duplex/AEC limitation. No backend selected or integrated.
