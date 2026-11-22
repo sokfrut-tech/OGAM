@@ -213,3 +213,31 @@ Added to `feature/jarvis-step-2-storage-privacy`:
 - The full CI was not green. Lint/type/architecture/knip and Jest shards failed. The type logs show missing private workspace packages `@offgrid/sync` and `@offgrid/models`, followed by cascaded missing types; Jest shards report many suites failing to load/configure. This is an environment/private-workspace dependency blocker plus broader pre-existing branch integration debt, not evidence that the new Kotlin chunker failed.
 - Android test job was still running at the last status check; no final Android Gradle/JUnit result is claimed.
 - The separate external-dependency source-contract workflow had passed on the previous head. Recheck it on the new commit before treating the current source audit as green.
+
+
+## 2026-11-22 follow-up: tiny-voca-ru Android feasibility
+
+### Model and license evidence
+- Project: https://github.com/yilbegan/tiny-voca-ru
+- Model: https://huggingface.co/egnch/tiny-voca-ru
+- Dataset: https://huggingface.co/datasets/egnch/tiny-voca-ru-dataset
+- The Russian model card reports 4,534,411 parameters, approximately 18.2 MB safetensors / 21.4 MB ONNX, 24 kHz mono, and two voices (F/M). It is trained from scratch for Russian.
+- Code and weights are Apache-2.0. Bundled RUAccent stress data and ONNX assets are MIT. The training dataset is CC BY 4.0 and must be attributed if redistributed or used in derivative datasets.
+- The dataset card says the two voices were created with Qwen3-TTS 1.7B VoiceDesign. The available card does not fully document reference-voice provenance/permission, so retain a voice-provenance check before shipping the voice assets.
+- The published evaluation is a sanity check, not a formal listening test: test WER 2.03% vs 1.54% for its Qwen3-TTS teacher; 696 clips; no formal listening panel. CPU throughput 81x real-time is measured on an AMD Ryzen 5 3600X with four threads, not on Android/SM8550.
+- Important Russian quality caveat: default `lite` stress scored 56.0% on a 250-item homograph set versus 91.6% for the ruaccent turbo3.1 reference. The optional `full` path uses a 10 MB INT8 `omograph.onnx`; this should be included in the quality comparison, not silently omitted.
+
+### ONNX inference contract and Android fit
+- The ONNX graph consumes `tokens` and `stress` as int64 [1,N], `voice` as int64 [1], and `speed`, `pitch_shift`, `pitch_range` as float32 [1]. It returns float32 audio at 24 kHz plus int64 token durations.
+- The model expects a 61-symbol Russian IPA inventory; the exact symbol order is part of the checkpoint contract. The model does not accept raw Cyrillic text directly.
+- The upstream Python frontend is substantial: normalize.py 857 lines, numbers.py 388, tables.py 785, stress.py 523, g2p.py 382, tokenize.py 223, omograph.py 250, plus cleanup/lexicon/data. A partial quick transliteration would risk incorrect stress, numbers, dates, units, Latin words and homographs. Plan a staged, golden-fixture-backed Kotlin port instead.
+- Upstream inference splits text into utterances/sentences and returns a complete waveform; it has no model-native PCM callback. OGAM can still achieve honest `SENTENCE_CHUNKED` delivery by invoking one sentence at a time and forwarding each completed sentence to `JarvisPcmStreamPlayer`. It must not be labelled `MODEL_STREAMING`.
+- `max_tokens` is 512 and `max_frames` is 3000 in the published model configuration. Long utterances must be split at sentence/clause boundaries.
+- OGAM currently has no declared ONNX Runtime Android dependency in `android/app/build.gradle` or `package.json`. Maven Central currently publishes `com.microsoft.onnxruntime:onnxruntime-android:1.32.0` under MIT. This is a plausible runtime dependency, but its APK size, native ABI footprint, minSdk fit, R8 keep rules, and SM8550 execution must be checked before adding it.
+- ONNX Runtime documents an optional Android NNAPI execution provider for Android 8.1+; it is not evidence that this model will run on the OPPO Hexagon/NPU. Default CPU first, then measure NNAPI as a separate experiment. Do not claim QNN/HTP acceleration without a model-specific validated graph.
+
+### Decision
+- Promote tiny-voca-ru to the leading compact Russian TTS prototype, ahead of CosyVoice3-MNN for the first Android experiment. It has a much smaller model, permissive model/code licenses, native ONNX inference, and Russian-specific frontend.
+- Do not add the model or ORT dependency to production yet. First pin the exact Hugging Face model revision, retrieve the Russian model's own ONNX/config hashes (do not reuse the English `n4ze3m/tiny-voca` hash), resolve voice asset provenance/attribution, and port the frontend with golden tests.
+- Implement a sentence-chunked adapter after the frontend passes parity tests. Benchmark cold/warm latency, RTF, RSS, thermal throttling, 10+ minute use, and interruption on OPPO Find X6 Pro / PGEM10 / SM8550.
+- Supertonic remains an alternative sentence/model-chunk callback path only if its OpenRAIL-M restrictions are accepted and the callback-stop patch is applied to a pinned native build.
