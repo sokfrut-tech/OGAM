@@ -34,6 +34,22 @@ describe('recordingController', () => {
     expect(recordingController.getPhase()).toBe('idle');
   });
 
+  it('returns unavailable and leaves the session stopped when no speech backend exists', () => {
+    const h = handlers();
+    recordingController.registerHandlers({ ...h, canStart: () => false });
+    expect(recordingController.start()).toBe('unavailable');
+    expect(recordingController.getPhase()).toBe('idle');
+    expect(h.start).not.toHaveBeenCalled();
+  });
+
+  it('reports missing recorder separately from a busy voice session', () => {
+    expect(recordingController.start()).toBe('no-recorder');
+    const h = handlers();
+    recordingController.registerHandlers(h);
+    voiceSession.dispatch('userStart');
+    expect(recordingController.start()).toBe('busy');
+  });
+
   it('toggle() stops when recording (does not start a second recording)', () => {
     const h = handlers();
     recordingController.registerHandlers(h);
