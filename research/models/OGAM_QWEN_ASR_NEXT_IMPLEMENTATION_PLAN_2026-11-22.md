@@ -156,3 +156,10 @@ The Jarvis planner and action layer must not depend on any vendor runtime. Deter
 3. Design an optional Qwen windowed streaming experiment behind an ASR-specific capability interface. Start with raw 2/4/6-second partials and bounded memory; evaluate quiet-boundary segmentation separately. Do not port the Dart project's suppression heuristics by default.
 4. Benchmark Russian first on recorded WAVs and only then test windowed live PCM on Android. Record partial latency, final WER/CER, dropped-word rate at window cuts, false partials, quiet speech retention, memory, battery and heat.
 5. Keep the current whole-file Qwen + Whisper fallback as the safe path until the windowed path passes Russian/PGEM10 acceptance gates.
+
+
+### Exact upstream Qwen3-ASR GGUF artifact caution
+- The official ggml-org/Qwen3-ASR-0.6B-GGUF card currently advertises Q8_0 weights (805 MB) plus a separate mmproj. The public mmproj file card identifies commit 928ab95 and reports 214 MB / SHA-256 41a342b5e4c514e968cb756de6cd1b7be39eff43c44c57a2ef5fc6522e36603d.
+- The public model card says the GGUF was converted with convert_hf_to_gguf.py. PR #32571 explicitly says existing GGUFs need re-conversion to get the corrected Qwen3-ASR chat template. The currently indexed public files were uploaded before that correction (the mmproj page shows 3 weeks ago, while the converter correction is 2026-11-20), so do not assume the current main branch artifacts contain the corrected template.
+- Before changing the OGAM catalog, compare its exact primary and mmproj sizes/SHA-256 to the upstream files, pin a model repository revision/commit rather than mutable main, and inspect the GGUF metadata/chat template. The mmproj hash above is upstream evidence only; it is not asserted to be the catalog hash until compared.
+- Sources: https://huggingface.co/ggml-org/Qwen3-ASR-0.6B-GGUF; https://huggingface.co/ggml-org/Qwen3-ASR-0.6B-GGUF/blob/main/mmproj-Qwen3-ASR-0.6B-Q8_0.gguf; https://github.com/ggml-org/llama.cpp/commit/919794500475862f6768c353255469dc661cb734
