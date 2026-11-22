@@ -570,3 +570,8 @@ The single remaining M2 symbol still imported from `@offgrid/models` is `reasoni
 
 
 - Additional maturity evidence for `Danmoreng/qwen3-tts-android`: public v0.1.0 arm64 APK release (49,955,560 bytes; model downloaded separately), GitHub Actions release workflow uses JDK 17 / NDK 27.2.12479018 / API 36 / CMake 3.22.1. No dedicated unit/instrumentation tests were found in the reviewed tree. Treat as a smoke-test artifact/reference, not a production-ready proof.
+
+
+- TTS API caveat: source-level Qwen3-TTS Android `QwenEngine.synthesize()` returns a complete FloatArray; progress callback is token progress, not PCM chunks. CosyVoice3-MNN `CosyVoiceRuntime.synthesize()` writes a completed file and returns a report. The original models advertise streaming, but these Android wrappers do not expose incremental PCM in the inspected API. Do not promise low first-audio latency.
+- OGAM `JarvisPcmStreamPlayer` already accepts Float32 chunks and supports generation-token cancellation; backend must actually emit chunks. Keep a capability flag for batch vs streaming and never simulate streaming by chunking a completed waveform after the fact.
+- RN sherpa SDK has `createStreamingTTS()` PCM chunk callbacks, but voice cloning in streaming mode is documented for Pocket only; Zipvoice cloning is batch-only. Supertonic incremental generation is not established. Verify model-specific behavior before selecting.
