@@ -89,9 +89,9 @@ export function finalResponseFromToolResults(
   results: readonly string[],
 ): string {
   const completed = results
-    .map((result, index) => ({ result: result.trim(), index }))
-    .filter(item => item.result.length > 0)
-    .map(item => `Completed tool result ${item.index + 1}:\n${item.result}`);
+    .map(result => result.trim())
+    .filter(result => result.length > 0)
+    .map((result, index) => `Completed tool result ${index + 1}:\n${result}`);
 
   return [instruction.trim(), ...completed].filter(Boolean).join('\n\n');
 }
