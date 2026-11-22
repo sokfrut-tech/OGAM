@@ -212,3 +212,60 @@ The first PCM output layer now exists as `android/app/src/main/java/ai/offgridmo
 - Eight Kotlin/JUnit tests cover ordering, cancellation, stale generations, sample-rate validation, focus denial/loss/ducking and a blocked-start/late-cleanup race. They are present but not yet executed via Gradle.
 - The open-core CI step checks the PCM source contract only. It does not prove Kotlin compilation, AudioTrack device playback or OPPO latency.
 
+## 12. New compact Russian TTS candidate — tiny-voca-ru (2026-11-22)
+
+Sources:
+- Model card: https://huggingface.co/egnch/tiny-voca-ru
+- Android-independent source/frontend: https://github.com/yilbegan/tiny-voca-ru
+- Training/evaluation dataset and provenance: https://huggingface.co/datasets/egnch/tiny-voca-ru-dataset
+- Original architecture: https://github.com/n4ze3m/tiny-voca
+
+### Why it changes the shortlist
+
+A newly published Russian adaptation of tiny-voca is substantially smaller than the previously reviewed 0.6B–1.7B neural TTS candidates:
+
+- 4,534,411 parameters; approximately 18.2 MB safetensors or 21.4 MB ONNX.
+- 24 kHz mono Float32 waveform output.
+- Two fixed Russian voices: F and M.
+- ONNX Runtime backend is supported by the upstream Python implementation; no PyTorch is required for inference.
+- Upstream reports 81x real-time CPU synthesis on a four-thread Ryzen 5 3600X. This is a desktop benchmark, not an OPPO result.
+- Model card reports 2.03% WER / 0.46% CER on its 696-clip test split against Whisper large-v3-turbo; these are model-card evaluation figures, not an independent human listening study.
+- The full stress mode reports 91.6% homograph accuracy against its reference, versus 56.0% for the default lite mode. The extra INT8 omograph model is about 10 MB.
+
+### License and provenance gate
+
+- Upstream source and model weights declare Apache-2.0; the repository includes LICENSE and NOTICE.
+- Bundled ruaccent stress assets are MIT.
+- The training dataset is CC BY 4.0 and requires attribution. It contains 20,287 clips (23.82 hours), with audio generated using Qwen3-TTS 1.7B VoiceDesign; its source texts include CC0 Common Voice, generated dialogue text and templates.
+- Preserve model, code, ruaccent and dataset attributions separately. Do not treat the model's Apache-2.0 declaration as changing the dataset's CC BY 4.0 terms.
+- The two voices are fixed synthetic voices; there is no voice cloning. The dataset card says its audio was generated with Qwen3-TTS, not recorded from a named human speaker.
+
+### Android integration reality
+
+This is not a drop-in Android library:
+- The current inference package and Russian frontend are Python 3.11+.
+- The frontend includes normalization, Russian number/currency/date verbalization, lexical stress, homograph handling, G2P, 61-symbol IPA tokenization and sentence/clause splitting.
+- The ONNX model expects tokens, stress, voice, speed, pitch_shift and pitch_range inputs and returns waveform audio plus durations. The upstream export uses opset 17.
+- The reference synthesize() builds sentence/utterance outputs and concatenates them before returning; it does not expose a streaming callback. OGAM could synthesize one sentence at a time and feed the existing JarvisPcmStreamPlayer, but first-audio latency must be measured.
+- A Kotlin implementation must preserve the exact 61-symbol inventory and frontend rules. A simplified transliteration-only frontend would silently reduce Russian pronunciation quality and is not acceptable.
+- Android ONNX Runtime operator support, APK/ABI size, model loading time, peak RAM, thermals and Snapdragon 8 Gen 2 performance have not been verified.
+
+### Decision
+
+Promote tiny-voca-ru to the first compact Russian TTS candidate for a controlled Android prototype, not yet to the default/release engine.
+
+Implementation order:
+1. Pin an exact model repository revision and SHA-256 hashes for model.onnx, metadata, accent.onnx, stress dictionary and optional omograph.onnx.
+2. Add a Python reference fixture set covering numbers, dates, currency, abbreviations, ё, stress, homographs, Latin technical names and punctuation; save expected phoneme IDs/stress arrays and reference WAV checksums.
+3. Port the frontend to Kotlin with parity tests against those fixtures. Keep the upstream Python package as the oracle during development; do not ship Python in the Android app.
+4. Add ONNX Runtime Android only after verifying the model's actual ONNX operators and the app's ABI/dependency constraints.
+5. Synthesize sentence chunks into JarvisPcmStreamPlayer; add cancellation between chunks and keep one ordered generation per reply.
+6. Benchmark on OPPO Find X6 Pro: cold/warm model load, first-audio latency, RTF, peak RSS, CPU/GPU use, battery/thermal and pronunciation listening review. Compare lite versus full stress.
+7. Keep the existing speech reply muted/disabled until the local engine passes those gates; do not silently fall back to a cloud TTS provider.
+
+### Known limitations
+
+- Only two neutral reading voices; no expressive conversational prosody or speaker cloning.
+- lite stress has weak context-dependent homograph disambiguation; full costs another model asset and runtime.
+- The model is newly published and lightly adopted; reproducibility, model hashes and upstream changes must be pinned.
+- The 81x desktop CPU result must not be projected onto Android without a real device benchmark.
