@@ -28,6 +28,8 @@ export interface UseWhisperTranscriptionParams {
   onCaptureEnded?: () => void;
   /** Called for every completed capture, including a manually stopped empty turn. */
   onCaptureSettled?: (hasTranscript: boolean) => void;
+  /** Called when model readiness or native mic startup fails before capture begins. */
+  onCaptureStartFailed?: () => void;
 }
 
 export interface UseWhisperTranscriptionResult {
@@ -45,7 +47,7 @@ export interface UseWhisperTranscriptionResult {
   clearResult: () => void;
 }
 
-export const useWhisperTranscription = ({ ensureModelReady, onCaptureEnded, onCaptureSettled }: UseWhisperTranscriptionParams): UseWhisperTranscriptionResult => {
+export const useWhisperTranscription = ({ ensureModelReady, onCaptureEnded, onCaptureSettled, onCaptureStartFailed }: UseWhisperTranscriptionParams): UseWhisperTranscriptionResult => {
   const [isRecording, setIsRecording] = useState(false);
   const [isStartingRecording, setIsStartingRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -72,6 +74,8 @@ export const useWhisperTranscription = ({ ensureModelReady, onCaptureEnded, onCa
   onCaptureEndedRef.current = onCaptureEnded;
   const onCaptureSettledRef = useRef(onCaptureSettled);
   onCaptureSettledRef.current = onCaptureSettled;
+  const onCaptureStartFailedRef = useRef(onCaptureStartFailed);
+  onCaptureStartFailedRef.current = onCaptureStartFailed;
   // Session-intent nonce: bumped whenever a start is superseded (stop/cancel). startRecording captures
   // it before the async ensureModelReady() gap (which now frees+reloads the model, so it can be seconds)
   // and aborts the continuation if it changed — otherwise releasing/cancelling the mic DURING the load
@@ -248,6 +252,10 @@ export const useWhisperTranscription = ({ ensureModelReady, onCaptureEnded, onCa
     }
     if (!ready) {
       setError("Couldn't load the voice model — free some memory and try again");
+      setIsStartingRecording(false);
+      setIsRecording(false);
+      setIsTranscribing(false);
+      onCaptureStartFailedRef.current?.();
       return;
     }
 
@@ -320,6 +328,7 @@ export const useWhisperTranscription = ({ ensureModelReady, onCaptureEnded, onCa
         setIsTranscribing(false);
         // Error haptic
         Vibration.vibrate([0, 50, 50, 50]);
+        if (startNonce.current === currentNonce) onCaptureStartFailedRef.current?.();
       }
     }
   }, [ensureModelReady, stopRecording, finalizeTranscription, transcriptionLanguage]);
