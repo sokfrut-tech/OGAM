@@ -1,5 +1,6 @@
 package ai.offgridmobile
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.SystemBarStyle
@@ -23,6 +24,15 @@ class MainActivity : ReactActivity() {
    */
   override fun createReactActivityDelegate(): ReactActivityDelegate =
       DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
+
+  /**
+   * React Native's Linking integration consumes ACTION_VIEW intents for the Jarvis assistant
+   * hand-off. Preserve the new intent for cold/warm app-start and forward it to RN.
+   */
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+  }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     // Switch from SplashTheme back to AppTheme once React Native loads
