@@ -71,13 +71,16 @@ internal class JarvisSpeechChunker(
       }
 
       if (char != '.' && char != '!' && char != '?' && char != '…') continue
-      val next = index + 1
-      if (next == pending.length && !force) continue
-      if (next < pending.length && !pending[next].isWhitespace()) continue
+      var end = index + 1
+      while (end < pending.length &&
+        (pending[end] == '!' || pending[end] == '?' || pending[end] == '…')
+      ) end++
+      while (end < pending.length && pending[end] in CLOSING_QUOTES_AND_BRACKETS) end++
+
+      if (end == pending.length && !force) continue
+      if (end < pending.length && !pending[end].isWhitespace()) continue
       if (char == '.' && isNonTerminalPeriod(index)) continue
 
-      var end = index + 1
-      while (end < pending.length && (pending[end] == '!' || pending[end] == '?' || pending[end] == '…')) end++
       while (end < pending.length && pending[end].isWhitespace()) end++
       return end
     }
@@ -95,7 +98,7 @@ internal class JarvisSpeechChunker(
       cursor + 1
     }
     val token = pending.substring(tokenStart, index).trimEnd(',', '(', '[', '"', '\'').lowercase()
-    if (token in ABBREVIATIONS) return true
+    if (token in ABBREVIATIONS || isSpacedRussianAbbreviationPeriod(index)) return true
 
     // Initials such as "А. С. Пушкин" and "J. R. R. Tolkien".
     val isSingleLetter = token.length == 1 && token[0].isLetter()
@@ -105,6 +108,27 @@ internal class JarvisSpeechChunker(
     ) return true
 
     return false
+  }
+
+  /**
+   * Handles spaced Russian abbreviations such as "т. д.", "т. п." and
+   * "и т. д.". Both dots in the abbreviation must be protected from splitting.
+   */
+  private fun isSpacedRussianAbbreviationPeriod(index: Int): Boolean {
+    val prefix = pending.substring(0, index)
+    val suffix = pending.substring(index + 1)
+    val lastToken = prefix.substringAfterLast(Regex("\\s+"), prefix).trim()
+
+    if (lastToken.equals("т", ignoreCase = true)) {
+      return Regex("^\\s*[дпек]\\.", RegexOption.IGNORE_CASE).containsMatchIn(suffix)
+    }
+
+    if (lastToken.equals("и", ignoreCase = true)) {
+      return Regex("^\\s*т\\.\\s*[дп]\\.", RegexOption.IGNORE_CASE).containsMatchIn(suffix)
+    }
+
+    return Regex("(?:^|\\s)(?:и\\s+)?т\\.\\s*[дпек]$", RegexOption.IGNORE_CASE)
+      .containsMatchIn(prefix)
   }
 
   private fun findSafeLengthBoundary(): Int {
@@ -140,6 +164,8 @@ internal class JarvisSpeechChunker(
   companion object {
     const val DEFAULT_MAX_CHUNK_CHARS = 220
     const val MIN_MAX_CHUNK_CHARS = 40
+
+    private val CLOSING_QUOTES_AND_BRACKETS = setOf('»', '”', '’', '"', '\'', ')', ']', '}')
 
     private val ABBREVIATIONS = setOf(
       "г", "ул", "д", "стр", "т.д", "т.п", "т.е", "т.к", "см", "рис",
