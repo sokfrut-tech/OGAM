@@ -107,7 +107,7 @@ class JarvisPcmStreamPlayerTest {
     val firstGeneration = AtomicReference<Long?>(null)
 
     val oldStarter = Thread {
-      firstGeneration = player.begin(24_000)
+      firstGeneration.set(player.begin(24_000))
     }
     oldStarter.start()
 
