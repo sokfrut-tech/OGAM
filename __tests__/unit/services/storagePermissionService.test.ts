@@ -13,8 +13,8 @@ jest.mock('react-native', () => {
 });
 
 type PermissionModule = {
-  accessState: jest.Mock<Promise<{ media: boolean; allFiles: boolean; canRequestAllFiles: boolean }>>;
-  requestAllFilesAccess: jest.Mock<Promise<boolean>>;
+  accessState: jest.Mock;
+  requestAllFilesAccess: jest.Mock;
 };
 
 describe('StoragePermissionService', () => {
