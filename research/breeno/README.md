@@ -188,3 +188,7 @@ The source survey now includes Chinese platforms and Chinese-language projects (
 - [26-APK manifest & native inventory JSON](OPPO_APK_MANIFEST_AND_NATIVE_INVENTORY_2026-11-22.json) — machine-readable certificates, SDK targets, OEM permissions, exported services/providers, native libraries, DB names, and hosts across all 26 APKs.
 
 - [Gemini APK audit corrections A1–A5](GEMINI_APK_AUDIT_CORRECTIONS_2026-11-22.md) — evidence-boundary corrections, package/certificate grouping, AIUnit worker-process interpretation, size units, and PR #1 verification status.
+
+
+## Wake-word and background microphone research
+- [Android wake-word and background microphone policy audit](../voice/OGAM_WAKEWORD_AND_BACKGROUND_MICROPHONE_RESEARCH_2026-11-22.md) — openWakeWord Android ports, Sherpa-ONNX, licensing boundaries, Android 12–16 microphone/foreground-service restrictions, and the PGEM10 benchmark plan. No KWS model selected or integrated.
