@@ -8,8 +8,8 @@ This file is the durable continuation point for the current OGAM fork work. It r
 - Active branch: `feature/jarvis-step-2-storage-privacy`
 - PR: [#1 — Jarvis Step 2: privacy and Android storage permission bridge](https://github.com/sokfrut-tech/OGAM/pull/1)
 - PR state: open, draft, not merged; base `main`
-- PR head observed before this handoff refresh: `316981b3e16270b825079297a57feeb3f693817f`
-- PR metadata at that snapshot: 337 commits, 140 changed files, +8,364/-399 lines.
+- PR head observed before this handoff refresh: `9f5288b9e2c47b5e729df17c99c2ba825e71bddb`
+- PR metadata at that snapshot: 351 commits, 143 changed files, +8,540/-399 lines.
 - Do not merge the PR or publish an APK as a way to bypass the missing-source blocker.
 
 ## Product contract
@@ -114,9 +114,10 @@ A public fork survey found:
 
 - PR #1 remains open/draft/unmerged; do not merge to bypass the private-source blocker.
 - At the source snapshot reviewed before this documentation refresh, PR head was `316981b3e16270b825079297a57feeb3f693817f`; metadata reported 337 commits, 140 changed files, +8,364/-399 lines. The documentation refresh itself will advance the head.
-- Latest completed open-core audit run for that source snapshot: [run #45038477079](https://github.com/sokfrut-tech/OGAM/actions/runs/45038477079), conclusion success. It ran the Jarvis system-role, one-shot voice, URI mapping, PCM source-contract tests and existing open-core Node suites; the import audit scanned 1,976 files and reported 1,354 external dependency references. Artifact `ogam-import-audit`, ID `14760761900`.
+- Latest completed open-core audit run for that source snapshot: [run #45038838766](https://github.com/sokfrut-tech/OGAM/actions/runs/45038838766), conclusion success. It ran 6 Android-assistant/security contract tests, 3 system-role tests, 2 one-shot voice tests (including failed-start cleanup), 1 URI mapping test, 4 PCM source-contract tests and existing open-core Node suites; the import audit scanned 1,976 files and reported 1,354 external dependency references. Artifact `ogam-import-audit`, ID `14760588212`.
 - The PCM playback static test now also asserts the corrected Kotlin test declarations. Two malformed declarations in `JarvisPcmStreamPlayerTest.kt` were found and corrected: the stale-generation test now stores the first token as a `Long`, and the async test writes its result through `AtomicReference.set()`.
-- New Android source now includes the in-app RoleManager picker/status bridge, one-shot ChatScreen invocation, preservation of an existing draft/attachments, and an engine-neutral mono Float32 AudioTrack player with AudioFocus, generation tokens, cancellation and eight Kotlin/JUnit cases.
+- New Android source now includes the in-app RoleManager picker/status bridge, a non-exported assistant bridge with one-time in-process launch authorization, one-shot ChatScreen invocation, preservation of existing drafts/attachments, and an engine-neutral mono Float32 AudioTrack player with AudioFocus, generation tokens, cancellation and eight Kotlin/JUnit cases. Whisper startup/model-load failures now return the voice-session state to idle and clear Jarvis's one-shot flag.
+- The system-assistant URI is no longer externally BROWSABLE. The VoiceInteractionSession launches a non-exported bridge Activity; it mints an in-process one-time token, and MainActivity rejects forged/externally supplied assistant VIEW intents before React Native Linking can consume them. Kotlin/JUnit token tests are present but not yet run in Gradle.
 - The PCM player is currently a standalone native primitive. No Sherpa/Vosk/Supertonic/Piper TTS runtime or voice model is wired to it; the TTS evaluation document is research only and license review/model profiling remain open.
 - The successful open-core Node audit does **not** compile Kotlin, execute Gradle/JUnit, merge the manifest, build an APK, run Jest/TypeScript, or verify the assistant picker/microphone on OPPO Find X6 Pro.
 - The manual arm64 APK workflow still requires the private `PRO_SUBMODULE_PAT` and upstream `mobile-pro`/shared workspace. Do not ask the user for a private upstream token or create fake package stubs. Continue the self-contained migration plan.
