@@ -139,6 +139,8 @@ export const SettingsScreen: React.FC = () => {
         Alert.alert('Jarvis system assistant', 'This Android/ColorOS build does not currently expose the system assistant role to OGAM.');
       } else if (status.ready) {
         Alert.alert('Jarvis enabled', 'Jarvis is now selected as the system assistant.');
+      } else if (status.roleHeld) {
+        Alert.alert('Jarvis selected', 'Android granted Jarvis the assistant role. The system service has not reported itself active yet; return to Settings later to refresh its status.');
       } else {
         Alert.alert('Jarvis not selected', 'Android did not activate Jarvis as the default assistant. You can try again or choose it in system Default apps settings.');
       }
@@ -260,7 +262,7 @@ export const SettingsScreen: React.FC = () => {
               <TouchableOpacity
                 style={styles.navItem}
                 onPress={handleSetJarvisAssistant}
-                disabled={isRequestingAssistantRole || assistantRoleStatus?.supported === false || assistantRoleStatus?.roleAvailable === false}
+                disabled={isRequestingAssistantRole || assistantRoleStatus?.supported === false || assistantRoleStatus?.roleAvailable === false || assistantRoleStatus?.roleHeld === true}
                 testID="set-jarvis-system-assistant"
                 accessibilityRole="button"
                 accessibilityLabel={`Jarvis system assistant. ${assistantRoleDescription}`}
@@ -271,7 +273,7 @@ export const SettingsScreen: React.FC = () => {
                 </View>
                 <View style={styles.navItemContent}>
                   <Text style={styles.navItemTitle}>
-                    {isRequestingAssistantRole ? 'Opening Android settings…' : assistantRoleStatus?.ready ? 'Jarvis system assistant' : 'Set Jarvis as assistant'}
+                    {isRequestingAssistantRole ? 'Opening Android settings…' : assistantRoleStatus?.ready ? 'Jarvis system assistant' : assistantRoleStatus?.roleHeld ? 'Jarvis selected' : 'Set Jarvis as assistant'}
                   </Text>
                   <Text style={styles.navItemDesc} numberOfLines={1}>{assistantRoleDescription}</Text>
                 </View>
