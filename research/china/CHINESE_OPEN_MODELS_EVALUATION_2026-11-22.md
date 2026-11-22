@@ -316,3 +316,17 @@ A second concrete Android implementation was found:
 - The APK does not include the model; the first-run flow downloads the model package into app-private storage.
 - The repository has an Android release workflow which builds arm64 APK with JDK 17, NDK 27.2.12479018, Android 36 and CMake 3.22.1, but the reviewed tree contains no dedicated unit/instrumentation test suite.
 - This makes it a useful ready-made smoke-test reference, not a proven production component. Check APK signing, release source commit, dependency/submodule licenses and model checksum before installing/redistributing.
+
+
+## 2026-11-22 critical TTS integration distinction: model streaming vs Android port streaming
+
+Source-level interface review found that the two most expressive candidate Android apps currently expose batch synthesis:
+- Qwen3-TTS Android `QwenEngine.synthesize(...): NativeResult` returns a complete `FloatArray` plus sample rate and total time; the progress callback reports generated tokens, not PCM chunks. It therefore does not currently demonstrate chunk-by-chunk playback to AudioTrack.
+- CosyVoice3-MNN `CosyVoiceRuntime.synthesize(..., output: File)` writes a completed output file and returns a synthesis report; the reviewed public Kotlin surface does not expose a PCM chunk callback to the caller.
+- The official model cards advertise streaming capabilities, but this is not proof that these particular Android ports expose streaming output. Do not promise first-audio latency from the model-card streaming claims.
+- OGAM's existing `JarvisPcmStreamPlayer` is already engine-neutral and accepts Float32 PCM chunks with generation-token cancellation. The missing piece is a backend that actually emits PCM incrementally and a lifecycle adapter that owns model memory/unload.
+- `react-native-sherpa-onnx` exposes a `createStreamingTTS()` API with PCM chunk callbacks and built-in player controls. Its docs explicitly identify Pocket as the only model that supports reference-audio voice cloning in streaming mode; Zipvoice cloning is batch-only and other model types reject reference audio. The docs list Supertonic as a TTS model, but do not establish that Supertonic provides native incremental generation; benchmark first.
+- This creates a practical split: use batch Qwen3-TTS/CosyVoice for high-quality replies where generation can complete before playback, and use a verified streaming TTS model for short/urgent assistant feedback. Do not fake streaming by slicing a completed waveform into chunks.
+
+### Engineering consequence
+Keep Jarvis PCM playback as a transport contract. Add a TTS backend capability declaration (`batch` vs `streaming`, sample rate, voice cloning support, cancellable generation) only after model/runtime behavior is verified. For user experience, start with short local acknowledgement voice via the existing lightweight TTS; run the longer Qwen/CosyVoice synthesis asynchronously, then play only if the turn generation token is still current.
