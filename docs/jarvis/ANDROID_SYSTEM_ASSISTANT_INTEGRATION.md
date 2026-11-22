@@ -23,8 +23,10 @@ The session does not run a second recorder, wake-word engine, ASR model or TTS e
 2. \`NavigationContainer\` maps the \`offgrid://assistant/voice\` URI to the existing root \`Chat\` route.
 3. \`ChatScreen\` consumes \`startVoice\`, preserves first-run onboarding, and calls \`recordingController.start()\`.
 4. \`recordingController\` asks the registered \`ChatInput/Voice\` recorder whether a real speech backend is available. If none is available, the session stays idle; the system invocation must not open an empty/phantom microphone session.
-5. When Whisper/Qwen, a direct-audio model or an explicitly configured transcription endpoint is available, the same established capture/session/memory flow handles the request. The current Whisper store defaults a fresh Russian profile to Russian, while preserving existing language preferences.
-6. If no backend is available, the session stays idle and the composer offers a direct button to Models → Transcription instead of opening the microphone without a recognizer.
+5. When Whisper/Qwen or an explicitly configured transcription endpoint is available, the same established capture/session/memory flow handles the request. The current Whisper store defaults a fresh Russian profile to Russian, while preserving existing language preferences.
+6. If the composer is empty, the recognized one-shot assistant phrase is submitted through the normal Chat send path. If the composer already contains text or attachments, the spoken phrase is appended for review and the existing draft is never auto-sent.
+7. Whisper reports whether a completed capture contains text, including a manually stopped empty capture, so a one-shot assistant request is cleared on silence as well as successful transcription. Cancel and dropped/stale turns also clear the one-shot flag.
+8. If no transcription backend is available, the session stays idle and the composer offers a direct button to Models → Transcription instead of opening the microphone without a recognizer.
 
 The OS still needs the user to grant microphone permission through the existing app permission flow.
 
@@ -61,19 +63,19 @@ Android references: [RoleManager](https://developer.android.com/reference/androi
 
 ## CI evidence and what it does not prove
 
-GitHub Actions run #181:
-https://github.com/sokfrut-tech/OGAM/actions/runs/45026969150
+GitHub Actions run #200:
+https://github.com/sokfrut-tech/OGAM/actions/runs/45027808750
 
 Passed:
 - 5 static Android-assistant contract tests;
-- 2 system-role request/UI wiring tests;
-- one no-speech-model path contract that checks the direct transcription-model route;
+- 3 system-role request/UI wiring/status-snapshot tests;
+- 2 one-shot voice invocation contracts (route wiring, safe auto-send, existing draft preservation, empty capture cleanup);
 - 1 assistant URI/route mapping test;
 - existing skill, task-plan, Russian model evaluation, locale-default and audit Node suites;
-- source/config audit: 1,974 files and 1,354 dependency references;
+- source/config audit: 1,975 files and 1,354 dependency references;
 - audit artifact \`ogam-import-audit\`, ID \`14755439565\`.
 
-These are open-core Node/static checks. They do **not** compile Kotlin, merge the Android manifest, run Gradle, install an APK, prove role eligibility on ColorOS, or validate mic invocation on OPPO Find X6 Pro. No release claim should be based on this run alone.
+These are open-core Node/static checks. They do **not** compile Kotlin, execute the five new Kotlin/JUnit snapshot tests, run Jest (including the composer/Qwen integration tests), run TypeScript, merge the Android manifest, install an APK, prove role eligibility on ColorOS, or validate mic invocation on OPPO Find X6 Pro. No release claim should be based on this run alone.
 
 ## Next gates
 
