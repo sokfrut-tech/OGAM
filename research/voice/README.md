@@ -6,7 +6,7 @@ Status: public source research and design notes; no new TTS/KWS model is integra
 ## Current research documents
 
 - [Wake-word and Android background-microphone audit](OGAM_WAKEWORD_AND_BACKGROUND_MICROPHONE_RESEARCH_2026-11-22.md) — openWakeWord, AndroidWakeWord, Sherpa-ONNX, Android 12–16 background/microphone restrictions, Russian phrase and license checks.
-- [Russian Android TTS backend audit](OGAM_RUSSIAN_TTS_ANDROID_BACKEND_AUDIT_2026-11-22.md) — RuVoice TTS source/license audit, Qwen3-TTS Android Kotlin/JNI, native streaming callback gap, Sherpa-ONNX callback path, microphone ownership and AEC boundary.
+- [Russian Android TTS backend audit](OGAM_RUSSIAN_TTS_ANDROID_BACKEND_AUDIT_2026-11-22.md) — RuVoice TTS source/license audit, Qwen3-TTS Android Kotlin/JNI, native streaming callback already exists in JNI C++ but is not exposed by Kotlin QwenEngine, Sherpa-ONNX callback path, microphone ownership and AEC boundary.
 - [Earlier Chinese/Indian on-device speech scan](../china-india/CHINESE_INDIAN_ON_DEVICE_SPEECH_SCAN_2026-11-22.md) — Qwen3-ASR/ASR and LiteRT routes, Qwen3-TTS LiteRT and Indian/Indic speech model scan.
 
 ## Decisions / no-go boundaries
@@ -16,7 +16,7 @@ Status: public source research and design notes; no new TTS/KWS model is integra
 3. Preserve JarvisPcmStreamPlayer as the single Android AudioTrack/AudioFocus owner. TTS inference sends Float32 chunks; cancellation is generation-scoped.
 4. No wake-word, TTS model or acceleration backend is selected until license, exact artifacts, hashes and PGEM10 measurement are available.
 5. Do not copy RuVoice code or bundle its built-in v5_5_ru model: its root source and built-in model are CC BY-NC-SA 4.0. Its v5_cis_base_nostress MIT model pack is a separate candidate, but the exact pack and clean-room runtime remain to be verified.
-6. Qwen3-TTS 0.6B Q4_K_M is the leading Kotlin/JNI prototype candidate. The reference Android JNI uses batch FloatArray synthesis, although the pinned C++ API exposes streaming chunk callbacks. Integrate streaming only in an isolated benchmark build first.
+6. Qwen3-TTS 0.6B Q4_K_M is the leading Kotlin/JNI prototype candidate. The reference JNI C++ already has nativeSynthesizeStreaming, but the Kotlin QwenEngine wrapper does not declare or expose it. Expose and test that existing JNI path only in an isolated benchmark build first.
 7. Sherpa-ONNX remains a secondary runtime candidate if a Russian voice artifact with a clear model/data license is pinned.
 8. No TTS/KWS model weights, external APK, or proprietary OPPO code are committed to the repository.
 
