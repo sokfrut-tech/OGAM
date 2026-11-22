@@ -1,4 +1,4 @@
-import { MAX_TOOL_RESULT_CHARS } from './toolResultBudget';
+import { MAX_TOOL_RESULT_CHARS } from './toolResultBudget.ts';
 
 /** Default per-turn tool-call limit retained for older installs without a saved value. */
 export const DEFAULT_MAX_TOOL_CALLS = 5;
