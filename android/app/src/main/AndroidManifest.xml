@@ -98,9 +98,16 @@
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="offgrid" android:host="oauth" />
             <data android:scheme="offgrid" android:host="pro" />
-            <data android:scheme="offgrid" android:host="assistant" />
         </intent-filter>
       </activity>
+
+      <!-- Internal-only bridge: external apps cannot trigger a system-assistant microphone session. -->
+      <activity
+          android:name="ai.offgridmobile.voice.JarvisAssistantBridgeActivity"
+          android:exported="false"
+          android:excludeFromRecents="true"
+          android:noHistory="true"
+          android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
       <!--
            Jarvis system-assistant entry point.
