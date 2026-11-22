@@ -205,3 +205,5 @@ The source survey now includes Chinese platforms and Chinese-language projects (
 - [Russian audio evaluation corpus v1](../voice/JARVIS_RUSSIAN_AUDIO_EVALUATION_CORPUS_V1_2026-11-22.md) — common Russian phrases and test protocol for TTS/ASR/VAD/wake word/AEC on PGEM10; text-only, no voice recordings in Git.
 
 - [Qwen3-TTS Android integration/build-isolation plan](../voice/OGAM_QWEN3_TTS_ANDROID_INTEGRATION_PLAN_2026-11-22.md) — identifies the dual-GGML CMake conflict with OGAM's existing Stable Diffusion build and defines a separate Kotlin/JNI benchmark module with measurable acceptance gates.
+
+- [Soniqo Supertonic-3 and LocalVQE AEC audit](../voice/SONIQO_SUPERTONIC_LOCALVQE_ANDROID_AUDIT_2026-11-22.md) — Russian 31-language LiteRT TTS, OpenRAIL-M terms and published Galaxy S23 Ultra performance; explicit-reference 16 kHz LocalVQE AEC design, fail-closed timestamp alignment and Android integration gaps.
