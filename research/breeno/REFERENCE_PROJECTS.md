@@ -103,3 +103,42 @@ The repository tree and primary Kotlin files were inspected through GitHub's pub
 
 ### OGAM decision
 Do not port the Xposed hook into OGAM core. Adopt only general architecture lessons: model-provider adapter, streaming response contract, explicit conversation/session IDs, cancelable generation handles, UI-independent orchestrator, versioned compatibility probes and fail-safe fallback. The preferred OGAM implementation remains its own native voice assistant and UI using public Android APIs. A Breeno UI bridge may be a separate, disabled-by-default experiment only after legal, device, firmware, privacy and security review.
+
+
+## Source-level audit: niki914/zafiro Breeno adapter (2026-11-22)
+Inspected the public MIT LICENSE, README, Breeno integration guide, BreenoConfigProvider.kt, BreenoHook.kt, BreenoCardRenderer.kt, and version-specific JSON configurations 130302 and 130305. This is source inspection only; no APK was downloaded, built or executed.
+
+### Major discovery: explicit version profiles for Breeno 13.3.2 and 13.3.5
+Zafiro's version registry lists 130302 and 130305, corresponding to catalog-listed Breeno 13.3.2 and 13.3.5. Its JSON profiles define class/method mappings for:
+- input capture from AIChatDataCenter and AIChatViewBean;
+- response interception and a self-injected marker;
+- conversation reset signal via AIChatRoomIdManager;
+- floating-screen detach and SpeechAssistMainActivity resume lifecycle;
+- native directive filtering and cleanup suppression;
+- response card rendering, streaming update method, reasoning/thinking block fields, client-local data keys and feedback footer/copy/upvote controls.
+The 13.3.2 and 13.3.5 profiles differ in obfuscated method names, including conversation-reset and card-update methods. This confirms that adapter profiles must be version-specific; it does not prove compatibility with the user's installed APK or firmware.
+
+### Architecture findings
+- Zafiro's BreenoConfigProvider separates host-specific class/method strings and argument indices into data-driven profiles instead of scattering reflection names through code.
+- BreenoHook is a high-level orchestration layer that composes input, response, session-reset and cleanup subhooks with a separate card renderer.
+- BreenoCardRenderer manages a turn-scoped render session, checks whether a turn is still active, renders incremental assistant frames, adds thinking/reasoning UI metadata, and clears state on final response or reset.
+- The wider project advertises an Android agent with Phone-Use/accessibility, Skills, MCP, persistent sessions, memory, Python and shell tools, multilingual UI including Russian, and optional LSPosed voice-assistant takeover. The README explicitly says takeover requires root.
+- Project structure separates accessibility, business contracts/agent orchestration, agent runtime, persistence/IPC, Compose UI, Xposed runtime and permission management. This is a strong modularity reference for Jarvis, though not a requirement to copy the entire product.
+
+### Adaptation decisions
+1. Adopt the data-driven adapter-profile pattern, not the Xposed code itself: versioned capability profiles, exact package/versionCode/build fingerprint, class/member signatures, required permission level and confidence/evidence.
+2. Add a `BreenoProfileRegistry` only as an optional research/compatibility module. Profiles must be generated from the exact target APK's own static analysis and signed/hash-verified artifact, never selected from an online version string alone.
+3. Build a generic `AssistantSurfaceRenderer` contract for streaming answer cards, thinking status, tool status, copy/share feedback and finalization. OGAM's native UI is primary; Breeno card rendering remains experimental and optional.
+4. Use turn IDs and a single lifecycle state machine across ASR, model generation, tools and TTS. Cancel/clear on session reset, user interruption, app background and device audio-focus loss.
+5. Keep any hooks fail-closed and never suppress native answers until the replacement path is proven healthy; if experimental bridge fails, allow native Breeno to continue or display Jarvis separately.
+6. Verify MIT license and retain copyright notice if any Zafiro code is later copied. The license of Zafiro does not grant rights to OPPO's proprietary Breeno classes, resources or APK assets.
+
+### Exact public references
+- Zafiro MIT license: https://github.com/niki914/zafiro/blob/main/LICENSE
+- Breeno integration guide: https://github.com/niki914/zafiro/blob/main/.agents/skills/assistant-add-support/docs/BREENO.md
+- Adapter config provider: https://github.com/niki914/zafiro/blob/main/app/src/main/java/com/niki914/zafiro/mod/feat/oppo/BreenoConfigProvider.kt
+- Breeno hook: https://github.com/niki914/zafiro/blob/main/app/src/main/java/com/niki914/zafiro/mod/feat/oppo/BreenoHook.kt
+- Card renderer: https://github.com/niki914/zafiro/blob/main/app/src/main/java/com/niki914/zafiro/mod/feat/oppo/BreenoCardRenderer.kt
+- Breeno 13.3.2 profile: https://github.com/niki914/zafiro/blob/main/app/src/main/res/raw/com_heytap_speechassist_130302_config.json
+- Breeno 13.3.5 profile: https://github.com/niki914/zafiro/blob/main/app/src/main/res/raw/com_heytap_speechassist_130305_config.json
+- Version registry: https://github.com/niki914/zafiro/blob/main/app/src/main/res/raw/com_heytap_speechassist_versions.json
