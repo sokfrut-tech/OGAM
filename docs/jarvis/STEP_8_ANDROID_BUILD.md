@@ -48,6 +48,8 @@ The existing `android/app/src/main/assets/qnnlibs/` tree already contains the co
 - Gradle and Android toolchain versions were read from the checked-in configuration.
 - Workflow file and artifact paths were reviewed against the existing setup actions and Gradle output layout.
 - No APK build has been executed yet.
-- No GitHub Actions run exists for the latest commit.
+- The latest completed CI attempt (run 12) passed actionlint and native video helper tests, but failed ESLint on one inline style in the new storage-permission row; that style was extracted into the existing theme-aware style system in the next commit.
+- TypeScript, Jest, dependency-cruiser and knip could not resolve the private `../shared` workspace or `pro/` submodule. The Actions log confirms the `PRO_SUBMODULE_PAT` input was empty, so the setup action skipped both private checkouts. The resulting module/type errors are environment/dependency failures, not a valid source verification.
+- A new CI run was queued for the subsequent commit; its result is not yet available.
 - The workflow is on the feature branch and is not yet present on the repository default branch. GitHub's manual workflow dispatch requires the workflow file to exist on the default branch, so it cannot be dispatched until this PR is merged. This PR remains draft; no merge is performed without the user's explicit approval.
 - A successful CI/unit-test run, Android APK build, APK install test and OPPO Find X6 Pro verification remain outstanding.
