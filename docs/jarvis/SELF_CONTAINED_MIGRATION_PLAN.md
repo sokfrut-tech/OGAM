@@ -493,3 +493,27 @@ References:
 - [Upstream license](https://github.com/off-grid-ai/OGAM/blob/main/LICENSE)
 
 Decision: do not copy a fictitious "standalone upstream" branch or assume the current public OGAM tree includes shared packages. The public mobile source is useful as a behavioral and integration reference, but it does not solve the missing sibling workspace. Every replacement package still needs its own source, provenance/licence audit, and consumer-contract tests.
+
+
+## First runtime package removal — `@offgrid/ui` progress contract (2026-11-22)
+
+A small, fully consumer-scoped part of `@offgrid/ui` was independently reimplemented in OGAM after checking every direct runtime import and the existing mobile regression tests.
+
+OGAM-owned module:
+- `src/utils/progressCore.ts`
+- Owns `ProgressRateSample`, `sampleProgressRate`, `ProgressLike`, `ProgressPresentation`, and `projectProgress`.
+- Handles first-sample baseline, monotonic byte-rate measurement, counter rollback, invalid timestamps, non-finite/negative values, unknown totals, bounded percentages and terminal completion.
+- Regression tests: `__tests__/unit/utils/progressCore.test.ts`.
+- Existing mobile tests in `__tests__/unit/utils/progressPresentation.test.ts` and `__tests__/unit/stores/downloadStore.test.ts` remain in place as consumer-level compatibility checks.
+
+Updated consumers:
+- `src/utils/downloadStatus.ts`
+- `src/utils/progressPresentation.ts`
+- `src/stores/downloadStore.ts`
+
+Removed the unused `@offgrid/ui` package dependency from `package.json` and `package-lock.json`, plus its Metro watch folder and resolver alias. Lockfile v3 was parsed after editing; the root dependency and package link are both absent. No other UI package behavior was claimed as migrated.
+
+Verification:
+- New import audit succeeded on the change sequence; its artifact reports 0 `@offgrid/ui` imports, 8 remaining local `file:../shared/packages/*` dependencies, 468 total `@offgrid/*` import references, 73 shared workspace path references, 787 Pro source-path references, and 37 private checkout references.
+- [Latest successful standalone dependency audit](https://github.com/sokfrut-tech/OGAM/actions/runs/45017492595)
+- Main CI for the current branch head was queued when this note was written; the progress-core tests and the full CI result must be confirmed before calling this migration step verified.
