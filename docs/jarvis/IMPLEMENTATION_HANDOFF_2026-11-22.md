@@ -556,3 +556,14 @@ The single remaining M2 symbol still imported from `@offgrid/models` is `reasoni
 - Android ABI filters currently include arm64, armeabi-v7a, x86, x86_64. iOS XCFramework downloaded during pod install. Audit package size and reproducibility.
 - Existing OGAM QNN runtime assets may collide with wrapper's QNN/ORT native libs; audit names, versions, load paths, packaging and existing asset-copy logic before QNN enablement.
 - Next: isolated dependency spike on a throwaway branch, pin exact release, include only STT/Qwen, CPU/XNNPACK baseline, then compare with existing llama.rn Qwen on PGEM10. No production dependency, model or code changed by this note.
+
+
+## TTS candidates added — Qwen3-TTS Android and Supertonic 3 (2026-11-22)
+
+- Found `Danmoreng/qwen3-tts-android`: Kotlin/Compose + JNI + C++/GGML Android app; Q4_K_M 0.6B Base talker + 12Hz tokenizer; local speaker profile / embedding, generation history, stop/export/progress; Android 12+, arm64 only. App README provides no PGEM10 or other handset performance/memory benchmark. Do not call it device-validated.
+- Native submodule `Danmoreng/qwen3-tts.cpp` supports Russian among its 10 language IDs, voice cloning, speaker embedding and 0.6B/1.7B model families. Its own benchmark table is Windows RTX 5080 CUDA, not mobile evidence.
+- 0.6B Q4 package estimate from model index: talker ~629 MB + tokenizer ~255 MB = ~884 MB. 1.7B voice-design is not a default phone candidate.
+- Found Supertonic 3 INT8 through sherpa-onnx: 31 languages including Russian, 10 fixed speakers, 24 kHz, Android Kotlin TTS engine APK. Good low-memory fallback candidate; not a voice-cloning or free-form voice-design system. Model license OpenRAIL-M, not Apache-2.0.
+- Updated candidate order for experiments: Supertonic 3 INT8 as lightweight fallback; Qwen3-TTS 0.6B Q4 as possible expressive/clone voice; CosyVoice3-MNN as high-quality reference. Keep Piper baseline until measured.
+- All candidates require real PGEM10 tests: same Russian prompts, pronunciation, cold/warm latency, RTF, peak RSS, thermal throttling, cancellation and airplane mode. Desktop/SM8850 numbers are not extrapolated to SM8550.
+- Research note: [Chinese model evaluation](https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/china/CHINESE_OPEN_MODELS_EVALUATION_2026-11-22.md).
