@@ -24,6 +24,7 @@ The session does not run a second recorder, wake-word engine, ASR model or TTS e
 3. \`ChatScreen\` consumes \`startVoice\`, preserves first-run onboarding, and calls \`recordingController.start()\`.
 4. \`recordingController\` asks the registered \`ChatInput/Voice\` recorder whether a real speech backend is available. If none is available, the session stays idle; the system invocation must not open an empty/phantom microphone session.
 5. When Whisper/Qwen, a direct-audio model or an explicitly configured transcription endpoint is available, the same established capture/session/memory flow handles the request. The current Whisper store defaults a fresh Russian profile to Russian, while preserving existing language preferences.
+6. If no backend is available, the session stays idle and the composer offers a direct button to Models → Transcription instead of opening the microphone without a recognizer.
 
 The OS still needs the user to grant microphone permission through the existing app permission flow.
 
@@ -60,14 +61,16 @@ Android references: [RoleManager](https://developer.android.com/reference/androi
 
 ## CI evidence and what it does not prove
 
-GitHub Actions run #160:
-https://github.com/sokfrut-tech/OGAM/actions/runs/45026100564
+GitHub Actions run #181:
+https://github.com/sokfrut-tech/OGAM/actions/runs/45026969150
 
 Passed:
-- 4 static Android-assistant contract tests;
+- 5 static Android-assistant contract tests;
+- 2 system-role request/UI wiring tests;
+- one no-speech-model path contract that checks the direct transcription-model route;
 - 1 assistant URI/route mapping test;
 - existing skill, task-plan, Russian model evaluation, locale-default and audit Node suites;
-- source/config audit: 1,972 files and 1,354 dependency references;
+- source/config audit: 1,974 files and 1,354 dependency references;
 - audit artifact \`ogam-import-audit\`, ID \`14755439565\`.
 
 These are open-core Node/static checks. They do **not** compile Kotlin, merge the Android manifest, run Gradle, install an APK, prove role eligibility on ColorOS, or validate mic invocation on OPPO Find X6 Pro. No release claim should be based on this run alone.
