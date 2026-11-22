@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -8,7 +8,7 @@ import { Card } from '../components';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { TouchableOpacity } from '../components/Touchable';
 import { SPACING } from '../constants';
-import { useTheme } from '../theme';
+import { useTheme, useThemedStyles } from '../theme';
 import { t } from '../i18n';
 import type { RootStackParamList } from '../navigation/types';
 import { modelManager } from '../services/modelManager';
@@ -22,6 +22,7 @@ import {
 import { importWhisperModelFromUri } from '../services/whisperModelFiles';
 import { useWhisperStore } from '../stores/whisperStore';
 import { pickMmProjForModel } from '../services/mmproj';
+import { createStyles } from './LocalModelsScreen.styles';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList, 'LocalModels'>;
 
@@ -54,6 +55,7 @@ const kindLabel = (kind: ScannedModelArtifact['kind']): string => ({
 export const LocalModelsScreen: React.FC = () => {
   const navigation = useNavigation<Navigation>();
   const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [inventory, setInventory] = useState<LocalModelInventory | null>(null);
   const [grant, setGrant] = useState<string | null>(null);
   const [artifacts, setArtifacts] = useState<ScannedModelArtifact[]>([]);
@@ -145,47 +147,48 @@ export const LocalModelsScreen: React.FC = () => {
   const textModels = inventory?.textModels ?? [];
   const imageModels = inventory?.imageModels ?? [];
   const whisperModels = inventory?.whisperModels ?? [];
+  const importProgressStyle = useMemo(() => ({ width: `${Math.round(importProgress * 100)}%` }), [importProgress]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScreenHeader title={t('models.localLibrary')} onBack={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: SPACING.xl, paddingBottom: SPACING.xxl }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING.md }}>
-          <Text style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>{t('models.onPhone')}</Text>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.headerRow}>
+          <Text style={styles.sectionTitle}>{t('models.onPhone')}</Text>
           <TouchableOpacity onPress={() => void refreshInventory()} accessibilityRole="button" accessibilityLabel={t('models.refresh')} testID="local-models-refresh">
             {scanning ? <ActivityIndicator color={colors.primary} /> : <Icon name="refresh-cw" size={19} color={colors.primary} />}
           </TouchableOpacity>
         </View>
-        <Card style={{ marginBottom: SPACING.lg, padding: SPACING.md }}>
-          <Text style={{ color: colors.textSecondary, marginBottom: SPACING.sm }}>
+        <Card style={styles.card}>
+          <Text style={styles.countText}>
             {t('models.counts', { text: textModels.length, image: imageModels.length, whisper: whisperModels.length })}
           </Text>
           {textModels.map(({ model, estimatedRamBytes, ggufArchitecture }) => (
-            <View key={model.id} style={{ paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-              <Text style={{ color: colors.text, fontWeight: '500' }} numberOfLines={1}>{model.name}</Text>
-              <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+            <View key={model.id} style={styles.modelRow}>
+              <Text style={styles.modelName} numberOfLines={1}>{model.name}</Text>
+              <Text style={styles.modelMeta}>
                 {model.quantization} · {t('models.fileSize')} {formatBytes(model.fileSize)} · {t('models.estimatedRam')} {formatBytes(estimatedRamBytes)}
                 {ggufArchitecture ? ` · ${ggufArchitecture}` : ''}
               </Text>
             </View>
           ))}
           {whisperModels.map(model => (
-            <View key={model.filePath} style={{ paddingVertical: SPACING.sm }}>
-              <Text style={{ color: colors.text }} numberOfLines={1}>{model.modelId}</Text>
-              <Text style={{ color: colors.textMuted, fontSize: 12 }}>{t('models.kind.whisper')} · {formatBytes(model.sizeBytes)}</Text>
+            <View key={model.filePath} style={styles.modelRowSimple}>
+              <Text style={styles.modelName} numberOfLines={1}>{model.modelId}</Text>
+              <Text style={styles.modelMeta}>{t('models.kind.whisper')} · {formatBytes(model.sizeBytes)}</Text>
             </View>
           ))}
           {imageModels.map(model => (
-            <View key={model.id} style={{ paddingVertical: SPACING.sm }}>
-              <Text style={{ color: colors.text }} numberOfLines={1}>{model.name}</Text>
-              <Text style={{ color: colors.textMuted, fontSize: 12 }}>{model.backend.toUpperCase()} · {formatBytes(model.size)}</Text>
+            <View key={model.id} style={styles.modelRowSimple}>
+              <Text style={styles.modelName} numberOfLines={1}>{model.name}</Text>
+              <Text style={styles.modelMeta}>{model.backend.toUpperCase()} · {formatBytes(model.size)}</Text>
             </View>
           ))}
-          {!inventory && !scanning ? <Text style={{ color: colors.textMuted }}>{t('models.noInventory')}</Text> : null}
+          {!inventory && !scanning ? <Text style={styles.noFiles}>{t('models.noInventory')}</Text> : null}
         </Card>
 
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '600', marginBottom: SPACING.sm }}>{t('models.scanFolder')}</Text>
-        <Text style={{ color: colors.textSecondary, lineHeight: 20, marginBottom: SPACING.md }}>
+        <Text style={styles.scanTitle}>{t('models.scanFolder')}</Text>
+        <Text style={styles.scanDescription}>
           {t('models.scanDescription')}
         </Text>
         <TouchableOpacity
@@ -194,23 +197,23 @@ export const LocalModelsScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel={t('models.chooseFolder')}
           testID="local-models-choose-folder"
-          style={{ minHeight: 48, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, marginBottom: SPACING.md }}
+          style={styles.chooseButton}
         >
           {scanning ? <ActivityIndicator color={colors.primary} /> : <Icon name="folder" size={18} color={colors.primary} />}
-          <Text style={{ color: colors.text, fontWeight: '600' }}>{t('models.chooseFolder')}</Text>
+          <Text style={styles.chooseButtonText}>{t('models.chooseFolder')}</Text>
         </TouchableOpacity>
 
-        {error ? <Text accessibilityRole="alert" style={{ color: colors.error, marginBottom: SPACING.md }}>{error}</Text> : null}
+        {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
         {artifacts.map(artifact => {
           const isImportable = artifact.installable && ['gguf', 'litert', 'whisper'].includes(artifact.kind);
           const busy = importingName === artifact.name;
           return (
-            <Card key={artifact.sourceId} style={{ padding: SPACING.md, marginBottom: SPACING.sm }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.sm }}>
+            <Card key={artifact.sourceId} style={styles.artifactCard}>
+              <View style={styles.artifactRow}>
                 <Icon name={artifact.kind === 'gguf' || artifact.kind === 'litert' ? 'cpu' : artifact.kind === 'whisper' ? 'mic' : 'file'} size={18} color={colors.primary} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontWeight: '500' }} numberOfLines={1}>{artifact.name}</Text>
-                  <Text style={{ color: colors.textMuted, fontSize: 12 }}>{kindLabel(artifact.kind)} · {formatBytes(artifact.fileSize)}</Text>
+                <View style={styles.artifactInfo}>
+                  <Text style={styles.modelName} numberOfLines={1}>{artifact.name}</Text>
+                  <Text style={styles.modelMeta}>{kindLabel(artifact.kind)} · {formatBytes(artifact.fileSize)}</Text>
                 </View>
                 {isImportable ? (
                   <TouchableOpacity
@@ -219,26 +222,26 @@ export const LocalModelsScreen: React.FC = () => {
                     accessibilityRole="button"
                     accessibilityLabel={`${t('models.import')} ${artifact.name}`}
                     testID={`local-model-import-${artifact.name}`}
-                    style={{ padding: SPACING.sm }}
+                    style={styles.importButton}
                   >
-                    {busy ? <ActivityIndicator color={colors.primary} /> : <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('models.import')}</Text>}
+                    {busy ? <ActivityIndicator color={colors.primary} /> : <Text style={styles.importText}>{t('models.import')}</Text>}
                   </TouchableOpacity>
                 ) : null}
               </View>
               {busy ? (
-                <View style={{ marginTop: SPACING.sm }}>
-                  <View style={{ height: 4, borderRadius: 2, backgroundColor: colors.border, overflow: 'hidden' }}>
-                    <View style={{ height: 4, width: `${Math.round(importProgress * 100)}%`, backgroundColor: colors.primary }} />
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, importProgressStyle]} />
                   </View>
-                  <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 4 }}>{Math.round(importProgress * 100)}%</Text>
+                  <Text style={styles.progressLabel}>{Math.round(importProgress * 100)}%</Text>
                 </View>
               ) : !isImportable ? (
-                <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: SPACING.xs }}>{t('models.artifactOnly')}</Text>
+                <Text style={styles.artifactOnly}>{t('models.artifactOnly')}</Text>
               ) : null}
             </Card>
           );
         })}
-        {grant && artifacts.length === 0 ? <Text style={{ color: colors.textMuted }}>{t('models.noSupportedFiles')}</Text> : null}
+        {grant && artifacts.length === 0 ? <Text style={styles.noFiles}>{t('models.noSupportedFiles')}</Text> : null}
       </ScrollView>
     </SafeAreaView>
   );
