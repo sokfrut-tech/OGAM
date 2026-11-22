@@ -108,6 +108,9 @@ export function validateTaskPlan(value: unknown): TaskPlanValidation {
   }
 
   for (const step of byId.values()) {
+    if (!Array.isArray(step.dependsOn) || step.dependsOn.some(dep => typeof dep !== 'string')) {
+      continue;
+    }
     const unique = new Set(step.dependsOn);
     if (unique.size !== step.dependsOn.length) {
       errors.push(`Duplicate dependencies for step: ${step.id}.`);
@@ -117,6 +120,8 @@ export function validateTaskPlan(value: unknown): TaskPlanValidation {
       if (dependency === step.id) errors.push(`Step cannot depend on itself: ${step.id}.`);
     }
   }
+
+  if (errors.length > 0) return { valid: false, errors, topologicalOrder: [] };
 
   const order: string[] = [];
   const permanent = new Set<string>();
