@@ -487,6 +487,41 @@ describe('LLMService', () => {
       expect(onComplete).toHaveBeenCalledWith({ content: 'Hello World', reasoningContent: '' });
     });
 
+    it('sends raw prompt text without app messages or chat-template wrapping', async () => {
+      const ctx = await setupLoadedModel();
+
+      await llmService.generateRawPrompt('### exact raw prompt\\nReturn only JSON.');
+
+      const params = (ctx.completion as jest.Mock).mock.calls[0][0];
+      expect(params.prompt).toBe('### exact raw prompt\\nReturn only JSON.');
+      expect(params.messages).toBeUndefined();
+      expect(params.force_pure_content).toBe(true);
+    });
+
+    it('passes assistant prefill through llama.rn native prefill_text', async () => {
+      const ctx = await setupLoadedModel();
+      const prefix = createAssistantMessage('{"answer":');
+
+      await llmService.generatePrefillResponse([prefix], '{"answer":');
+
+      const params = (ctx.completion as jest.Mock).mock.calls[0][0];
+      expect(params.messages).toEqual([{ role: 'assistant', content: '{"answer":' }]);
+      expect(params.prefill_text).toBe('{"answer":');
+      expect(params.prompt).toBeUndefined();
+    });
+
+    it('rejects prefill unless the final message is an assistant prefix', async () => {
+      await setupLoadedModel();
+      await expect(
+        llmService.generatePrefillResponse([createUserMessage('Continue this')], 'prefix'),
+      ).rejects.toThrow('last message to be an assistant prefix');
+    });
+
+    it('rejects empty raw prompts before starting native completion', async () => {
+      await setupLoadedModel();
+      await expect(llmService.generateRawPrompt('   ')).rejects.toThrow('Raw prompt must not be empty');
+    });
+
     // Native-first (reasoning_format:'auto') fail-safe: the runtime may return the answer in
     // `content` (filtered) + `reasoning_content`, OR — if 'auto' mis-parses a model it doesn't
     // recognise — an empty `content`. These prove the answer is NEVER lost: content falls back to
