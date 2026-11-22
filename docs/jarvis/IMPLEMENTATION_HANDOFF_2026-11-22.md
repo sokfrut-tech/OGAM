@@ -399,3 +399,28 @@ Commits:
 - External source-contract audit [#45049107229](https://github.com/sokfrut-tech/OGAM/actions/runs/45049107229) succeeded on latest head `95682ccb`. It does not compile Kotlin.
 - Full CI's JavaScript lint/type/Jest gates remain red because the ongoing standalone migration still leaves `@offgrid/models`, `@offgrid/sync`, and `@offgrid/rag` consumers unresolved in this branch, as well as test imports from private `pro/*` paths that are not present in the checkout. Continue the exact package-slice migration and test-boundary cleanup rather than masking these imports.
 - Required next step: repeat the Android Gradle run after the external Maven rate limit clears, preferably with a populated Gradle dependency cache. The successful build must show `:app:compileDebugKotlin`, `:app:testDebugUnitTest`, and Android manifest merge results on the same commit. Then proceed to APK assembly and instrumentation/PGEM10 testing.
+
+## Standalone workspace migration — first M2 helper port and CI checkout diagnosis (2026-11-22)
+
+### Why the previous PR CI could not see shared packages
+
+- The setup-mobile composite action only checks out off-grid-ai/shared and off-grid-ai/mobile-pro when PRO_SUBMODULE_PAT is present.
+- The inspected PR #1 Actions logs show the branch selection, shared checkout and shared placement steps skipped. Jest/TypeScript then report missing @offgrid/models, @offgrid/rag, @offgrid/sync, and absent pro/* test paths.
+- This is a repository architecture dependency, not a Jarvis runtime bug. OGAM must be independently buildable; do not make adding a private token the permanent solution. Continue the clean-room package migration using consumer contracts and OGAM's own MIT pre-extraction history.
+
+### First M2 helper completed in source
+
+- Added src/utils/toolResultBudget.ts with OGAM-owned MAX_TOOL_RESULT_CHARS = 24,000 and boundToolResult().
+- Updated src/services/tools/toolResult.ts to import/re-export the local helper. This removes one source import from @offgrid/models while preserving the 24k cap and explicit truncation notice (retained count + original count).
+- Added scripts/__tests__/tool-result-budget.node.test.mjs covering default cap, unmodified in-budget content, head-preserving truncation, caller-supplied smaller budget, negative and non-finite limits.
+- Added this test to .github/workflows/ogam-external-dependency-audit.yml so the pure contract can be tested without the external shared checkout.
+- Changes are intentionally narrow; M2 is not complete and package.json still correctly declares the remaining model workspace dependency until every import and transitive contract is migrated.
+
+Next model-migration slices:
+1. M2 reasoning payload + tool-call count policy + prompt/result budget helpers.
+2. M3/M4 model styles, model naming/classification and associated types.
+3. M5 device fit, model residency and backend tables — high-risk, must preserve existing performance thresholds.
+4. M6 catalog parser/cache/merge with parity checks.
+5. M7 guide/promo copy can be simplified for the Jarvis standalone product.
+
+The @offgrid/rag and @offgrid/sync migrations remain separate workstreams. No shared/private package source was copied into OGAM.
