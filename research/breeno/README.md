@@ -180,3 +180,5 @@ The source survey now includes Chinese platforms and Chinese-language projects (
 - [OPPO Find X6 Pro device evidence — Breeno 13.4.3 and Memory 16.11.5](OPPO_FIND_X6_PRO_DEVICE_EVIDENCE_2026-11-22.md) — exact versions and feature surfaces read from user screenshots.
 
 - [Breeno Instructions permission evidence](OPPO_BREENO_INSTRUCTIONS_PERMISSIONS_2026-11-22.md) — separate companion app version 17.7.2 and screenshot-derived permission states.
+
+- [OPPO APK acquisition and static-analysis plan](OPPO_APK_ACQUISITION_AND_STATIC_ANALYSIS_PLAN_2026-11-22.md) — exact candidate versions, package/versionCode leads, acquisition status and reverse-engineering checklist.
