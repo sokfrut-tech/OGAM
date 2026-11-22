@@ -7,6 +7,9 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 class JarvisPcmStreamPlayerTest {
 
@@ -94,24 +97,35 @@ class JarvisPcmStreamPlayerTest {
   }
 
   @Test
-  fun aLateFailedStartCannotAbandonFocusForANewerGeneration() {
+  fun lateTrackCreationFromCancelledStartCannotAbandonNewerFocus() {
     val firstTrack = FakeTrack()
     val secondTrack = FakeTrack()
-    val factory = ControlledTrackFactory(firstTrack, secondTrack)
+    val factory = BlockingFirstTrackFactory(firstTrack, secondTrack)
     val focus = FakeFocus()
     val player = JarvisPcmStreamPlayer(factory, focus)
+    @Volatile var firstGeneration: Long? = null
 
-    val firstGeneration = player.begin(24_000)!!
-    player.cancel(firstGeneration)
-    val secondGeneration = player.begin(24_000)!!
+    val oldStarter = Thread {
+      firstGeneration = player.begin(24_000)
+    }
+    oldStarter.start()
 
-    // A delayed completion/cleanup from the first generation must not affect the second.
-    player.finish(firstGeneration)
-    player.cancel(firstGeneration)
+    assertTrue(factory.firstCreateStarted.await(2, TimeUnit.SECONDS))
+    // The original start is still creating AudioTrack. Cancel it before its
+    // candidate exists, then start a newer answer and acquire focus again.
+    player.cancel()
+    val currentGeneration = player.begin(24_000)!!
 
+    factory.releaseFirstCreate.countDown()
+    oldStarter.join(2_000)
+
+    assertFalse(oldStarter.isAlive)
+    assertNull(firstGeneration)
     assertTrue(player.isActive)
-    assertTrue(player.write(secondGeneration, floatArrayOf(0.5f)))
+    assertEquals(1, focus.abandons) // only the old generation's cancellation
+    assertTrue(player.write(currentGeneration, floatArrayOf(0.5f)))
     assertFalse(secondTrack.released)
+    player.finish(currentGeneration)
   }
 
   @Test
@@ -163,11 +177,23 @@ class JarvisPcmStreamPlayerTest {
     override fun create(sampleRate: Int): JarvisPcmTrack = tracks[index++]
   }
 
-  private class ControlledTrackFactory(
-    private vararg val tracks: FakeTrack,
+  private class BlockingFirstTrackFactory(
+    private val first: FakeTrack,
+    private val second: FakeTrack,
   ) : JarvisPcmTrackFactory {
-    private var index = 0
-    override fun create(sampleRate: Int): JarvisPcmTrack = tracks[index++]
+    val firstCreateStarted = CountDownLatch(1)
+    val releaseFirstCreate = CountDownLatch(1)
+    private val calls = AtomicInteger(0)
+
+    override fun create(sampleRate: Int): JarvisPcmTrack {
+      return if (calls.getAndIncrement() == 0) {
+        firstCreateStarted.countDown()
+        check(releaseFirstCreate.await(2, TimeUnit.SECONDS))
+        first
+      } else {
+        second
+      }
+    }
   }
 
   private class FakeTrack(
