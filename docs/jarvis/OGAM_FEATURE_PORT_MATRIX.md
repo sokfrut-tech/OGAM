@@ -60,6 +60,8 @@ This is a source-tree inventory, not a claim that every capability is production
 | Background task plans | Download workers exist | WorkManager-based durable task steps with explicit user-visible progress and cancellation; foreground service only when platform rules require it |
 | Iron Man/JARVIS HUD | Existing OGAM chat-first UI and animated components | Original Jarvis home, reactor/HUD, listening/thinking/speaking/executing/approval/error states, task timeline and accessibility |
 
+| Android speech output | `JarvisPcmStreamPlayer.kt` accepts Float32 mono chunks, streams them through `AudioTrack`, owns transient AudioFocus and invalidates stale output generations on cancel. 8 Kotlin/JUnit tests are present; the Node CI currently verifies source contracts only. | Run Kotlin/JUnit via Gradle; connect a model-neutral streaming TTS adapter only after Russian model/voice rights and OPPO memory/RTF tests are clear |
+
 ## Important blockers and release gates
 
 1. Private workspaces `@offgrid/speech`, `@offgrid/pro`, `@offgrid/rag`, `@offgrid/models` and `@offgrid/sync` still appear in runtime imports. The standalone migration must recover contracts and replace dependencies without no-op stubs.
