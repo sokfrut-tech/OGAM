@@ -26,6 +26,14 @@ describe('recordingController', () => {
     expect(h.stop).not.toHaveBeenCalled();
   });
 
+  it('does not open a voice session when no input backend is available', () => {
+    const h = handlers();
+    recordingController.registerHandlers({ ...h, canStart: () => false });
+    recordingController.start();
+    expect(h.start).not.toHaveBeenCalled();
+    expect(recordingController.getPhase()).toBe('idle');
+  });
+
   it('toggle() stops when recording (does not start a second recording)', () => {
     const h = handlers();
     recordingController.registerHandlers(h);
