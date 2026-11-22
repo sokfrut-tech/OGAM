@@ -23,7 +23,7 @@ These sentences are designed to expose stress, homograph and phrasing errors. Th
 | RU-ST-01 | На стене висит старинный замок, а ключ от замка лежит в ящике. | замок / замок, stress by context |
 | RU-ST-02 | На столе лежит мука, а мастер говорит, что его мучит мука совести. | мука / мука |
 | RU-ST-03 | На картине изображён атлас, а на полке лежит школьный атлас. | атлас sense and stress |
-| RU-ST-04 | Я плачу за покупку, а ребёнок плачу́ет от обиды. | Homograph; note spelling intentionally natural? |
+| RU-ST-04 | Я плачу за покупку, а ребёнок плачет от обиды. | различие ударения в форме глагола: пла́чу / пла́чет |
 | RU-ST-05 | Белки в лесу запасают орехи, а белки крови измеряют в лаборатории. | белки, context |
 | RU-ST-06 | В аэропорту он сел на самолёт, а в театре сел в первый ряд. | stress and sentence rhythm |
 | RU-ST-07 | Всё, что нужно, — это ёлка, тёплый шарф и хорошая музыка. | ё / е and natural pause |
@@ -31,7 +31,6 @@ These sentences are designed to expose stress, homograph and phrasing errors. Th
 | RU-ST-09 | Договор подписан обеими сторонами; условия договора вступают в силу завтра. | noun stress |
 | RU-ST-10 | Средства на счёте закончились, но новые средства защиты уже доставлены. | polysemy and stress |
 
-Correction note: RU-ST-04 intentionally contains a bad/inconsistent verb form if read literally; exclude it from automatic scoring. Replace with: «Я плачу за покупку, а ребёнок плачет от обиды.»
 
 ## B. Numbers, dates, units and abbreviations
 
