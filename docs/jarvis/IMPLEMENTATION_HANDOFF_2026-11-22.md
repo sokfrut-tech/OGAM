@@ -36,7 +36,7 @@ This file is the durable continuation point for the current OGAM fork work. It r
 - Task-plan validation (DAG/dependency/cycle checks), run state transitions, approval wait, completion/failure/retry/pause/resume/cancel guards, and local Zustand persistence.
 - Built-in tool skill contracts validate schemas and enabled-tool capabilities; high-risk skill types have an approval rule.
 - OGAM-owned pure progress helpers and file-size/split-GGUF/companion-file utilities.
-- Voice recognition now uses the app's selected language: `ru-RU` for Russian and `en-US` for English, replacing the hard-coded English recognizer locale. Unsupported device languages use the same English fallback as the UI.
+- The legacy `react-native-voice` wrapper now maps the app locale to `ru-RU` or `en-US`, replacing its hard-coded English recognizer locale. Repository search found no production call site for its `useVoiceRecording` hook; the primary ChatInput path uses `audioRecorderService` plus Whisper/Qwen and `useWhisperStore.transcriptionLanguage`. Do not claim that primary path is already proven Russian by this wrapper fix.
 - Android APK workflow is manual-only, arm64 debug, SHA-256 + 14-day artifact; it currently cannot build standalone because setup still requires private workspaces.
 - External dependency audit workflow and scanner tests are included.
 
@@ -45,8 +45,9 @@ This file is the durable continuation point for the current OGAM fork work. It r
 
 - Commit `dc22e8a8fc20180ca51a889bc81161dc01851ee1`: `src/services/voiceService.ts` imports the existing app locale and uses `getVoiceRecognitionLocale()` when starting speech recognition.
 - Commit `ad62d0c7bc467da21e31ca02ef6ce3f4155bbdcf`: voice service unit tests cover `ru → ru-RU`, `en → en-US`, and assert that `Voice.start` receives the selected app locale.
-- This is a narrow locale correction only. It does not implement offline ASR, wake word, VAD, TTS, barge-in, or Android system-assistant integration.
+- This is a narrow legacy-wrapper correction only. It does not implement offline ASR, wake word, VAD, TTS, barge-in, or Android system-assistant integration.
 - The test code is committed but has not yet been run in a fresh CI job. Do not report it as passing until CI evidence is available.
+- Jandal AI (Apache-2.0) was inspected as a current Android reference: typed capture events, monotonic capture-session IDs, stale-stop rejection, wake-mic arbitration and Android VoiceInteractionService/Session. A detailed behaviour comparison and OGAM migration contract were added to `docs/jarvis/VOICE_STACK_RESEARCH_RU_2026-11-22.md`.
 
 ## Model research decisions
 
