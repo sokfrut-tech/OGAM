@@ -38,7 +38,12 @@ test('applies the active tool-loop budget supplied by the caller', () => {
 });
 
 test('normalizes negative and non-finite budgets safely', () => {
-  const content = 'oversized';
-  assert.match(boundToolResult('tool', content, -1), /showing the first 0 of 9 characters/);
-  assert.match(boundToolResult('tool', content, Number.NaN), /showing the first 24000 of 9 characters/);
+  const shortContent = 'oversized';
+  assert.match(boundToolResult('tool', shortContent, -1), /showing the first 0 of 9 characters/);
+
+  const longContent = 'D'.repeat(30_000);
+  assert.match(
+    boundToolResult('tool', longContent, Number.NaN),
+    /showing the first 24000 of 30000 characters/,
+  );
 });
