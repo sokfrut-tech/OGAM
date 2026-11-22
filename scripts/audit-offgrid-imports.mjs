@@ -107,7 +107,7 @@ function renderSummary(report) {
     '# OGAM external-package import audit',
     '',
     `- Files scanned: **${report.filesScanned}**`,
-    `- Local `file:` dependencies: **${report.localFileDependencies.length}**`,
+    `- Local file dependencies: **${report.localFileDependencies.length}**`,
     `- Package imports: **${report.hitCounts.packageImports}**`,
     `- Shared workspace path references: **${report.hitCounts.sharedWorkspacePaths}**`,
     `- Pro/private checkout references: **${report.hitCounts.proOrPrivateCheckoutReferences}**`,
