@@ -29,6 +29,8 @@ jobs:
         run: node --experimental-strip-types --test scripts/__tests__/gguf-split-files.node.test.mjs
       - name: Verify Jarvis skill contract
         run: node --experimental-strip-types --test scripts/__tests__/skill-contract.node.test.mjs
+      - name: Verify Jarvis task-plan graph
+        run: node --experimental-strip-types --test scripts/__tests__/task-plan.node.test.mjs
       - name: Generate complete source/config inventory
         run: node scripts/audit-offgrid-imports.mjs --output=ogam-import-audit.json
       - name: Upload audit evidence
