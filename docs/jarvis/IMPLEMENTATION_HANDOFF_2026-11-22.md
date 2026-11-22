@@ -8,8 +8,8 @@ This file is the durable continuation point for the current OGAM fork work. It r
 - Active branch: `feature/jarvis-step-2-storage-privacy`
 - PR: [#1 — Jarvis Step 2: privacy and Android storage permission bridge](https://github.com/sokfrut-tech/OGAM/pull/1)
 - PR state: open, draft, not merged; base `main`
-- PR head observed during this audit: `df86881cdfdb61bf114c7aae595e5446e36fa6ad`
-- PR metadata reports 229 commits, 102 changed files, +6,356/-386 lines.
+- PR head observed during this audit: `d79cecc46018efc79f1ac1d98b79f28bdb840053`
+- PR metadata reports 309 commits, 136 changed files, +7,525/-399 lines.
 - Do not merge the PR or publish an APK as a way to bypass the missing-source blocker.
 
 ## Product contract
@@ -116,6 +116,7 @@ A public fork survey found:
 - PR metadata currently reports `mergeable: false`; do not merge just to unlock the manual APK workflow.
 - Latest CI run #129 (`45024767123`) on head `dcbefb038d1200adf0af35a6b4eace0884d9a1cc` completed successfully: model-evaluation validator 6/6 and locale-aware transcription default tests 2/2 passed, alongside all existing open-core Node audit suites. The workflow scanned 1,966 files and reported 1,354 external dependency references; artifact `ogam-import-audit` (ID `14755202715`) was uploaded. The prior model-evaluation workflow run #120 also passed.
 - This CI workflow checks an open-core Node subset only. It does not run Jest/TypeScript/full React Native tests, clean standalone installation, Gradle APK build or OPPO device checks. The legacy voiceService Jest tests therefore remain unverified.
-- The new Qwen/Russian path integration test is present but remains unexecuted in Jest; no ASR microphone accuracy result is available.
+- The new Qwen/Russian ChatInput integration test and new `voiceNoteSend.test.ts` tests for system-assistant auto-send/draft safety are present but remain unexecuted in Jest; no ASR microphone accuracy result is available.
+- Five Kotlin/JUnit tests for `JarvisAssistantRoleSnapshot` are present but have not been executed in Gradle.
 - No APK artifact, clean standalone install, or OPPO device verification has been demonstrated.
 - Continue from the active branch and current source, not by replaying the already completed steps above.
