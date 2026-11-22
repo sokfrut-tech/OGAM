@@ -259,3 +259,25 @@ Revised decision:
 - Do NOT call CosyVoice3-MNN merely a batch-only candidate; the distilled two-step route has a promising cool-device real-time result.
 - Keep it as a high-quality / high-resource experimental track, not the default OGAM Jarvis backend, until the exact v1.2.0 package/model provenance is pinned and sustained tests pass on our SM8550/PGEM10.
 - tiny-voca-ru remains the first compact prototype because of its ~21.4 MB model, permissive code/weight licenses and low storage footprint. Its own Android performance and listening quality are also unverified; it is a feasibility choice, not a proven winner.
+
+
+## Latest verification and dataset provenance — 2026-11-22
+
+### tiny-voca-ru dataset/voice provenance clarification
+- The Hugging Face dataset card now explicitly documents 20,287 clips (20,116 default + 171 homograph clips), 23.82 hours, disjoint train/validation/test sentence splits, and CC BY 4.0 licensing: https://huggingface.co/datasets/egnch/tiny-voca-ru-dataset
+- Both F/M voices are documented as generated with Qwen3-TTS 1.7B VoiceDesign. The card describes reference clips and lists voice seeds/selection metrics in `voices.json`, but the public summary does not fully establish the underlying reference speaker consent/provenance. This remains a release gate, not an allegation of misuse.
+- The model card reports ONNX 81x real-time on Ryzen 5 3600X with four threads; it is explicitly a desktop result and cannot be extrapolated to Snapdragon 8 Gen 2. It reports 56.0% on the 250-item homograph set for `lite`; do not claim the `full` mode has 91.6% measured accuracy—the 91.6% figure belongs to a ruaccent turbo3.1 reference column.
+- Exact ONNX file SHA-256 and immutable model revision are still not verified from the model repository file metadata. Do not reuse hashes from the English tiny-voca model.
+
+### ONNX Runtime Android execution plan
+- Official ORT Android documentation states the published Android package includes CPU and NNAPI support; Android NNAPI requires API 27+ (Android 8.1), with API 28+ recommended. NNAPI is a generic Android interface, not proof of Qualcomm QNN/HTP use on SM8550: https://onnxruntime.ai/docs/execution-providers/NNAPI-ExecutionProvider
+- Official mobile guidance recommends CPU first for quantized models and then device-specific benchmarking of NNAPI/XNNPACK; accelerator partitioning can reduce performance when unsupported ops fall back: https://onnxruntime.ai/docs/tutorials/mobile/
+- ORT's Android build documentation requires R8 keep rule `-keep class ai.onnxruntime.** { *; }` for minimized apps using the Maven Android package: https://onnxruntime.ai/docs/build/android.html
+- OGAM's `android/app/build.gradle` currently has no ONNX Runtime dependency. Do not add it until the exact model/config hashes, model input contract, package size/ABI and R8 rules are reviewed.
+
+### Current CI snapshot on PR #1
+- Current PR #1 head at check: `7b399c5261e09f365ca44d81fb053dbe68af8c08`; PR remains draft/open/unmerged.
+- External dependency audit run 45059622374 passed on that exact head: https://github.com/sokfrut-tech/OGAM/actions/runs/45059622374
+- Full CI run 45059622387 was still in progress at the last check: https://github.com/sokfrut-tech/OGAM/actions/runs/45059622387
+- Three Jest shards already failed: 86/104, 89/106, and 83/106 suites failed respectively. Logs show broad `Cannot find module '@offgrid/models'` failures plus missing `pro/sync` modules/configuration. This is a repository/private-workspace CI integration blocker; it is not evidence that the new Kotlin chunker tests failed.
+- Android Gradle test job had started but no completed result was available. No Kotlin/JUnit, APK or PGEM10 pass is claimed.
