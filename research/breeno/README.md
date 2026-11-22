@@ -203,3 +203,5 @@ The source survey now includes Chinese platforms and Chinese-language projects (
 - [Russian Android TTS backend audit](../voice/OGAM_RUSSIAN_TTS_ANDROID_BACKEND_AUDIT_2026-11-22.md) — new RuVoice (noncommercial code/model) reference, Qwen3-TTS Kotlin/JNI and C++ streaming gap, Sherpa-ONNX candidate, current OGAM mic owner and half-duplex/AEC limitation. No backend selected or integrated.
 
 - [Russian audio evaluation corpus v1](../voice/JARVIS_RUSSIAN_AUDIO_EVALUATION_CORPUS_V1_2026-11-22.md) — common Russian phrases and test protocol for TTS/ASR/VAD/wake word/AEC on PGEM10; text-only, no voice recordings in Git.
+
+- [Qwen3-TTS Android integration/build-isolation plan](../voice/OGAM_QWEN3_TTS_ANDROID_INTEGRATION_PLAN_2026-11-22.md) — identifies the dual-GGML CMake conflict with OGAM's existing Stable Diffusion build and defines a separate Kotlin/JNI benchmark module with measurable acceptance gates.
