@@ -106,3 +106,45 @@ Large/proprietary APK binaries stay out of Git. Use an encrypted local archive o
 
 ## Current status
 This document records the research direction and initial public-source findings only. It does not claim that Breeno has been downloaded, decompiled, fully analyzed, ported or tested on the target phone. Next action is to capture the phone's exact firmware and installed package inventory, then compare the actual installed Breeno APK against available version metadata.
+
+
+## Research update 2 — architecture and dispatch details (2026-11-22)
+
+### Confirmed target hardware/software baseline from OPPO
+The official China Find X6 Pro product page identifies model code PGEM10 and lists Snapdragon 8 Gen 2 (8 cores, up to 3.187 GHz), MariSilicon X imaging NPU, LPDDR5X RAM (12/16 GB), UFS 4.0 storage and original ColorOS 13.1. These are factory specifications, not proof of the user's current OTA build. Capture the live build from Settings before selecting native runtimes or firmware hooks. Do not assume MariSilicon X is a general-purpose LLM NPU exposed to third-party apps; public product material describes it as imaging-oriented.
+
+### AndesGPT architecture clues
+OPPO's 2023 sustainability report describes AndesGPT as a model/agent family with four capability domains: Knowledge, Memory, Tools and Creation. Named tiers are AndesGPT-Tiny (knowledge), AndesGPT-Turbo (memory and tools) and AndesGPT-Titan (creation). Data categories include general, dialogue, instruction and security data; infrastructure includes storage, compute and framework. OPPO describes parameter scale as billions and potentially more than one hundred billion. This is a company-level architecture description, not a downloadable model card. Use it as a functional decomposition for Jarvis, not as a dependency on closed AndesGPT weights or APIs. Build independent local services for retrieval/knowledge, persistent memory, tool orchestration and multimodal creation; cloud adapters remain optional.
+
+### More precise ColorOS dispatch evidence
+Public AssistRestore technical notes describe read-only analysis of ColorOS 16 / V16.1.0 / PJZ110. The author reports that framework PhoneWindowManagerExtImpl.startSpeech in oplus-services.jar explicitly starts Breeno when feature flag oplus.software.speech_assist_for_breeno is active; SystemUI has separate paths for gesture-handle long-press and corner-swipe; AssistManager.startAssist has a China-region gate; and the default Android assistant role can be correctly configured while OEM entry points still bypass it. This establishes a real integration risk and a useful investigation map. It is NOT evidence that Find X6 Pro PGEM10 has the same class names, signatures, flags or behavior. Do not copy hooks or binary patches across ColorOS versions. First inspect the exact PGEM10 firmware read-only and compare framework/SystemUI hashes.
+
+### Permission and trust boundary
+Third-party catalog metadata for Breeno 13.3.2 shows a broad manifest permission set, including Android privileged/signature permissions and OPPO/HeyTap private permissions (examples include privileged phone state, secure settings, power, audio routing, assistant/voice, settings and IoT permissions). Manifest declaration does not mean a sideloaded app is granted them. Jarvis must use runtime-granted public permissions and user-mediated system panels; OEM-level actions are unavailable unless actual device evidence proves otherwise.
+
+### Newly added reference candidates
+- MindTriggerAssist: https://github.com/evokermc098-coder/MindTriggerAssist — Shizuku-assisted alternative for changing ColorOS long-press behavior on newer Find X7 / ColorOS 16 China builds. Requires Google/Gemini; not a Jarvis dependency. Study only its dispatch/UX pattern and compatibility boundaries.
+- AssistRestore releases: https://github.com/Andrea-lyz/ColorOS-Assistant-Restore/releases — release notes state a known validation baseline of ColorOS 16 / V16.1.0 / PJZ110 and root + LSPosed-class framework requirements. Not a safe universal recommendation for PGEM10.
+
+## Updated implementation implications for OGAM
+1. Introduce a DeviceAssistantAdapter boundary: AssistantEntryPoint, AssistantRoleStatus, OemDispatchCapabilities, PermissionCapability and DeviceBuildFingerprint. Keep public Android API implementation separate from optional ColorOS adapters.
+2. Add a capability probe that reports supported, user_grant_required, oem_privileged, blocked_by_firmware or unknown. Never equate manifest declaration with granted permission.
+3. Keep voice pipeline independent from summon mechanism: hotword/audio capture → ASR/VAD → dialogue orchestrator → intent/tool router → execution/confirmation → TTS. Jarvis must remain usable from its app UI even if hardware entry points cannot be redirected.
+4. Model AndesGPT's four domains as independent Jarvis subsystems: Knowledge/RAG, Memory, Tools/Planner and Creation (image/audio/text). Use local engines first; never hardwire an AndesGPT endpoint.
+5. Add a Chinese-ROM test matrix: app launch, default assistant role, power long-press, gesture-handle long-press, bottom-corner swipe, lock-screen summon, screen recognition, background wake, microphone interruption, reboot/autostart and offline mode.
+6. No root/LSPosed/Shizuku path in core acceptance criteria. Optional experiments require device backup/recovery, explicit approval and exact firmware compatibility.
+
+## Updated source references
+- Official OPPO Find X6 Pro specifications (PGEM10, Snapdragon 8 Gen 2, MariSilicon X, LPDDR5X, UFS 4.0, ColorOS 13.1): https://www.oppo.com/cn/smartphones/series-find-x/find-x6-pro/specs/
+- OPPO 2023 Sustainability Report, AndesGPT architecture diagram and capability/model tiers: https://www.oppo.com/content/dam/oppo/common/mkt/footer/2023-OPPO-Sustainability-Report-EN.pdf
+- AssistRestore technical notes (specific ColorOS 16 PJZ110 baseline): https://github.com/Andrea-lyz/ColorOS-Assistant-Restore/blob/main/docs/technical-notes.zh.md
+- AssistRestore releases and compatibility requirements: https://github.com/Andrea-lyz/ColorOS-Assistant-Restore/releases
+- MindTriggerAssist (Find X7 / ColorOS 16 China, Shizuku-assisted): https://github.com/evokermc098-coder/MindTriggerAssist
+- Breeno 13.3.2 package and permission catalog: https://www.apkmirror.com/apk/heytap/breeno/breeno-13-3-2-release/breeno-13-3-2-android-apk-download/
+
+## Evidence status update
+- Verified from OPPO public product specifications: PGEM10 model code, Snapdragon 8 Gen 2, MariSilicon X, memory/storage technology and original ColorOS 13.1.
+- Verified from OPPO corporate materials: AndesGPT capability domains and named tiers; Breeno's announced integration and feature scope.
+- Verified only for a different device/build from third-party technical notes: ColorOS 16 assistant dispatch internals.
+- Catalog-only metadata, not device-verified: Breeno 13.3.2/13.3.5 package variants and permissions.
+- Not yet done: download or extract Breeno APK, verify signature/hash, decompile, enumerate services/receivers, inspect voice trigger services, capture PGEM10 firmware, test on user's phone, or implement a Breeno-derived runtime feature.
