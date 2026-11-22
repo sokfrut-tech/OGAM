@@ -238,3 +238,17 @@ Important product distinction:
 
 Detailed comparison and source links:
 https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/breeno/ZAFIRO_BREENO_HOOK_COMPATIBILITY_AUDIT_2026-11-22.md
+
+
+### Follow-up: VoiceInteraction metadata and wake-word boundary (22 Nov 2026)
+
+A deeper pinned-source review is recorded in the Breeno/ColorOS audit, section 11:
+- The current VoiceInteraction path is an explicit system invocation → private bridge → Chat → shared recorder handoff. It is not an always-on wake-word implementation.
+- Android's AOSP metadata schema says `recognitionService` must point to a valid `RecognitionService` on Android 11 and earlier. Android 12+ ignores the field but still requires a non-empty value. OGAM currently gates this service off below API 31, so this is a future compatibility blocker rather than a demonstrated Android 16 failure.
+- Do not lower the API gate until a real local legacy RecognitionService is registered and tested.
+- `supportsLaunchVoiceAssistFromKeyguard` is a separate metadata capability. Lock-screen support must be designed and verified, not inferred from RoleManager readiness.
+- A public ColorOS 16 report on OPPO Pad Mini shows the platform's assistant invocation pathway in use, but it is not a PGEM10/OGAM compatibility test.
+- No Gradle/Node suite was executed during this source audit; device testing remains outstanding.
+
+Detailed source and official platform references:
+https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/breeno/ZAFIRO_BREENO_HOOK_COMPATIBILITY_AUDIT_2026-11-22.md#11-deeper-android-voiceinteraction-lifecycle-and-metadata-review
