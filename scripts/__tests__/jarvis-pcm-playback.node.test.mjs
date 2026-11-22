@@ -48,3 +48,11 @@ test('Android unit tests cover write order, interruption, stale startup, sample-
     'lateTrackCreationFromCancelledStartCannotAbandonNewerFocus',
   ]) assert.ok(unit.includes(name), `Missing test: ${name}`);
 });
+
+test('PCM stream and focus use assistant speech attributes with bounded buffer polling', () => {
+  const source = read('android/app/src/main/java/ai/offgridmobile/voice/JarvisPcmStreamPlayer.kt');
+  assert.equal((source.match(/AudioAttributes\.USAGE_ASSISTANT/g) ?? []).length, 2);
+  assert.ok(source.includes('AudioAttributes.CONTENT_TYPE_SPEECH'));
+  assert.ok(source.includes('LockSupport.parkNanos(5_000_000L)'));
+  assert.ok(!source.includes('LockSupport.parkNanos(100_000L)'));
+});
