@@ -274,21 +274,21 @@ export const ImageGenScreen: React.FC = () => {
           />
         </Card>
 
-        <Card style={{ padding: SPACING.md, marginBottom: SPACING.md }}>
+        <Card style={styles.card}>
           <Text style={styles.controlsTitle}>{t('image.controls')}</Text>
           <View style={styles.fieldsRow}>
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>{t('image.steps', { max: MAX_IMAGE_STEPS })}</Text>
               <TextInput value={steps} onChangeText={setSteps} keyboardType="number-pad" editable={!imageState.isGenerating} testID="image-gen-steps" style={styles.fieldInput} />
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.textSecondary, marginBottom: 6 }}>{t('image.cfg')}</Text>
-              <TextInput value={guidanceScale} onChangeText={setGuidanceScale} keyboardType="decimal-pad" editable={!imageState.isGenerating} testID="image-gen-cfg" style={{ color: colors.text, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: SPACING.sm }} />
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>{t('image.cfg')}</Text>
+              <TextInput value={guidanceScale} onChangeText={setGuidanceScale} keyboardType="decimal-pad" editable={!imageState.isGenerating} testID="image-gen-cfg" style={styles.fieldInput} />
             </View>
           </View>
           <View style={styles.seedField}>
-            <Text style={{ color: colors.textSecondary, marginBottom: 6 }}>{t('image.seed')}</Text>
-            <TextInput value={seed} onChangeText={setSeed} keyboardType="number-pad" editable={!imageState.isGenerating} testID="image-gen-seed" placeholder={t('image.random')} placeholderTextColor={colors.textMuted} style={{ color: colors.text, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: SPACING.sm }} />
+            <Text style={styles.fieldLabel}>{t('image.seed')}</Text>
+            <TextInput value={seed} onChangeText={setSeed} keyboardType="number-pad" editable={!imageState.isGenerating} testID="image-gen-seed" placeholder={t('image.random')} placeholderTextColor={colors.textMuted} style={styles.fieldInput} />
           </View>
           <Text style={styles.unsupportedNote}>
             {t('image.unsupported')}
@@ -296,9 +296,9 @@ export const ImageGenScreen: React.FC = () => {
         </Card>
 
         {imageState.isGenerating ? (
-          <Card style={{ padding: SPACING.md, marginBottom: SPACING.md }}>
+          <Card style={styles.card}>
             <View style={styles.statusHeader}>
-              <Text style={{ color: colors.text, fontWeight: '600' }}>{imageState.status || t('image.generating')}</Text>
+              <Text style={styles.statusText}>{imageState.status || t('image.generating')}</Text>
               <TouchableOpacity onPress={cancel} accessibilityRole="button" accessibilityLabel={t('image.cancel')} testID="image-gen-cancel">
                 <Icon name="x-circle" size={22} color={colors.error} />
               </TouchableOpacity>
@@ -315,8 +315,8 @@ export const ImageGenScreen: React.FC = () => {
         ) : null}
 
         {imageState.result ? (
-          <Card style={{ padding: SPACING.md, marginBottom: SPACING.md }}>
-            <Text style={{ color: colors.text, fontWeight: '600', marginBottom: SPACING.sm }}>{t('image.generated')}</Text>
+          <Card style={styles.card}>
+            <Text style={styles.resultTitle}>{t('image.generated')}</Text>
             <Image source={{ uri: `file://${resolveDocumentPath(imageState.result.imagePath)}` }} resizeMode="contain" style={[styles.resultImage, resultImageAspectRatioStyle]} />
             <Text style={styles.resultMeta}>
               {t('image.stepsCount', { width: imageState.result.width, height: imageState.result.height, steps: imageState.result.steps, seed: imageState.result.seed })}
