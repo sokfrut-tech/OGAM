@@ -23,3 +23,15 @@ test('RoleManager request is guarded for Android 12+ and verifies both role and 
   assert.match(source, /pendingPromise/);
 });
 
+
+test('native assistant status snapshot has platform and state-combination unit tests', () => {
+  const snapshot = read('android/app/src/main/java/ai/offgridmobile/voice/JarvisAssistantRoleSnapshot.kt');
+  const unit = read('android/app/src/test/java/ai/offgridmobile/voice/JarvisAssistantRoleSnapshotTest.kt');
+  const module = read('android/app/src/main/java/ai/offgridmobile/voice/JarvisAssistantRoleModule.kt');
+  assert.ok(snapshot.includes('androidApi >= 31'));
+  assert.ok(snapshot.includes('roleHeld && activeService'));
+  assert.ok(module.includes('JarvisAssistantRoleSnapshot.from('));
+  assert.equal((unit.match(/@Test/g) ?? []).length, 5);
+  assert.ok(unit.includes('grantedRoleIsNotTheSameAsAnActiveVoiceInteractionService'));
+  assert.ok(unit.includes('onlyRoleHolderWithActiveServiceIsReady'));
+});
