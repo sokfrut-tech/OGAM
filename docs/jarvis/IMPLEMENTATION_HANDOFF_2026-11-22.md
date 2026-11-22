@@ -644,3 +644,12 @@ Added source-only implementation on this branch:
 - Published ONNX CPU speed is 81x real-time on AMD Ryzen 5 3600X/4 threads, not Android; no SM8550 claim. Test WER 2.03% on 696 clips is a sanity check, not a formal listening evaluation. `lite` homograph accuracy 56%; optional `full` omograph model is 10 MB INT8.
 - ONNX Runtime Android 1.32.0 is MIT and available on Maven Central, but OGAM currently has no ORT dependency. No dependency/model added yet. Pin the Russian model revision + exact model/config hashes first; do not reuse the English n4ze3m/tiny-voca ONNX hash.
 - Decision: leading compact prototype for next stage, ahead of CosyVoice3-MNN. Next: pin assets/licensing, build frontend golden tests, then sentence-chunked adapter and OPPO benchmark.
+
+
+## Latest CosyVoice3-MNN research correction (2026-11-22)
+
+- The earlier ~3.69 Flow RTF was the original 10-step Stage-1 estimate, not the latest upstream distilled two-step route.
+- Upstream Stage-3 research reports a cool Honor BKQ_AN90/Adreno 840 concurrent pipeline at RTF 0.63, but a hot run after 58 s preparation at RTF 1.29. Two-step student evaluation was only 20 training + 4 held-out utterances from one speaker; it is not broad release validation.
+- CosyVoice3-MNN is therefore not batch-only: it remains a promising high-quality/high-resource experimental track. It still needs ~2.25 GB PSS, ~1.3 GiB model storage, ~10–15 s cold startup, and only SM8850 device validation. No transfer to OPPO SM8550 may be assumed.
+- tiny-voca-ru remains the leading compact prototype due ~21.4 MB ONNX model and permissive code/weights, but it also has no Android/SM8550 performance proof.
+- See the latest correction appended to `LOCAL_RUSSIAN_TTS_RUNTIME_EVALUATION.md` and `TINY_VOCA_RU_ANDROID_PORT_PLAN.md`.
