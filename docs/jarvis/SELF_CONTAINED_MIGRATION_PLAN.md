@@ -668,3 +668,111 @@ Upstream evidence inspected: [public OGAM formatter](https://github.com/off-grid
 The current branch audit [45019110983](https://github.com/sokfrut-tech/OGAM/actions/runs/45019110983) completed successfully on commit `b52aba5cc62d110763ed520cb6a675b9cf9137e6`. All standalone checks passed: import scanner, progress core, local file-size formatter, companion artifact classifier, split-GGUF naming, full inventory generation and artifact upload.
 
 The generated audit artifact [ogam-import-audit](https://github.com/sokfrut-tech/OGAM/actions/runs/45019110983/artifacts/14753390487) was downloaded and inspected. It reports 1,950 files scanned and **zero source imports from `@offgrid/models`** for `formatFileSize`, `isDraftModelFile`, `isMtpHeadFile`, `isImatrixFile`, `isCompanionFile`, and `splitGgufPartNames`. This verifies those six contracts are no longer imported by application source from the unavailable package. It does not imply that all `@offgrid/models` imports or full application CI are resolved.
+
+## Jarvis product-parity expansion: complete OGAM + Siri capability inventory (2026-11-22)
+
+The user explicitly approved expanding the scope from model selection to a full feature study and port: preserve useful OGAM capabilities while adding the product behaviours of modern Siri. This is a product-parity programme, not a promise that every proprietary Apple implementation can be copied. We reproduce user-visible capabilities with original Android-native code and legally usable dependencies.
+
+### Baseline facts from current OGAM branch
+
+- The current standalone branch tree contains 3,349 tracked entries at the time of this inventory.
+- It already has substantial native Android functionality: download workers/notifications, device memory bridge, LiteRT bridge, screenshot watcher, clipboard/process-text integration, PDF extraction, image generation, sync/mesh services, and a text-improvement/share target.
+- The TypeScript source inventory contains 122 screen files, 244 service files, 146 component files, 31 hook files and 26 store files (counts include nested files and helper modules).
+- The current manifest already declares microphone, camera, calendar, notifications, foreground service, media and network permissions. These declarations are not proof that all corresponding capabilities are complete or correctly permission-gated.
+- Existing native modules and upstream architecture are evidence of features to preserve, not proof of production readiness. Each feature needs a source audit, permission review, test and runtime verification.
+- OGAM currently supports local GGUF inference, optional remote OpenAI-compatible providers, vision, Whisper transcription, Stable Diffusion image generation, document/PDF ingestion, project-scoped RAG, tool calling, model discovery/download, background downloads, device/model diagnostics, and local-network device sync. The exact branch implementation and dependency closure must be checked before each migration.
+
+### Siri capability parity matrix
+
+1. Natural conversation and continuity — one persistent assistant identity across voice/text; multi-turn follow-ups, interruption, correction, resumable sessions, conversation history and optional synced history.
+2. Personal context — user-approved local index over selected messages/files/calendar/contacts/media/app data; source attribution, permission per source, retention, deletion/export, private fields redaction. Never silently crawl all personal data.
+3. On-screen awareness — explicit user-triggered or clearly enabled screen snapshot/accessibility context; support references like "this", "that", "the button above"; redact passwords/payment/private fields; visible capture indicator and no hidden recording.
+4. System and app actions — typed tool/skill registry with discoverable names, parameters, entities, permission declarations, result schemas, foreground/background execution, cancellation, undo/compensation and action history.
+5. Planning and workflows — natural-language task breakdown, dependencies, preconditions, time estimates, editable plan, progress, pause/resume/cancel, retry and truthful completion reporting. Use a deterministic execution broker; model output is never executable authority.
+6. World knowledge and research — local knowledge base plus optional web search/URL reading; provenance, freshness labels, source summaries and prompt-injection isolation.
+7. Multimodal understanding — camera/photos/screenshots, documents/PDFs, voice/audio and supported video; modality-specific local models and optional remote endpoints with explicit consent.
+8. Writing and communication — draft/rewrite/summarize/translate, compose email/messages, text selection actions, preview before send/share, recipient confirmation and no silent sending.
+9. Scheduling and reminders — calendar read/create/update/delete, natural date parsing, conflict detection, reminders/alarms where Android APIs permit; confirmation before changing/deleting events.
+10. Device control and settings — open apps/settings, manage allowed device features, clipboard/text actions, battery/storage/network state, notifications; respect Android permission and background-execution restrictions.
+11. Proactive suggestions — opt-in suggestions based on local patterns/context; configurable quiet hours, source transparency, rate limits and no unsolicited external uploads.
+12. Assistant interface — original Iron Man/JARVIS HUD: animated core/reactor, live listening/thinking/speaking state, waveform, concise response, task timeline/cards, source chips, permission prompts, model/runtime status and accessible reduced-motion mode.
+13. Personalisation — voice/personality/verbosity/language preferences, approved memory, task profiles and model routing without fragmenting the assistant identity.
+14. Privacy/security — local-first defaults, encrypted secret storage, app lock, biometric option where available, least privilege, audit log, export/delete, network disclosure, safe backup and explicit opt-in sync.
+15. Reliability/accessibility — offline behaviour, wake/voice controls, barge-in, low-memory fallbacks, thermal-aware model routing, background recovery, screen-reader support, large text, one-hand UI and localization.
+
+### OGAM capability preservation inventory
+
+Treat each of the following as a capability to retain, inspect and improve, not remove during Jarvis conversion:
+
+- Local multi-model GGUF inference, streaming generation, context management, KV cache controls, GPU/backend selection, performance metrics and model import/download.
+- Remote provider abstraction for user-configured LAN/self-hosted endpoints; never make remote access mandatory.
+- Vision model/mmproj handling, camera/photo inputs and multimodal chat.
+- Whisper local speech-to-text and voice recording; assess streaming ASR, VAD, wake word and local TTS as extensions.
+- Stable Diffusion image generation, platform-specific backends, prompt enhancement, previews, background generation and gallery.
+- Embeddings, RAG, project knowledge bases, documents, PDF extraction, search and citations.
+- Tool registry, model-aware tool calling, iterative tool loop, calculator, date/time, device info, web search and knowledge retrieval; expand with typed Android skills.
+- Conversation/project management, presets, message editing, attachment handling, export/import and history.
+- Model catalog, compatibility filtering, hardware/memory-aware selection, download queue, retry/resume, integrity validation, companion files, storage cleanup and orphan detection.
+- Device diagnostics, onboarding, auto-setup, guide, security/passphrase controls, settings and analytics only with privacy/consent review.
+- Local-network discovery, encrypted blob transfer, clipboard/file/screenshot sharing and multi-device model residency; review attack surface and make sync opt-in.
+- Android native utilities: PDF, download worker/notifications, clipboard/process text, screenshot capture, device-memory reporting, LiteRT and image generation bridges.
+- iOS code may be used as behavioural reference for Apple platform patterns, but Jarvis Android implementation must not depend on iOS-only frameworks or proprietary Apple code.
+
+### Delivery phases (ordered; no feature deletion)
+
+Phase A — Inventory and architecture (current):
+- Build a feature-to-source/test/dependency/license/status matrix for all OGAM screens, services, native modules and iOS parity references.
+- Mark each item: already functional / partially functional / blocked by private shared package / missing / obsolete / security-sensitive.
+- Identify private @offgrid dependencies and migrate contracts incrementally with tests; never replace with empty stubs.
+- Create architecture boundaries for assistant session, planner, memory/context, model router, skills, permission broker and HUD.
+
+Phase B — Assistant foundation:
+- Local model evaluation harness and device-specific model profiles.
+- Unified conversation session across typed and voice input.
+- Local TTS + streaming ASR/VAD/wake-word provider interfaces.
+- Structured planner, plan persistence and action progress state.
+- Typed skills registry and Android permission/capability broker.
+
+Phase C — Siri-like awareness and actions:
+- Opt-in context connectors (calendar, selected files/documents, notifications only where permitted, contacts/media only with explicit permissions).
+- User-triggered on-screen awareness with redaction.
+- Drafting/writing, calendar scheduling, reminders, app launching and approved Android actions.
+- Source-aware research and prompt-injection isolation.
+- Interruptible voice conversation and contextual follow-up.
+
+Phase D — OGAM parity and enhancement:
+- Preserve and verify all OGAM capabilities in the inventory above.
+- Complete local vision/audio/image generation and RAG integration with the Jarvis planner.
+- Rebuild model catalogue and hardware-aware selection from verified open metadata.
+- Optional LAN/desktop companion and encrypted sync, always opt-in.
+
+Phase E — Iron Man/JARVIS product interface:
+- Replace generic chat-first navigation with a coherent assistant home/HUD while retaining access to model lab, projects, knowledge, media, tools and settings.
+- Original art and animation; no copied Iron Man/Apple trademarks or assets.
+- Listening/thinking/speaking/executing/awaiting-approval/complete/error states are visually distinct.
+- One-hand usability, accessibility, reduced motion and Russian-first copy.
+
+Phase F — Verification and release:
+- Feature parity tests, contract tests, native Android tests, full Jest/typecheck/lint, clean standalone checkout, release build, install/launch and real-device smoke tests.
+- Verify offline operation, no hidden network calls, no paid API dependency, no silent cloud fallback, no accidental private-data capture.
+- Do not merge PR or publish APK until the complete required gates pass.
+
+### First implementation slices after inventory
+
+1. Recover full OGAM feature/source map from the upstream architecture and codebase guide; cross-check against the current fork tree and private package imports.
+2. Audit the current tool registry and tool loop, then define the shared Jarvis skill schema and capability broker.
+3. Audit voiceSession, voiceService, audioRecorderService, permissions and existing audio dependencies; design ASR/VAD/TTS/wake-word pipeline without duplicating current features.
+4. Audit project/document/RAG stores for local memory reuse; separate conversational history, searchable knowledge and durable user-approved personal memory.
+5. Audit native screenshot/clipboard/calendar/process-text bridges for screen context and app actions; add explicit user consent and tests before exposing them to the model.
+6. Keep model helper extraction work (splitGgufModelName, modelDisplayName, isRawModelName) in parallel only when its exact upstream contracts/tests are recovered; no guessed semantics.
+
+### Apple research references (public docs)
+
+- Siri AI product capability overview: https://www.apple.com/newsroom/2026/06/apple-unveils-next-generation-of-apple-intelligence-siri-ai-and-more/
+- Siri AI release notes and personal context / onscreen awareness: https://www.apple.com/newsroom/2026/09/siri-ai-a-profoundly-more-capable-and-personal-assistant-is-here/
+- App Intents (actions, entities, Shortcuts, Spotlight, widgets, system integrations): https://developer.apple.com/documentation/appintents
+- App Intents updates (long-running, cancellable, undoable intents and execution modes): https://developer.apple.com/documentation/updates/appintents
+- Apple Intelligence developer platform / Foundation Models: https://developer.apple.com/apple-intelligence/
+- Legacy SiriKit guidance points developers to App Intents for modern Siri AI integration: https://developer.apple.com/documentation/sirikit
+
+These are product-behaviour references only. No Apple private implementation, source code, assets, model weights or proprietary interface artwork are to be copied.
