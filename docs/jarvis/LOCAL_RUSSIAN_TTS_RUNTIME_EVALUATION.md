@@ -241,3 +241,21 @@ Added to `feature/jarvis-step-2-storage-privacy`:
 - Do not add the model or ORT dependency to production yet. First pin the exact Hugging Face model revision, retrieve the Russian model's own ONNX/config hashes (do not reuse the English `n4ze3m/tiny-voca` hash), resolve voice asset provenance/attribution, and port the frontend with golden tests.
 - Implement a sentence-chunked adapter after the frontend passes parity tests. Benchmark cold/warm latency, RTF, RSS, thermal throttling, 10+ minute use, and interruption on OPPO Find X6 Pro / PGEM10 / SM8550.
 - Supertonic remains an alternative sentence/model-chunk callback path only if its OpenRAIL-M restrictions are accepted and the callback-stop patch is applied to a pinned native build.
+
+
+## Correction: latest CosyVoice3-MNN distillation results supersede the Stage-1 RTF-only conclusion (2026-11-22)
+
+A fresh review of the upstream research memory and Stage 3 feasibility report shows that the earlier ~3.69 Flow RTF was the original 10-step Stage-1 estimate, not the latest distilled pipeline result.
+
+Newer upstream evidence:
+- Source: https://github.com/Nian27/CosyVoice3-MNN/blob/main/research/mnn-cosyvoice3/README.md
+- Research memory: https://github.com/Nian27/CosyVoice3-MNN/blob/main/docs/RESEARCH_MEMORY.md
+- The follow-up distillation proof of concept trained a single-branch student and a two-step trajectory student. On 20 training and 4 held-out Chinese utterances from one zero-shot speaker, the two-step student reports mean mel cosine 0.99882 / mean mel SNR 26.26 dB on held-out generated regions; an additional unseen sentence reports 0.99843 / 24.99 dB. This is an engineering gate with a very small corpus, not broad release validation.
+- On Honor BKQ_AN90 / Adreno 840, the distilled batch-1 Flow model at sequence 516 takes ~1.187 s per OpenCL High estimator call; two calls take ~2.374 s. This supersedes the original 10-step estimate for the distilled model.
+- Persistent three-stage cross-module benchmark: cool-device run processed 14.8 s of speech work in 9.33 s (throughput RTF 0.63); after a 58 s preparation load, a hot run took 19.51 s for 15.12 s audio (RTF 1.29). Therefore peak/cool-device throughput can be real-time, but sustained thermal performance is not proven.
+- Full MNN runtime PSS is about 2.25 GB, model bundle about 1.3 GiB, cold startup around 10–15 s, and only Honor SM8850 has been validated. The upstream docs explicitly warn that non-SM8850 devices are unverified and CPU fallback may be much slower.
+
+Revised decision:
+- Do NOT call CosyVoice3-MNN merely a batch-only candidate; the distilled two-step route has a promising cool-device real-time result.
+- Keep it as a high-quality / high-resource experimental track, not the default OGAM Jarvis backend, until the exact v1.2.0 package/model provenance is pinned and sustained tests pass on our SM8550/PGEM10.
+- tiny-voca-ru remains the first compact prototype because of its ~21.4 MB model, permissive code/weight licenses and low storage footprint. Its own Android performance and listening quality are also unverified; it is a feasibility choice, not a proven winner.
