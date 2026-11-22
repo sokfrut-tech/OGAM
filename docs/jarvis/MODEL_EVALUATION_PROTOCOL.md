@@ -97,7 +97,7 @@ A run is marked `BLOCK` if any result records:
 
 ## Current evaluation status
 
-- Infrastructure and validator tests passed in GitHub Actions run #120: https://github.com/sokfrut-tech/OGAM/actions/runs/45024429349 (6/6 model-evaluation Node tests; entire open-core audit workflow succeeded).
+- Infrastructure and validator tests passed in GitHub Actions run #120: https://github.com/sokfrut-tech/OGAM/actions/runs/45024429349 (6/6 model-evaluation Node tests; entire open-core audit workflow succeeded). The later run #129 also passed the model-evaluation suite 6/6 and locale-default tests 2/2: https://github.com/sokfrut-tech/OGAM/actions/runs/45024767123.
 - No model artifact has been downloaded or pinned by this change.
 - No model outputs or human ratings have been submitted.
 - No production default is selected.
