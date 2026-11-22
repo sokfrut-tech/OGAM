@@ -347,3 +347,36 @@ Reference: [AOSP VoiceInteractionService attributes](https://android.googlesourc
 - B3: no API31+ parser/component-validation defect; legacy API<31 support intentionally disabled until a real RecognitionService exists.
 - B5: source-level API gate now aligned; Gradle/manifest merge and device lifecycle checks pending.
 - The changes above are not merge/release approval. PR #1 remains draft until complete Android verification.
+
+
+## B1 — exact Gradle compile failure reproduced; corrective patch committed (2026-11-22)
+
+This addendum supersedes the earlier source-only triage paragraph that said no B1 signature defect had been reproduced. The pinned Android build is now the controlling evidence.
+
+### Reproduced failures on the prior PR #1 head
+
+GitHub Actions `CI` run [#45047788945](https://github.com/sokfrut-tech/OGAM/actions/runs/45047788945), tested against commit `df3fdb3fb5113bb9999f40448a443a5cf8d2b56d`, completed the Android setup and reached Gradle task `:app:compileDebugKotlin`. The task failed with these compiler diagnostics:
+
+- `JarvisAssistantRoleModule.kt:35`: `onActivityResult` “overrides nothing”; the compiled React Native interface expected a non-null `Activity` argument (and nullable `Intent?`), while OGAM declared `Activity?`.
+- `JarvisAssistantRoleModule.kt:93`: Kotlin could not resolve the synthetic `currentActivity` property from this RN base class.
+- `JarvisAssistantRoleModule.kt:117`: `startActivityForResult` became unresolved downstream of the unresolved Activity value.
+- `JarvisPcmStreamPlayer.kt:305`: `AudioTrack.setVolume(Float)` returns `Int`, which did not satisfy OGAM's `JarvisPcmTrack.setVolume(Float): Unit` interface.
+
+### Corrective source changes
+
+- `JarvisAssistantRoleModule.onActivityResult` now matches the compiler's resolved API: `activity: Activity`, `data: Intent?`.
+- The module retrieves the Activity with explicit `getCurrentActivity()` rather than relying on the unresolved Kotlin synthetic property. The existing null guard remains; the returned Activity is not retained beyond the request.
+- The activity's `startActivityForResult` is called on the resolved Activity instance.
+- `AndroidJarvisPcmTrack.setVolume` now uses a block body and intentionally returns `Unit` after delegating to AudioTrack.
+
+Commits:
+- Role module fix: `53ef299f378a4c070c10a36879dd63cc50cab42b`.
+- PCM player fix: `20650c137cb1fe3f66de450d8d1d706a28f2e18f`.
+
+### Fresh verification status
+
+- External dependency/source-contract audit run [#45048605892](https://github.com/sokfrut-tech/OGAM/actions/runs/45048605892) passed on head `20650c137cb1fe3f66de450d8d1d706a28f2e18f`.
+- Full CI run [#45048605797](https://github.com/sokfrut-tech/OGAM/actions/runs/45048605797) was queued/pending immediately after the patch; it must be allowed to report the Gradle result. Do not describe the compiler fixes as verified until its Android job finishes.
+- On the preceding head, the Android compile stopped before Kotlin/JUnit execution; the 20 current Kotlin test cases (7 launch guard, 5 role snapshot, 8 PCM player) have not yet been proven to run.
+- The same preceding full CI run also had unrelated, already-known JS workspace migration failures: unresolved `@offgrid/models`, `@offgrid/sync`, `@offgrid/rag` imports and inaccessible private `pro/*` test modules; the lint/type/architecture job likewise reported missing workspace modules and downstream type errors. These require completion of the OGAM package migration and test-boundary work; they are not evidence that the native assistant tests passed or failed.
+- PR #1 remains draft/unmerged. Manifest merge, APK assembly, instrumentation testing, emulator testing and PGEM10 runtime behavior remain outstanding.
