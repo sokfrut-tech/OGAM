@@ -1,4 +1,4 @@
-import { IMAGE_STYLES, VIDEO_STYLES, type MediaStyle, type MediaStyleKind } from '@offgrid/models';
+import { IMAGE_STYLES, VIDEO_STYLES, type MediaStyle, type MediaStyleKind } from '../constants/mediaStyles';
 import type { ImageSourcePropType } from 'react-native';
 
 /**
