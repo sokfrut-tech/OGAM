@@ -330,3 +330,23 @@ Source-level interface review found that the two most expressive candidate Andro
 
 ### Engineering consequence
 Keep Jarvis PCM playback as a transport contract. Add a TTS backend capability declaration (`batch` vs `streaming`, sample rate, voice cloning support, cancellable generation) only after model/runtime behavior is verified. For user experience, start with short local acknowledgement voice via the existing lightweight TTS; run the longer Qwen/CosyVoice synthesis asynchronously, then play only if the turn generation token is still current.
+
+## Candidate priority reconciliation and Supertonic cancellation audit (2026-11-22)
+
+The OGAM native TTS evaluation already has a stronger product-specific requirement set than the generic Chinese-model shortlist: sentence/chunk PCM must reach the OGAM player before the full answer is generated, with immediate barge-in cancellation. Therefore:
+- Keep tiny-voca-ru as compact Russian prototype and Sherpa-ONNX 2.0.3 + Supertonic-3 as the streaming-oriented prototype.
+- Keep Qwen3-TTS and CosyVoice3 Android ports as quality/batch comparisons: their inspected Android APIs return a complete waveform/file rather than incremental PCM chunks.
+- The RN sherpa-onnx TurboModule is useful reference, but the OGAM native TTS plan already uses the official Kotlin API directly; avoid adding the broad RN wrapper just to get the same engine.
+
+### Newly found Supertonic stop-callback bug
+On pinned sherpa-onnx v2.0.3, `GeneratedAudioCallback` contract in `sherpa-onnx/csrc/offline-tts.h` states 0=stop and 1=continue. However, `OfflineTtsSupertonicImpl::ProcessChunksAndConcatenate()` calls the callback but ignores its return value, so it continues generating later text chunks after a caller requests cancellation.
+- OGAM prepared `patches/sherpa-onnx/v2.0.3-supertonic-callback-stop.patch` (commit `6043dda5ec9e2b3751df7f9d14e66d8eccb38cdf`) to preserve the current chunk then break if callback returns 0.
+- This patch is NOT applied to a built AAR, and no native test has run. It is a proposed source patch only.
+- Jarvis PCM playback can stop immediately; without this native patch, model compute may continue until generation completes. Do not overlap a new TTS run while the old native worker remains active.
+- v2.0.3 JNI wrapper captures `JNIEnv*` and a local `jobject`; the inspected C++ callback path appears synchronous, but no explicit JavaVM/global-ref/AttachCurrentThread protection exists. An upstream issue reports Android SIGABRT in callback use (#3492). Treat this as a device smoke-test gate, not a proven defect in our exact call path.
+
+### Sources
+- https://github.com/k2-fsa/sherpa-onnx/blob/v2.0.3/sherpa-onnx/csrc/offline-tts.h
+- https://github.com/k2-fsa/sherpa-onnx/blob/v2.0.3/sherpa-onnx/csrc/offline-tts-supertonic-impl.cc
+- https://github.com/k2-fsa/sherpa-onnx/blob/v2.0.3/sherpa-onnx/jni/offline-tts.cc
+- https://github.com/k2-fsa/sherpa-onnx/issues/3492
