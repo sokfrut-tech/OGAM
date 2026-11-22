@@ -1,5 +1,6 @@
 import {
   getToolSkillContract,
+  getAvailableToolSkillContracts,
   validateBuiltInToolInvocation,
 } from '../../../../src/services/skills/toolContracts';
 
@@ -43,6 +44,15 @@ describe('OGAM built-in tools as Jarvis skills', () => {
         'Missing capability: network.',
       ]),
     );
+  });
+
+  it('discovers only enabled, currently offered skills without granting new permissions', () => {
+    const contracts = getAvailableToolSkillContracts(['calculator', 'web_search', 'not_real']);
+    expect(contracts.map(skill => skill.id)).toEqual([
+      'tool.web_search',
+      'tool.calculator',
+    ]);
+    expect(contracts.every(skill => skill.requiredCapabilities.length > 0)).toBe(true);
   });
 
   it('rejects unknown arguments rather than silently ignoring model output', () => {
