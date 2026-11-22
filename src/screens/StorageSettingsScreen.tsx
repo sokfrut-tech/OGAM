@@ -77,15 +77,15 @@ export const StorageSettingsScreen: React.FC = () => {
 
   const explainAndOpenAllFilesAccess = () => {
     Alert.alert(
-      'Access to model folders',
-      'This optional Android permission lets Jarvis scan model files in shared folders. You can keep it disabled and select individual folders through Android’s folder picker instead. Jarvis will re-check the permission when you return.',
+      t('storage.modelFolders'),
+      t('storage.explanation'),
       [
-        { text: 'Not now', style: 'cancel' },
+        { text: t('storage.notNow'), style: 'cancel' },
         {
-          text: 'Open Android settings',
+          text: t('storage.openSettings'),
           onPress: () => {
             StoragePermissionService.openAllFilesAccessSettings().catch(error => {
-              Alert.alert('Could not open settings', error instanceof Error ? error.message : String(error));
+              Alert.alert(t('storage.openFailed'), error instanceof Error ? error.message : String(error));
             });
           },
         },
@@ -196,23 +196,23 @@ export const StorageSettingsScreen: React.FC = () => {
       >
         {Platform.OS === 'android' ? (
           <>
-            <SectionLabel title="Access to model folders" />
+            <SectionLabel title={t('storage.modelFolders')} />
             <Card style={styles.section}>
               <View style={styles.infoRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.infoLabel}>All files access</Text>
+                  <Text style={styles.infoLabel}>{t('storage.permission')}</Text>
                   <Text style={styles.legendText}>
-                    {allFilesAccess === null ? 'Checking permission…' : allFilesAccess ? 'Granted' : 'Not granted — individual folder selection still works'}
+                    {allFilesAccess === null ? t('storage.checking') : allFilesAccess ? t('storage.granted') : t('storage.notGranted')}
                   </Text>
                 </View>
                 <TouchableOpacity
                   onPress={explainAndOpenAllFilesAccess}
                   accessibilityRole="button"
-                  accessibilityLabel="Manage Android all files access permission"
+                  accessibilityLabel={t('storage.managePermission')}
                   testID="storage-manage-all-files-access"
                   hitSlop={12}
                 >
-                  <Text style={styles.infoValue}>Manage</Text>
+                  <Text style={styles.infoValue}>{t('storage.manage')}</Text>
                 </TouchableOpacity>
               </View>
             </Card>
