@@ -186,3 +186,17 @@ Eta is GPL-3.0 and Phtomt is AGPL-3.0 in the canonical GitHub repositories. Pock
 - **Language:** Chinese Qwen/ASR model choices are architecture references only; Russian ASR/TTS/LLM require separate benchmark and model packs.
 
 Updated priority: P0 event protocol, IPC authentication, task lifecycle, Accessibility bounds and path guard; P1 screenshot and overlay lifecycle; P2 optional Shizuku virtual display after target-device validation.
+
+
+## OGAM main-branch source check and native assistant implementation
+
+Main branch inspected at 14b27f7c12c8e6f69b132842534b23a627523956:
+- React Native 0.83.1 and Android Kotlin/native modules already support local model and media features.
+- Manifest has RECORD_AUDIO and other app permissions, but no VoiceInteractionService, VoiceInteractionSessionService or AccessibilityService was found in the inspected main manifest.
+- voiceService.ts uses @react-native-voice/voice and hard-codes Voice.start('en-US'); this is not a Russian-first offline ASR path.
+- audioRecorderService.ts provides PCM/level streams and audio session management; echo cancellation is currently explicitly false because capture/playback do not share a true voice-processing path.
+- whisperService.ts already contains Whisper and Qwen3-ASR selection/fallback and a serialized native inference lane.
+
+Decision: do not build a parallel model/audio stack. Implement the Android system assistant as a native entry/session layer and route input into the existing OGAM runtime. Make ASR locale selectable and use the existing local Whisper/Qwen paths where verified.
+
+Detailed phased implementation contract: research/breeno/OGAM_NATIVE_ASSISTANT_IMPLEMENTATION_BRIEF.md.
