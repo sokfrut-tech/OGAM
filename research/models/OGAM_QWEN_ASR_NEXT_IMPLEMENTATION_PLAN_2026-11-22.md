@@ -127,3 +127,32 @@ The Jarvis planner and action layer must not depend on any vendor runtime. Deter
 3. Add a deterministic Russian benchmark manifest and audio-capture instructions; use synthetic contact names/codes first.
 4. Prototype LiteRT model-format compatibility separately using the existing 0.19.1 dependency.
 5. Return to PGEM10 only with a reproducible debug APK/runner and a signed-off test plan.
+
+
+## 8. Fresh source audit — pinned llama.cpp build and streaming reference (2026-11-22)
+
+### Exact OGAM llama.cpp pin
+- OGAM's package manifest pins llama.rn as npm alias @ogai/llama.rn@0.13.0-b12560.
+- The official off-grid-ai/llama.rn-evergreen versioning contract says the suffix maps to the exact llama.cpp tag. Its package metadata at the inspected release confirms 0.13.0-b12560.
+- The llama.cpp tag b12560 points to commit 2d8d003937b4ad42c1ada09dcdb0236eb3290a8f, dated 2026-11-20 07:36 UTC.
+- The Qwen3-ASR chat-template converter correction PR #32571 is commit 919794500475862f6768c353255469dc661cb734, dated 2026-11-20 20:54 UTC, and is included in later tag b12597, not in b12560.
+- Important distinction: PR #32571 changes GGUF conversion/template behavior, putting language ... in the thinking block and reading the canonical Qwen3-ASR template from the shared model template file. It is not proof that Qwen3-ASR model execution was absent from b12560. A llama.cpp issue reproducer ran Qwen3-ASR on build 12490, so model architecture support predates the converter correction.
+- Action: do not blindly upgrade the native bridge. First inspect the exact catalog GGUF's conversion/template metadata and run the existing forced-language + auto-detect contract against that exact file. Then compare b12560 with a candidate b12597+ bridge build in a controlled Android smoke test. Keep package/engine pack compatibility and signed artifact validation intact.
+- Sources: https://github.com/off-grid-ai/llama.rn-evergreen; https://github.com/ggml-org/llama.cpp/commit/2d8d003937b4ad42c1ada09dcdb0236eb3290a8f; https://github.com/ggml-org/llama.cpp/commit/919794500475862f6768c353255469dc661cb734; https://github.com/ggml-org/llama.cpp/releases/tag/b12597
+
+### New open-source streaming reference: leehack/llamadart
+- Repository: https://github.com/leehack/llamadart — MIT license, inspected current main tree and implementation; current package metadata says 0.20.5. It is a Dart/Flutter package, not a drop-in React Native dependency for OGAM.
+- It has a typed SpeechToTextEngine boundary separate from ordinary chat generation, explicit capabilities/input modes, cancellation, bounded streaming sessions and tests. The separation is a useful architecture reference for OGAM's future ASR interface.
+- Its Qwen3WindowedAsrAdapter is a particularly relevant proof-of-concept: accepts mono 16 kHz normalized Float32 PCM; keeps an 8-second/128,000-sample ring buffer; re-decodes 2/4/6-second prefixes for replaceable pending text; at 8 seconds commits at a detected quiet boundary or hard-cuts; emits stable confirmed text plus replaceable pending text.
+- It includes extensive unit/lifecycle tests and opt-in real-model E2E tests. However, its own support matrix currently reports English-only real-model evidence on macOS arm64 CPU for Qwen3 windowed ASR; that is not evidence for Russian, Android, Snapdragon 8 Gen 2 or ColorOS.
+- Important limitation: the documented Qwen3 windowed adapter does not support context prompts or language hints. That conflicts with Jarvis's Russian vocabulary/hotword requirement. Treat it as an algorithm reference, not as a direct solution or dependency.
+- Its own docs disclose meaningful edge cases: first window commits only after 8 seconds plus inference; subsequent windows need 6.05–8 seconds plus inference; continuous speech/noise can force a hard cut across a word; quiet/whispered/robotic/low-pitched speech may be suppressed by its false-positive filter; it may perform extra decodes to validate quiet noise.
+- Port only the minimal, well-tested state-machine concepts into OGAM's existing recorder/ASR boundary if benchmarks justify it. Do not copy its full DSP/noise-suppression policy without Russian speech evaluation. Preserve a mode that does not suppress quiet speech.
+- Sources: https://github.com/leehack/llamadart; https://github.com/leehack/llamadart/blob/main/lib/src/core/speech/qwen_windowed_asr.dart; https://github.com/leehack/llamadart/blob/main/test/unit/core/speech/qwen_windowed_asr_test.dart; https://llamadart.leehack.com/docs/guides/speech-to-text
+
+### Updated immediate sequence
+1. Verify the exact GGUF chat-template revision and the current llama.rn b12560 behavior (auto language, pinned Russian, context/hotwords).
+2. Add bounded local vocabulary context to the current whole-file Qwen path first; test no-context compatibility, system vocabulary message, language prefill, and prompt privacy.
+3. Design an optional Qwen windowed streaming experiment behind an ASR-specific capability interface. Start with raw 2/4/6-second partials and bounded memory; evaluate quiet-boundary segmentation separately. Do not port the Dart project's suppression heuristics by default.
+4. Benchmark Russian first on recorded WAVs and only then test windowed live PCM on Android. Record partial latency, final WER/CER, dropped-word rate at window cuts, false partials, quiet speech retention, memory, battery and heat.
+5. Keep the current whole-file Qwen + Whisper fallback as the safe path until the windowed path passes Russian/PGEM10 acceptance gates.
