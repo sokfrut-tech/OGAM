@@ -42,7 +42,7 @@ export async function scanSelectedModelDirectory(grant: string): Promise<Scanned
   const entries = await nativeDirectorySourceBoundary.enumerate(grant);
   const names = new Set(entries.map(entry => entry.name));
   return entries
-    .filter(entry => entry.fileSize >= 0)
+    .filter(entry => entry.fileSize >= 0 && !entry.name.includes('\0') && entry.name === entry.name.split(/[\\/]/).pop())
     .map(entry => {
       const classification = classifyModelArtifact(entry.name);
       // A split GGUF is importable only when every numbered part is present in the selected tree.
