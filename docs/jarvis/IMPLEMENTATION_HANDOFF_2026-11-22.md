@@ -673,3 +673,13 @@ Added source-only implementation on this branch:
 - Qwen3-TTS 0.6B LiteRT-LM supports Russian and has Android NDK / OmniSession audio output path. INT8 bundle ~2.44 GB; published Galaxy S26 RTF 1.24 GPU / 1.29 CPU, RSS ~1.44/1.90 GB. Not an OPPO benchmark. Optional expressive tier; tiny-voca-ru remains compact fallback.
 - Indian models reviewed: Indic-Speak 3B / ~6.6 GB, custom gated license, 22 Indic languages + English; IndicF5 0.4B/11 languages; IndicConformer 600M/22 languages and newer Indic-Transcribe/25 languages. None supports Russian; no verified PGEM10 path. Keep for future Indic expansion only.
 - Next: pin exact LiteRT artifacts/hashes, build isolated PGEM10 smoke test, verify actual NPU selection and compare Qwen3-ASR against current GGUF backend; then benchmark Qwen3-TTS. No production dependency changes yet.
+
+
+## Expanded China/India model scan — vision and planner (2026-11-22)
+
+- Updated research doc latest commit `118caa591c5780d72f852eeac429df7f3fc0bd95`.
+- MiniCPM-V 4.7 1B: Android Kotlin demo exists; images/video/documents, 1.55B params, Apache-2.0, BF16 ~3.13 GB and quantized variants. Candidate Jarvis visual module, not benchmarked on PGEM10.
+- MiniCPM5-2B: on-device planner candidate, but Russian reasoning/tool calls and runtime on target phone remain unverified.
+- MiniCPM-o 4.5: 9.37B / ~20 GB full-duplex multimodal; architecture reference only, not phone default.
+- Bharat-Tiny-LLM v3: 1.7B Hindi/Hinglish/English only; not Russian core.
+- Keep modules separable: vision model, local planner, ASR, TTS. No production model swap before target-device tests.
