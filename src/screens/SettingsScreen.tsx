@@ -20,7 +20,6 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { createStyles } from './SettingsScreen.styles';
 import { SettingsAppearanceRow } from './SettingsAppearanceRow';
 import { SettingsCommunitySections } from './SettingsCommunitySections';
-import { SettingsAnalyticsSection } from './SettingsAnalyticsSection';
 import { AnimatedEntry } from '../components/AnimatedEntry';
 import { AnimatedListItem } from '../components/AnimatedListItem';
 import { MadeWithLove } from '../components/MadeWithLove';
@@ -316,14 +315,6 @@ export const SettingsScreen: React.FC = () => {
           onSendFeedback={handleSendFeedback}
         />
 
-
-        {/* Analytics: opt-in consent, what is shared, Report a problem */}
-        <SettingsAnalyticsSection
-          focusTrigger={focusTrigger}
-          styles={styles}
-          colors={colors}
-          onWhatWeShare={() => navigation.navigate('AnalyticsInfo')}
-        />
 
         {/* About */}
         <AnimatedEntry index={9} staggerMs={40} trigger={focusTrigger}>
