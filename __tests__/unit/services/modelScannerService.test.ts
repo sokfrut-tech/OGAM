@@ -1,4 +1,4 @@
-import { classifyModelArtifact } from '../../../src/services/modelScannerService';
+import { classifyModelArtifact } from '../../../src/services/modelArtifactClassifier';
 
 describe('classifyModelArtifact', () => {
   it.each([
