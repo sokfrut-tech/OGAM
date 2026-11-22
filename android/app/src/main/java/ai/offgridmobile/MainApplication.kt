@@ -25,7 +25,6 @@ import ai.offgridmobile.screenshot.SyncScreenshotPackage
 import ai.offgridmobile.sync.MeshResidencyPackage
 import ai.offgridmobile.enginepack.EnginePackBoot
 import ai.offgridmobile.enginepack.EnginePackPackage
-import ai.offgridmobile.storage.StoragePermissionPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -51,7 +50,6 @@ class MainApplication : Application(), ReactApplication {
           add(SyncDownloadsPackage())
           add(BlobChannelPackage())
           add(EnginePackPackage())
-          add(StoragePermissionPackage())
         },
       // A fatal JS error still crashes the app, as React Native's default does, but with its JS
       // stack as frames so Play Console can show and group it.
