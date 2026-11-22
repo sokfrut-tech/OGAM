@@ -39,7 +39,8 @@ test('system assistant is enabled only from Android 12 (API 31)', () => {
 test('the assistant session launches Chat through the documented URI without requesting screen context', () => {
   const session = read('android/app/src/main/java/ai/offgridmobile/voice/JarvisVoiceInteractionSession.kt');
   const metadata = read('android/app/src/main/res/xml/jarvis_voice_interaction.xml');
-  assert.match(session, /offgrid:\/\/assistant\/voice\?startVoice=1/);
+  const bridge = read('android/app/src/main/java/ai/offgridmobile/voice/JarvisAssistantBridgeActivity.kt');
+  assert.match(bridge, /offgrid:\/\/assistant\/voice\?startVoice=1/);
   assert.match(session, /startAssistantActivity\(launchIntent\)/);
   assert.match(session, /startVoiceActivity\(launchIntent\)/);
   assert.match(metadata, /android:supportsAssist="true"/);
