@@ -23,6 +23,8 @@ Status: public source research and design notes; no new TTS/KWS model is integra
 
 - [Russian microWakeWord and Android KWS audit](OGAM_RUSSIAN_MICROWAKEWORD_ANDROID_AUDIT_2026-11-22.md) — MIT trainer for Russian «Джарвис», author-reported 47/50 real activations and 1/140 hard negatives, 82.5 KB TFLite output, exact MicroFrontend/stateful graph requirements, single-mic OGAM integration and Android 12–16 microphone privilege boundaries.
 
+- [Alkove and Voicute Android KWS comparative audit](OGAM_ALKOVE_VOICUTE_ANDROID_KWS_AUDIT_2026-11-22.md) — Alkove caller-supplied PCM API, seven-language Spot/Lex limit, manual-IPA caveat, Focus/Cue/AEC reference, Voicute Android ONNX sliding-window engine and seven-language model limit.
+
 ## Decisions / no-go boundaries
 
 1. Keep the physical microphone owner unique: OGAM AudioRecorderService. KWS/ASR/Whisper must share/subcribe to it or coordinate through one native capture service; never start a competing recorder.
@@ -45,3 +47,6 @@ Create a benchmark-only Kotlin backend harness around JarvisTtsBackend + JarvisP
 
 ## Wake-word next gate
 The microWakeWord trainer is the first benchmark candidate for Russian «Джарвис». Before implementation, get or train a model with cleared Piper/negative-data provenance, inspect the real TFLite tensor types and operators, reproduce the 40-bin MicroFrontend and run the same held-out speaker/negative protocol on PGEM10. Do not create a second microphone capture owner. The VoiceInteractionService while-in-use exception is not a general FGS-start bypass or privileged DSP access; initial microphone activation must follow a visible user action and Android's current permission/service requirements.
+
+## KWS comparison update
+microWakeWord remains the first Russian «Джарвис» candidate. Alkove is worth an optional caller-supplied PCM experiment because it does not require a second mic, but Spot/Lex are only validated for fr/en/es/it/pt/ca/ro. Voicute is an Android ONNX/hard-negative reference, but its custom model catalogue does not include Russian. Neither replaces the Russian microWakeWord training path.
