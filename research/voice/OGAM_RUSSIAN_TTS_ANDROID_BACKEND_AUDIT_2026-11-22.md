@@ -144,7 +144,7 @@ Upstream links:
 ### Sherpa-ONNX
 
 - Apache-2.0 runtime with an Android Kotlin API for OfflineTts.
-- API generateWithCallback and generateWithConfigAndCallback emits FloatArray PCM chunks. This is a natural API seam for the Jarvis PCM player.
+- API generateWithCallback and generateWithConfigAndCallback can deliver FloatArray PCM callbacks during generation, but the callback granularity is implementation/model-dependent. The inspected VITS implementation calls back per generated batch of sentences and also appends every batch to the final GeneratedAudio.samples buffer; it is not necessarily token/chunk-level streaming and does not avoid full waveform accumulation.
 - Official Android AAR release is available; the 2.0.1 AAR is about 47 MB for the published package, while a custom arm64 build can be assembled from the release archive.
 - Supports VITS/Piper and other model families, but every voice/model/phonemizer/data file has a separate license and provenance.
 - Piper Russian Denis/Dmitri model cards remain inconsistent with the upstream late-2026 retraining note. The current cards still name the older Lessac base; Piper says old copies do not qualify and the exact new model card must name rdh (Denis) or hifi_tts_92 (Dmitri). Do not package either until the downloaded exact artifact and card meet that condition.
@@ -425,8 +425,8 @@ The audited VoiceEngine has an explicit overload accepting explicitIsMms; that f
 Decision:
 - Keep VoxSherpa as a technical reference only; no GPL code copied.
 - The Russian MMS ONNX entry is a personal/non-commercial benchmark candidate only.
-- If OGAM adopts Sherpa-ONNX, implement a small OGAM-owned Kotlin backend around its OfflineTts.generateWithCallback API and pair it with a separately license-cleared Russian voice.
-- For low-latency Jarvis speech, compare Sherpa sentence-level output with Qwen3-TTS JNI audio-chunk streaming. Do not call the former true streaming inference.
+- If OGAM adopts Sherpa-ONNX, implement a small OGAM-owned Kotlin backend around its OfflineTts.generateWithCallback API and pair it with a separately license-cleared Russian voice. Verify the chosen engine's callback granularity and memory accumulation rather than assuming streaming from the method name.
+- For low-latency Jarvis speech, compare Sherpa's callback/batch output with Qwen3-TTS JNI audio-chunk streaming. Do not call Sherpa VITS callback output true token-level streaming.
 
 Sources:
 - VoxSherpa source and GPL-3.0 license: https://github.com/CodeBySonu95/VoxSherpa-TTS/tree/7f05a35762f033a39c3c8be0d3ff8db982737ea7
@@ -437,3 +437,18 @@ Sources:
 - Android system TTS service: https://github.com/CodeBySonu95/VoxSherpa-TTS/blob/7f05a35762f033a39c3c8be0d3ff8db982737ea7/app/src/main/java/com/CodeBySonu/VoxSherpa/system/VoxSherpaTtsService.java
 
 No model file, voice package or APK was downloaded or run. No OGAM code was changed.
+
+
+## 3.4 Sherpa callback semantics — model-dependent granularity
+
+A direct source inspection of Sherpa-ONNX at commit 38016c6e0622e90bf417c35e8b47e0eb805af417 refined the earlier Kotlin callback note:
+
+- Kotlin exposes generateWithCallback / generateWithConfigAndCallback and the JNI layer forwards samples to an OfflineTtsCallback.
+- In the inspected VITS implementation, text is split into batches according to its configured batch size. Each batch is fully processed first; then the callback receives that batch's PCM. For a single short sentence/batch, the callback may only occur once after synthesis finishes.
+- The VITS implementation also appends each batch to GeneratedAudio.samples before invoking the callback, so the final waveform remains accumulated in memory. This callback does not provide the same low-memory behavior as Qwen3-TTS streaming with collect_audio=false.
+- Therefore Sherpa's callback is a useful progress/early-delivery seam for supported model types and long text, but first-audio latency and memory behavior must be measured for the exact selected model and input segmentation. It is not correct to describe every Sherpa VITS model as token-level real-time streaming.
+
+Source:
+- Sherpa Kotlin API: https://github.com/k2-fsa/sherpa-onnx/blob/38016c6e0622e90bf417c35e8b47e0eb805af417/sherpa-onnx/kotlin-api/Tts.kt
+- Sherpa VITS implementation: https://github.com/k2-fsa/sherpa-onnx/blob/38016c6e0622e90bf417c35e8b47e0eb805af417/sherpa-onnx/csrc/offline-tts-vits-impl.h
+- Sherpa JNI callback bridge: https://github.com/k2-fsa/sherpa-onnx/blob/38016c6e0622e90bf417c35e8b47e0eb805af417/sherpa-onnx/jni/offline-tts.cc
