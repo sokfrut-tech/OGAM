@@ -1,0 +1,352 @@
+import type { ThemeColors, ThemeShadows } from '../theme';
+import { cardSurface } from '../theme/surface';
+import { FONTS, SPACING, TYPOGRAPHY } from '../constants';
+
+export const createStyles = (colors: ThemeColors, _shadows: ThemeShadows) => ({
+  // The one card surface (brand: translucent over the field, hairline edge), not its own shadowed box.
+  card: {
+    ...cardSurface(colors),
+    padding: 16,
+    marginBottom: 16,
+  },
+  cardDense: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    marginTop: 0,
+    marginBottom: SPACING.md,
+    borderRadius: SPACING.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  denseTitleRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.sm,
+  },
+  denseName: {
+    ...TYPOGRAPHY.body,
+    color: colors.text,
+    flexShrink: 1,
+  },
+  downloadedLabel: { ...TYPOGRAPHY.metaSmall, fontFamily: FONTS.mono, color: colors.textMuted },
+  // In use, in words: the one emerald on the row.
+  // The same face and case as On phone beside it; emerald is the one accent for the model in use.
+  denseInUse: {
+    ...TYPOGRAPHY.metaSmall,
+    fontFamily: FONTS.mono,
+    color: colors.primary,
+  },
+  denseSourceGroup: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.xs,
+    maxWidth: '45%' as const,
+  },
+  denseSource: {
+    ...TYPOGRAPHY.labelSmall,
+    color: colors.textMuted,
+    flexShrink: 1,
+  },
+  denseDescription: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.textSecondary,
+    marginTop: SPACING.xs,
+  },
+  denseMeta: {
+    ...TYPOGRAPHY.meta,
+    color: colors.textMuted,
+  },
+  capabilityRow: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: SPACING.xs,
+  },
+  // One line: facts then what it can do. Wrapping made one row three lines among two-line rows
+  // (hand test 84); what does not fit is clipped at the row's end.
+  denseMetaRow: {
+    flexDirection: 'row' as const,
+    flexWrap: 'nowrap' as const,
+    overflow: 'hidden' as const,
+    alignItems: 'center' as const,
+    columnGap: SPACING.sm,
+    marginTop: SPACING.xs,
+  },
+  capabilityText: {
+    ...TYPOGRAPHY.meta,
+    color: colors.textSecondary,
+  },
+  // What a model can do, as a glyph and a word: labels on the row, not boxes on it.
+  capabilityBadge: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    paddingVertical: 2,
+  },
+  authorTag: {
+    paddingVertical: 2,
+    flexShrink: 0,
+  },
+  authorTagText: {
+    ...TYPOGRAPHY.metaSmall,
+    color: colors.textSecondary,
+  },
+  // In use is said once, in words on the row. A green fill as well marked it twice (screen review).
+  cardActive: {},
+  cardIncompatible: {
+    opacity: 0.6,
+  },
+  header: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'flex-start' as const,
+    marginBottom: 8,
+  },
+  headerCompact: {
+    marginBottom: 4,
+  },
+  titleContainer: {
+    flex: 1,
+  },
+  name: {
+    ...TYPOGRAPHY.h3,
+    color: colors.text,
+  },
+  author: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.textSecondary,
+  },
+  authorRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    marginTop: 4,
+    marginBottom: 6,
+    gap: 8,
+  },
+  credibilityBadge: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 3,
+  },
+  credibilityIcon: {
+    ...TYPOGRAPHY.meta,
+    fontSize: 10,
+  },
+  credibilityText: {
+    ...TYPOGRAPHY.meta,
+  },
+  activeBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  activeBadgeText: {
+    ...TYPOGRAPHY.meta,
+    color: colors.text,
+  },
+  description: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  cardRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    marginTop: 2,
+  },
+  cardRowDense: {
+    alignItems: 'center' as const,
+    marginTop: 0,
+    gap: SPACING.sm,
+  },
+  cardContent: {
+    flex: 1,
+  },
+  infoRow: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 6,
+  },
+  infoBadge: {
+    backgroundColor: colors.surfaceLight,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  sizeBadge: {
+    backgroundColor: `${colors.primary}20`,
+  },
+  infoText: {
+    ...TYPOGRAPHY.meta,
+    color: colors.textSecondary,
+  },
+  recommendedBadge: {
+    backgroundColor: `${colors.info}30`,
+  },
+  recommendedText: {
+    color: colors.info,
+  },
+  recommendedPill: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  recommendedPillText: {
+    ...TYPOGRAPHY.metaSmall,
+    color: colors.surface,
+  },
+  // GPU/NPU capability badge — emerald accent to signal hardware acceleration.
+  accelBadge: {
+    backgroundColor: `${colors.primary}20`,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  accelBadgeText: {
+    ...TYPOGRAPHY.meta,
+    color: colors.primary,
+  },
+  warningBadge: {
+    backgroundColor: `${colors.warning}30`,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  warningText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.warning,
+  },
+  visionBadge: {
+    backgroundColor: `${colors.info}30`,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  visionText: {
+    ...TYPOGRAPHY.meta,
+    color: colors.info,
+  },
+  codeBadge: {
+    backgroundColor: `${colors.warning}30`,
+  },
+  codeText: {
+    ...TYPOGRAPHY.meta,
+    color: colors.warning,
+  },
+  statsRow: {
+    flexDirection: 'row' as const,
+    gap: 16,
+    marginBottom: 12,
+  },
+  statsText: {
+    ...TYPOGRAPHY.meta,
+    color: colors.textMuted,
+  },
+  progressSection: {
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.xs,
+  },
+  progressTransferRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.sm,
+  },
+  progressActions: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+  },
+  progressContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 12,
+  },
+  progressBar: {
+    // Fills the line beside its % and actions. The track uses the border tone: surfaceLight vanished
+    // on the glass card, so 0% read as an empty gap.
+    flex: 1,
+    height: 8,
+    backgroundColor: colors.border,
+    borderRadius: 4,
+    overflow: 'hidden' as const,
+  },
+  // Under-bar caption: bytes on the left, % / "Queued" on the right.
+  progressCaption: {
+    marginTop: SPACING.xs,
+  },
+  progressFill: {
+    height: '100%' as const,
+    backgroundColor: colors.primary,
+    borderRadius: 4,
+  },
+  progressLabelRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+  },
+  progressText: {
+    ...TYPOGRAPHY.meta,
+    color: colors.textSecondary,
+    textAlign: 'right' as const,
+  },
+  queuedText: {
+    color: colors.textMuted,
+  },
+  progressBytesText: {
+    ...TYPOGRAPHY.meta,
+    color: colors.textMuted,
+    flexShrink: 1,
+  },
+  // A 44 pt frame (it was 36), pulled back 4 pt each side so the row keeps its height.
+  iconButton: {
+    width: 44,
+    height: 44,
+    margin: -4,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    flexShrink: 0,
+  },
+  failedSection: {
+    marginTop: 8,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+  },
+  failedDetails: {
+    flex: 1,
+  },
+  failedProgressFill: {
+    height: '100%' as const,
+    backgroundColor: colors.error,
+    borderRadius: 4,
+  },
+  failedProgressCaption: {
+    ...TYPOGRAPHY.meta,
+    color: colors.textMuted,
+    marginTop: SPACING.xs,
+  },
+  failedMessageRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  failedMessageText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.error,
+    flex: 1,
+  },
+  failedActionsRow: {
+    flexDirection: 'row' as const,
+    gap: 8,
+    alignItems: 'center' as const,
+  },
+});

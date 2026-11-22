@@ -1,0 +1,582 @@
+import { videoModelDisplayName } from '../../utils/modelHelpers';
+import { useAppStore } from '../../stores/appStore';
+import React, { useCallback, useEffect } from 'react';
+import { View, Text, Image, Linking } from 'react-native';
+import { OFF_GRID_DESKTOP_URL } from '../../constants';
+import { withUtm } from '../../utils/utm';
+import Animated from 'react-native-reanimated';
+import { TouchableOpacity } from '../../components/Touchable';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useIsFocused } from '@react-navigation/native';
+import {
+  Button,
+  Card,
+  CustomAlert,
+  hideAlert,
+  showAlert,
+  ModelSelectorModal,
+} from '../../components';
+import { AnimatedEntry } from '../../components/AnimatedEntry';
+import { AnimatedPressable } from '../../components/AnimatedPressable';
+import { ScreenField } from '../../components/LivingField';
+import { useAliveScrollRef } from '../../components/AliveProvider';
+import { ListGroup } from '../../components/ListGroup';
+import { useFocusTrigger } from '../../hooks/useFocusTrigger';
+import Icon from 'react-native-vector-icons/Feather';
+import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useThemedStyles, useTheme } from '../../theme';
+import { createStyles } from './styles';
+import { useHomeScreen, HomeScreenNavigationProp } from './hooks/useHomeScreen';
+import { RecentConversations } from './components/RecentConversations';
+import { LoadingOverlay } from './components/LoadingOverlay';
+import { DesktopPromoCard } from './components/DesktopPromoCard';
+import { FeatureShowcase, showcaseFeatures } from './components/FeatureShowcase';
+import { useIsProActive } from '../../hooks/useIsProActive';
+import { useOpenProTools } from '../../hooks/useOpenProTools';
+import { ModelsSummaryRow } from '../../components/models/ModelsSummaryRow';
+import {
+  ModelsManagerSheet,
+  ModelRowType,
+  type ModelRowLabels,
+} from '../../components/models/ModelsManagerSheet';
+import { useSearchModelLabel } from '../../hooks/useSearchModelLabel';
+import { WhisperPickerSheet } from '../../components/models/WhisperPickerSheet';
+import { VoiceModelsSheet } from '../../components/models/VoiceModelsSheet';
+import { useWhisperStore } from '../../stores/whisperStore';
+import { WHISPER_MODELS } from '../../services';
+import { transcriptionModelName } from '../../services/whisperModels';
+import { useWithRemoteCatalog } from '../../stores/modelCatalogStore';
+import { useUiModeStore } from '../../stores/uiModeStore';
+import { SLOTS, useSlot } from '../../bootstrap/slotRegistry';
+import { useHasRegisteredScreen } from '../../navigation/screenRegistry';
+import { useOpenSync } from '../../hooks/useOpenSync';
+import { useActiveRemoteModelLabels } from '../../hooks/useActiveRemoteModelLabels';
+import { openSupportEmail } from '../../utils/supportEmail';
+import { SCROLL_DEPTH_PROPS } from '../../constants/scrollDepth';
+import { useGetPro } from '../../hooks/useGetPro';
+import { boostPromoVisible } from '@offgrid/models';
+import { boostPromo } from '../../services/analytics/analytics';
+import { useOpenBoost } from '../../hooks/useOpenBoost';
+
+/** The private cloud offer is one of Home's cards: counted shown with Home, like the Models card with Models. */
+const BoostShownOnFocus: React.FC<{ shown: boolean }> = ({ shown }) => {
+  const isFocused = useIsFocused();
+  useEffect(() => {
+    if (shown && isFocused) boostPromo('shown', 'home');
+  }, [shown, isFocused]);
+  return null;
+};
+
+type HomeScreenProps = {
+  navigation: HomeScreenNavigationProp;
+};
+
+function homeModelLabels(input: {
+  text?: string;
+  image?: string;
+  video?: string;
+  voice?: string | null;
+  transcription?: string | null;
+  localVoice?: string | null;
+  localTranscription?: string;
+  search?: string;
+}): ModelRowLabels {
+  return {
+    text: input.text ?? '—',
+    image: input.image ?? '—',
+    video: input.video ?? '—',
+    voice: input.voice ?? input.localVoice ?? '—',
+    speech: input.transcription ?? input.localTranscription ?? '—',
+    search: input.search,
+  };
+}
+
+export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
+  const focusTrigger = useFocusTrigger();
+  const scrollRef = useAliveScrollRef();
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const SyncHomeCard = useSlot(SLOTS.homeSyncCard);
+  const HomeNotificationsButton = useSlot(SLOTS.homeNotificationsButton);
+  const { isSyncUnlocked, openSync, openSyncNotifications } = useOpenSync();
+  const getPro = useGetPro();
+  // Notes is Pro: without it the row leads to the upgrade screen.
+  const notesUnlocked = useHasRegisteredScreen('Notes');
+  // Vault is Pro too, reached the same way.
+  const vaultUnlocked = useHasRegisteredScreen('Vault');
+  const isProActive = useIsProActive();
+  const openProTools = useOpenProTools();
+
+  const {
+    pickerType,
+    setPickerType,
+    loadingState,
+    isEjecting,
+    alertState,
+    setAlertState,
+    downloadedModels,
+    activeModelId,
+    downloadedImageModels,
+    activeImageModelId,
+    generatedImages,
+    generatedVideos,
+    conversationCount,
+    activeTextModelId,
+    activeTextModelName,
+    activeImageModel,
+    recentConversations,
+    // Remote model state
+    remoteTextModels,
+    activeRemoteTextModelId,
+    activeRemoteImageModelId,
+    handleSelectTextModel,
+    handleUnloadTextModel,
+    handleSelectImageModel,
+    handleUnloadImageModel,
+    // Remote model handlers
+    handleEjectAll,
+    startNewChat,
+    continueChat,
+    handleDeleteConversation,
+  } = useHomeScreen(navigation);
+
+  // ── Collapsed Models control ──────────────────────────────────────────────
+  const [modelsManagerOpen, setModelsManagerOpen] = React.useState(false);
+  // Action queued by the manager (open a picker, or eject) — run only after the
+  // manager sheet has fully closed, so we never present a second modal while
+  // this one is mid-dismiss (that wedges iOS's modal system). Run from onClosed.
+  const pendingAfterCloseRef = React.useRef<(() => void) | null>(null);
+  const [whisperOpen, setWhisperOpen] = React.useState(false);
+  const [voiceOpen, setVoiceOpen] = React.useState(false);
+  const returnToModelsRef = React.useRef(false);
+  const whisperModelId = useWhisperStore(s => s.downloadedModelId);
+  // Re-render when the remote catalog renames a speech model.
+  useWithRemoteCatalog('transcription', WHISPER_MODELS);
+  const whisperPresentCount = useWhisperStore(
+    s => s.presentModelIds?.length ?? 0,
+  );
+  const voiceSummary = useUiModeStore(s => s.voiceSummary);
+  const remoteLabels = useActiveRemoteModelLabels();
+
+  const videoLabel = useAppStore(s => {
+    const model = s.downloadedVideoModels.find(m => m.id === s.activeVideoModelId);
+    return model ? videoModelDisplayName(model.id, model.name) : undefined;
+  });
+  const searchLabel = useSearchModelLabel();
+  const modelLabels = homeModelLabels({
+    search: searchLabel,
+    video: remoteLabels.video ?? videoLabel,
+    text: activeTextModelId ? activeTextModelName : undefined,
+    image: activeImageModel?.name,
+    voice: remoteLabels.voice,
+    transcription: remoteLabels.transcription,
+    localVoice: voiceSummary,
+    localTranscription: whisperModelId ? transcriptionModelName(whisperModelId) : undefined,
+  });
+
+  // Downloaded-model counts shown in the Models card (replaces the old stats row).
+  const modelCounts: Partial<Record<ModelRowType, number>> = {
+    video: useAppStore(s => s.downloadedVideoModels.length),
+    text: downloadedModels.length,
+    image: downloadedImageModels.length,
+    speech: whisperPresentCount,
+    voice: voiceSummary ? 1 : 0,
+  };
+
+  const boostClosedVersion = useAppStore(s => s.boostPromoClosedVersion);
+  const homeBoostShown = boostPromoVisible(boostClosedVersion);
+  // The offer is one of Home's cards: counted shown with Home, like the Models card with Models.
+  // Counted from a small child that reads focus, so a tab switch does not re-render all of Home.
+  // The top of Home: everything it does, free and Pro, what this person has not tried first.
+  const openBoost = useOpenBoost('home', useCallback(
+    () => setAlertState(showAlert("You're offline", 'Connect to the internet to see the offer.')),
+    [setAlertState],
+  ));
+  const showcase = showcaseFeatures(
+    {
+      imagesMade: generatedImages.length,
+      videosMade: generatedVideos.length,
+      hasVoice: (modelCounts.voice ?? 0) > 0,
+      hasSpeech: (modelCounts.speech ?? 0) > 0,
+      showBoost: homeBoostShown,
+    },
+    {
+      image: () => (downloadedImageModels.length > 0 ? startNewChat() : presentModelSheet('image')),
+      video: () => ((modelCounts.video ?? 0) > 0 ? startNewChat() : presentModelSheet('video')),
+      voice: () => presentModelSheet('voice'),
+      speech: () => presentModelSheet('speech'),
+      documents: () => navigation.navigate('Main', { screen: 'ProjectsTab' }),
+      sync: openSync,
+      tools: openProTools,
+      notes: () => navigation.navigate('Notes' as never),
+      improve: () => navigation.navigate('Notes' as never),
+      vault: () => navigation.navigate('Vault' as never),
+      pro: () => getPro('home-showcase'),
+      explain: topicId => navigation.navigate('GuideTopic', { id: topicId }),
+      desktop: () => { Linking.openURL(withUtm(OFF_GRID_DESKTOP_URL, 'home-showcase')).catch(() => {}); },
+      boost: openBoost,
+    },
+    isProActive,
+  );
+
+  // Stash an action and close the manager; the action runs from the manager's
+  // onClosed once it has fully dismissed — so opening a picker or the eject
+  // confirmation never collides with the manager's own dismissal.
+  const closeManagerThen = (action: () => void) => {
+    pendingAfterCloseRef.current = action;
+    setModelsManagerOpen(false);
+  };
+
+  // A picker opened from the Models sheet offers Back to it; one opened straight from Home (a carousel
+  // card, a chip) has only Done, so it never shows two ways out (hand test 87).
+  const [pickerFromModels, setPickerFromModels] = React.useState(false);
+  const presentModelSheet = (type: ModelRowType, fromModels = false) => {
+    setPickerFromModels(fromModels);
+    if (type === 'text') setPickerType('text');
+    else if (type === 'image') setPickerType('image');
+    else if (type === 'video') setPickerType('video');
+    else if (type === 'speech') setWhisperOpen(true);
+    else if (type === 'search') setPickerType('search');
+    else setVoiceOpen(true);
+  };
+  const openModelRow = (type: ModelRowType) => {
+    closeManagerThen(() => presentModelSheet(type, true));
+  };
+
+  const runPendingAfterClose = () => {
+    const action = pendingAfterCloseRef.current;
+    pendingAfterCloseRef.current = null;
+    action?.();
+  };
+
+  const reopenModelsAfterChildClose = () => {
+    if (!returnToModelsRef.current) return;
+    returnToModelsRef.current = false;
+    setModelsManagerOpen(true);
+  };
+  const closeChildForModels = (close: () => void) => {
+    returnToModelsRef.current = true;
+    close();
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View testID="home-screen" style={styles.scrollView}>
+        <ScreenField />
+        <BoostShownOnFocus shown={homeBoostShown} />
+        <Animated.ScrollView
+          ref={scrollRef}
+          {...SCROLL_DEPTH_PROPS}
+          style={styles.scrollView}
+          contentContainerStyle={styles.content}
+        >
+          {/* The app's name and mark, its promise, and New chat as the one main action. */}
+          <View style={styles.header}>
+            <View style={styles.titleRow}>
+              {/* The brand mark beside its name, as on desktop's sidebar: the logo was lost in 5bed503e0. */}
+              <View style={styles.brand}>
+                <Image
+                  source={isDark ? require('../../assets/home-logo-dark.png') : require('../../assets/home-logo-light.png')}
+                  style={styles.appLogo}
+                  resizeMode="contain"
+                  accessible={false}
+                  testID="home-app-logo"
+                />
+                <Text style={styles.title} accessibilityRole="header" numberOfLines={1}>Off Grid AI</Text>
+              </View>
+              <View style={styles.headerActions}>
+                {/* What it does for you: every feature, and an Ask box (Mac, 2026-11-17).
+                    Order: info, notifications, Pro (Mac, 2026-11-17). */}
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Guide')}
+                  style={styles.crownButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="What it does for you"
+                  testID="home-guide-button"
+                >
+                  <Icon name="info" size={18} color={colors.textSecondary} />
+                </TouchableOpacity>
+                {HomeNotificationsButton ? (
+                  <HomeNotificationsButton onOpen={openSyncNotifications} />
+                ) : null}
+                <TouchableOpacity
+                  onPress={() => getPro('home-crown')}
+                  style={styles.crownButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open Off Grid AI Pro"
+                >
+                  <IconMC name="crown" size={18} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            {/* Two rows (hand check 2026-11-06: one row cut the name to "Off Grid AI…"): the name with
+                its icons above, the promise with the one main action below. */}
+            <View style={styles.promiseRow}>
+              {/* The brand's promise, word for word (brand_tone_voice: never "nothing leaves your device"). Balanced
+                  breaks keep a last word from sitting alone on Android. */}
+              <Text style={styles.subtitle} textBreakStrategy="balanced">
+                Your chats and files never leave your device.
+              </Text>
+              {activeTextModelId || activeImageModelId || remoteLabels.video || videoLabel ? (
+                <Button
+                  title="New chat"
+                  variant="hero"
+                  size="small"
+                  icon={<Icon name="plus" size={16} color={colors.onHero} />}
+                  onPress={startNewChat}
+                  style={styles.newChatButton}
+                  testID="new-chat-button"
+                />
+              ) : null}
+            </View>
+          </View>
+
+          {/* Still while a sheet covers Home: nothing moves where you cannot see it (hand test 89). */}
+          <FeatureShowcase
+            features={showcase}
+            active={pickerType === null && !modelsManagerOpen && !whisperOpen && !voiceOpen}
+          />
+
+          {/* Collapsed Models summary — tap to open the manager sheet. Both the
+              text (1) and image (13) tour steps anchor here now. */}
+          <AnimatedEntry index={0} staggerMs={50} trigger={focusTrigger}>
+            <ModelsSummaryRow
+              labels={modelLabels}
+              counts={modelCounts}
+              isLoading={loadingState.isLoading}
+              onPress={() => setModelsManagerOpen(true)}
+              onPressType={presentModelSheet}
+            />
+          </AnimatedEntry>
+
+          {/* With no model there is nothing to chat with yet: say how to get one. */}
+          {activeTextModelId || activeImageModelId || remoteLabels.video || videoLabel ? null : (
+            <Card style={styles.setupCard} testID="setup-card">
+              <Text style={styles.setupText}>
+                {downloadedModels.length > 0 || remoteTextModels.length > 0
+                  ? 'Select a text, image, or video model to start'
+                  : 'Choose a model here or on your network.'}
+              </Text>
+              <View style={styles.setupActions}>
+                <Button
+                  title="Add Remote Server"
+                  variant="outline"
+                  size="small"
+                  onPress={() => navigation.navigate('RemoteServers')}
+                  testID="add-server-button"
+                />
+                <Button
+                  title={
+                    downloadedModels.length > 0 || remoteTextModels.length > 0
+                      ? 'Select Model'
+                      : 'Browse Models'
+                  }
+                  variant="outline"
+                  size="small"
+                  onPress={() =>
+                    downloadedModels.length > 0 || remoteTextModels.length > 0
+                      ? setPickerType('text')
+                      : navigation.navigate('ModelsTab', { initialTab: 'text' })
+                  }
+                  testID="browse-models-button"
+                />
+              </View>
+            </Card>
+          )}
+
+          {/* Recent Conversations */}
+          {recentConversations.length > 0 && (
+            <AnimatedEntry index={2} staggerMs={50} trigger={focusTrigger}>
+              <RecentConversations
+                conversations={recentConversations}
+                totalCount={conversationCount}
+                focusTrigger={focusTrigger}
+                onContinueChat={continueChat}
+                onDeleteConversation={handleDeleteConversation}
+                onSeeAll={() => navigation.navigate('ChatsTab')}
+              />
+            </AnimatedEntry>
+          )}
+
+          {/* After your recent work: Clipboard, Sync, Gallery, Notes and feedback in one surface with hairlines
+              (desktop's one surface), not a stack of boxes. Pro's Sync slot renders bare rows. */}
+          <AnimatedEntry index={5} staggerMs={50} trigger={focusTrigger}>
+            <ListGroup style={styles.linksGroup}>
+              {SyncHomeCard ? (
+                <SyncHomeCard
+                  isUnlocked={isSyncUnlocked}
+                  onOpen={openSync}
+                  onOpenClipboard={() =>
+                    isSyncUnlocked
+                      ? navigation.navigate('Clipboard' as never)
+                      : getPro('home-clipboard')
+                  }
+                />
+              ) : null}
+              <AnimatedPressable
+                style={styles.galleryCard}
+                onPress={() => navigation.navigate('Gallery')}
+                hapticType="selection"
+                testID="home-gallery-card"
+                accessibilityRole="button"
+                accessibilityLabel={`Gallery, ${generatedImages.length} images, ${generatedVideos.length} videos`}
+              >
+                <Icon name="grid" size={18} color={colors.textSecondary} />
+                <View style={styles.galleryCardInfo}>
+                  <Text style={styles.galleryCardTitle}>Gallery</Text>
+                  <Text style={styles.galleryCardMeta}>
+                    {generatedImages.length} images · {generatedVideos.length}{' '}
+                    videos
+                  </Text>
+                </View>
+                <Icon name="chevron-right" size={16} color={colors.textMuted} />
+              </AnimatedPressable>
+              {/* Notes is Pro: a row like its neighbours; without Pro the crown says why it opens the upgrade page. */}
+              <AnimatedPressable
+                style={styles.galleryCard}
+                onPress={() =>
+                  notesUnlocked
+                    ? navigation.navigate('Notes' as never)
+                    : getPro('home-notes')
+                }
+                hapticType="selection"
+                testID="home-notes-card"
+                accessibilityRole="button"
+                accessibilityLabel={notesUnlocked ? 'Notes' : 'Notes, part of Off Grid AI Pro'}
+              >
+                <Icon name="file-text" size={18} color={colors.textSecondary} />
+                <View style={styles.galleryCardInfo}>
+                  <Text style={styles.galleryCardTitle}>Notes</Text>
+                  <Text style={styles.galleryCardMeta} numberOfLines={1}>Write privately, with your model's help.</Text>
+                </View>
+                {notesUnlocked ? null : (
+                  <IconMC name="crown" size={14} color={colors.textMuted} />
+                )}
+                <Icon name="chevron-right" size={16} color={colors.textMuted} />
+              </AnimatedPressable>
+              {/* Vault is Pro: the same row as Notes; without Pro the crown says why it opens the upgrade page. */}
+              <AnimatedPressable
+                style={styles.galleryCard}
+                onPress={() =>
+                  vaultUnlocked
+                    ? navigation.navigate('Vault' as never)
+                    : getPro('home-vault')
+                }
+                hapticType="selection"
+                testID="home-vault-card"
+                accessibilityRole="button"
+                accessibilityLabel={vaultUnlocked ? 'Vault' : 'Vault, part of Off Grid AI Pro'}
+              >
+                <Icon name="lock" size={18} color={colors.textSecondary} />
+                <View style={styles.galleryCardInfo}>
+                  <Text style={styles.galleryCardTitle}>Vault</Text>
+                  <Text style={styles.galleryCardMeta} numberOfLines={1}>Your passwords, sealed on this phone.</Text>
+                </View>
+                {vaultUnlocked ? null : (
+                  <IconMC name="crown" size={14} color={colors.textMuted} />
+                )}
+                <Icon name="chevron-right" size={16} color={colors.textMuted} />
+              </AnimatedPressable>
+              {/* A row like its neighbours, not a row with a button in it (design philosophy: rhythm). */}
+              <AnimatedPressable
+                style={styles.galleryCard}
+                onPress={() =>
+                  openSupportEmail({
+                    subject: '[Idea] Off Grid AI Mobile',
+                    body: 'Hi,\n\nI would like to see this in Off Grid AI Mobile:\n\n',
+                  })
+                }
+                hapticType="selection"
+                testID="home-support-email"
+                accessibilityRole="button"
+                accessibilityLabel="What should we build next? Write to us."
+              >
+                <Icon name="message-square" size={18} color={colors.textSecondary} />
+                <View style={styles.galleryCardInfo}>
+                  <Text style={styles.galleryCardTitle}>What should we build next?</Text>
+                  <Text style={styles.galleryCardMeta} numberOfLines={1}>Tell us, and it may be in the next update.</Text>
+                </View>
+                <Icon name="mail" size={16} color={colors.textMuted} />
+              </AnimatedPressable>
+            </ListGroup>
+          </AnimatedEntry>
+
+          {/* Off Grid AI Desktop — live announcement; owns its own copy/dismiss state. */}
+          <DesktopPromoCard />
+
+          {/* Model Stats row removed — the per-type counts now live in the Models
+              card above, and the chat count sits next to "See all". */}
+        </Animated.ScrollView>
+      </View>
+
+      <ModelSelectorModal
+        visible={pickerType !== null}
+        initialTab={pickerType ?? 'text'}
+        onClose={() => setPickerType(null)}
+        onClosed={reopenModelsAfterChildClose}
+        onBackToModels={pickerFromModels ? () => closeChildForModels(() => setPickerType(null)) : undefined}
+        onSelectModel={handleSelectTextModel}
+        onUnloadModel={handleUnloadTextModel}
+        onSelectImageModel={handleSelectImageModel}
+        onUnloadImageModel={handleUnloadImageModel}
+        isLoading={loadingState.isLoading}
+        onSelectionComplete={() => setPickerType(null)}
+        onBrowseModels={tab => {
+          setPickerType(null);
+          navigation.navigate('ModelsTab', { initialTab: tab === 'search' ? 'embedding' : tab });
+        }}
+        onAddServer={() => navigation.navigate('RemoteServers')}
+      />
+
+      {/* Collapsed Models control: manager sheet + per-type pickers */}
+      <ModelsManagerSheet
+        visible={modelsManagerOpen}
+        onClose={() => setModelsManagerOpen(false)}
+        onClosed={runPendingAfterClose}
+        labels={modelLabels}
+        remote={{
+          text: !!activeRemoteTextModelId,
+          image: !!activeRemoteImageModelId,
+          voice: !!remoteLabels.voice,
+          speech: !!remoteLabels.transcription,
+        }}
+        loadingState={loadingState}
+        isEjecting={isEjecting}
+        hasActiveModel={
+          !!(
+            activeModelId ||
+            activeImageModelId ||
+            activeRemoteTextModelId ||
+            activeRemoteImageModelId
+          )
+        }
+        onOpenRow={openModelRow}
+        onEject={() => closeManagerThen(handleEjectAll)}
+      />
+      <WhisperPickerSheet
+        visible={whisperOpen}
+        onClose={() => setWhisperOpen(false)}
+        onClosed={reopenModelsAfterChildClose}
+        onBackToModels={pickerFromModels ? () => closeChildForModels(() => setWhisperOpen(false)) : undefined}
+      />
+      <VoiceModelsSheet
+        visible={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        onClosed={reopenModelsAfterChildClose}
+        onBackToModels={pickerFromModels ? () => closeChildForModels(() => setVoiceOpen(false)) : undefined}
+      />
+
+      {/* Full-screen model-loading overlay (animated progress + rotating tips). */}
+      <LoadingOverlay loadingState={loadingState} />
+
+      {/* Custom Alert Modal */}
+      <CustomAlert
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onClose={() => setAlertState(hideAlert())}
+      />
+    </SafeAreaView>
+  );
+};

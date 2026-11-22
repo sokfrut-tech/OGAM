@@ -1,0 +1,415 @@
+import { create } from 'zustand';
+import { ModelKey } from '../utils/modelKey';
+import logger from '../utils/logger';
+// The status classification + DownloadEntry shape live in a PURE util so pure consumers can use
+// them without depending on this store (utils-stay-pure). Re-exported here for back-compat — every
+// existing `from '../stores/downloadStore'` importer of these keeps working unchanged.
+import { DownloadStatus, DownloadEntry, isActiveStatus } from '../utils/downloadStatus';
+import { sampleProgressRate } from '../utils/progressCore';
+import { downloadDropped, downloadEnded, downloadStarted } from '../services/analytics/analytics';
+import { modelRef } from '../services/analytics/values';
+
+export type { DownloadStatus, DownloadEntry };
+export type { ModelType } from '../utils/downloadStatus';
+export { isActiveStatus, isQueuedStatus, isDownloadingStatus, isFailedStatus } from '../utils/downloadStatus';
+
+interface DownloadStoreState {
+  downloads: Record<ModelKey, DownloadEntry>
+  downloadIdIndex: Record<string, ModelKey>
+  repairingVisionIds: Record<string, true>
+
+  setRepairingVision: (modelId: string, repairing: boolean) => void
+  setAll: (entries: DownloadEntry[]) => void
+  hydrate: (entries: DownloadEntry[]) => void
+  add: (entry: DownloadEntry) => void
+  setMmProjDownloadId: (modelKey: ModelKey, mmProjDownloadId: string) => void
+  updateProgress: (downloadId: string, bytes: number, total: number) => void
+  updateMmProjProgress: (mmProjDownloadId: string, bytes: number) => void
+  setCompanionBytes: (modelKey: ModelKey, bytes: number) => void
+  setStatus: (downloadId: string, status: DownloadStatus, error?: { message: string; code?: string }) => void
+  setProcessing: (downloadId: string) => void
+  setCompleted: (downloadId: string) => void
+  setMmProjCompleted: (mmProjDownloadId: string, bytes: number) => void
+  retryEntry: (modelKey: ModelKey, newDownloadId: string) => void
+  remove: (modelKey: ModelKey) => void
+}
+
+function rateFields(
+  entry: DownloadEntry,
+  currentBytes: number,
+  sampledAtMs = Date.now(),
+): Pick<DownloadEntry, 'rateSample' | 'bytesPerSecond'> {
+  const measured = sampleProgressRate(entry.rateSample, {
+    currentBytes,
+    sampledAtMs,
+  });
+  return {
+    rateSample: measured.sample,
+    bytesPerSecond: measured.bytesPerSecond,
+  };
+}
+
+function terminalRateFields(
+  mainStatus: DownloadStatus,
+  mmProjStatus?: DownloadStatus,
+): Partial<Pick<DownloadEntry, 'rateSample' | 'bytesPerSecond'>> {
+  const mainActive = isActiveStatus(mainStatus);
+  const sidecarActive = mmProjStatus !== undefined && isActiveStatus(mmProjStatus);
+  return mainActive || sidecarActive
+    ? {}
+    : { rateSample: undefined, bytesPerSecond: undefined };
+}
+
+function addEntry(state: DownloadStoreState, entry: DownloadEntry): Partial<DownloadStoreState> {
+  if (state.downloads[entry.modelKey]) return state;
+  return {
+    downloads: { ...state.downloads, [entry.modelKey]: entry },
+    downloadIdIndex: {
+      ...state.downloadIdIndex,
+      [entry.downloadId]: entry.modelKey,
+      ...(entry.mmProjDownloadId ? { [entry.mmProjDownloadId]: entry.modelKey } : {}),
+    },
+  };
+}
+/** Report a download start. A hydrated or restored row is not a new start, so only add/retry call this. */
+function reportStarted(entry: DownloadEntry | undefined): void {
+  if (!entry) return;
+  downloadStarted(entry.modelKey, {
+    model: modelRef(entry.modelId),
+    quant: entry.quantization || undefined,
+    sizeBytes: entry.combinedTotalBytes || entry.totalBytes,
+    modelType: entry.modelType,
+  });
+}
+
+/** Report the end of the main file's download (a vision sidecar never ends the download). */
+function reportEnd(
+  state: DownloadStoreState,
+  downloadId: string,
+  status: DownloadStatus,
+  code?: string,
+): void {
+  const entry = state.downloads[state.downloadIdIndex[downloadId] ?? ''];
+  if (entry?.downloadId !== downloadId) return;
+  // A cancel the person chose is not a failure: it closes the attempt quietly, as removing the row
+  // does. Counted as one, 0.0.122's numbers had 44 "failed" downloads a day that were cancels.
+  if (status === 'failed' && code === 'user_cancelled') downloadDropped(entry.modelKey);
+  else if (status === 'failed') downloadEnded(entry.modelKey, 'failed', { code });
+  else if (status === 'completed') downloadEnded(entry.modelKey, 'done');
+}
+
+export const useDownloadStore = create<DownloadStoreState>((set, get) => ({
+  downloads: {},
+  downloadIdIndex: {},
+  repairingVisionIds: {},
+
+  setRepairingVision: (modelId, repairing) => set(state => {
+    if (repairing) {
+      return { repairingVisionIds: { ...state.repairingVisionIds, [modelId]: true } };
+    }
+    const next = { ...state.repairingVisionIds };
+    delete next[modelId];
+    return { repairingVisionIds: next };
+  }),
+
+  setAll: (entries) => {
+    const downloads: Record<ModelKey, DownloadEntry> = {};
+    const downloadIdIndex: Record<string, ModelKey> = {};
+    for (const entry of entries) {
+      downloads[entry.modelKey] = entry;
+      downloadIdIndex[entry.downloadId] = entry.modelKey;
+      if (entry.mmProjDownloadId) {
+        downloadIdIndex[entry.mmProjDownloadId] = entry.modelKey;
+      }
+    }
+    set({ downloads, downloadIdIndex });
+  },
+
+  // Like setAll, but preserves any existing entry whose JS-tracked progress
+  // is ahead of the native row. Avoids foreground-resume hydration blowing
+  // away in-flight progress that listeners have already advanced past the
+  // native snapshot.
+  hydrate: (entries) => set(state => {
+    const downloads: Record<ModelKey, DownloadEntry> = {};
+    const downloadIdIndex: Record<string, ModelKey> = {};
+    for (const next of entries) {
+      const existing = state.downloads[next.modelKey];
+      let merged: DownloadEntry;
+      if (existing && existing.bytesDownloaded >= next.bytesDownloaded) {
+        // Local listeners are ahead — keep them, just refresh metadataJson + total. Progress can be
+        // ahead locally; a failure cannot: a hydrate that finds the download failed (its native row,
+        // or its native task gone) says so, or the card would sit "downloading" or "paused" forever.
+        const failed = next.status === 'failed' && existing.status !== 'failed';
+        merged = {
+          ...existing,
+          totalBytes: next.totalBytes || existing.totalBytes,
+          combinedTotalBytes: next.combinedTotalBytes || existing.combinedTotalBytes,
+          metadataJson: next.metadataJson ?? existing.metadataJson,
+          ...(failed ? { status: next.status, errorMessage: next.errorMessage, errorCode: next.errorCode } : {}),
+        };
+      } else {
+        merged = next;
+      }
+      downloads[merged.modelKey] = merged;
+      downloadIdIndex[merged.downloadId] = merged.modelKey;
+      if (merged.mmProjDownloadId) {
+        downloadIdIndex[merged.mmProjDownloadId] = merged.modelKey;
+      }
+    }
+    return { downloads, downloadIdIndex };
+  }),
+
+  // Adds a new entry. Refuses if any entry already exists for this modelKey,
+  // active or otherwise. Failed/stuck/retrying entries must be restarted via
+  // retryEntry (which preserves the same logical record), or the user must
+  // remove() them first. This enforces "one logical entry per model/file"
+  // and prevents a fresh start path from silently replacing a visible failed
+  // entry that the product rules say must persist until explicit user action.
+  add: (entry) => {
+    if (get().downloads[entry.modelKey]) return;
+    set(state => addEntry(state, entry));
+    reportStarted(get().downloads[entry.modelKey]);
+  },
+
+  setMmProjDownloadId: (modelKey, mmProjDownloadId) => set(state => {
+    const entry = state.downloads[modelKey];
+    if (!entry) return state;
+    logger.log('[DownloadDebug] Register mmproj download', {
+      modelKey,
+      mmProjDownloadId,
+      mainDownloadId: entry.downloadId,
+    });
+    return {
+      downloads: { ...state.downloads, [modelKey]: { ...entry, mmProjDownloadId, mmProjStatus: 'pending' } },
+      downloadIdIndex: { ...state.downloadIdIndex, [mmProjDownloadId]: modelKey },
+    };
+  }),
+
+  updateProgress: (downloadId, bytes, total) => set(state => {
+    const modelKey = state.downloadIdIndex[downloadId];
+    if (!modelKey) return state;
+    const entry = state.downloads[modelKey];
+    if (!entry || entry.downloadId !== downloadId) return state;
+    const combinedTotal = entry.combinedTotalBytes || total;
+    const otherBytes = (entry.mmProjBytesDownloaded ?? 0) + (entry.companionBytesDownloaded ?? 0);
+    const liveRate = rateFields(entry, bytes + otherBytes);
+    // Clamp: when combinedTotalBytes isn't set yet, the denominator is the main file
+    // only, so adding the mmproj sidecar's bytes can push this past 1.0 (the >100%
+    // progress bar). A wrong total can also overshoot. Never report >1 or <0.
+    const progress = combinedTotal > 0 ? Math.min(1, Math.max(0, (bytes + otherBytes) / combinedTotal)) : 0;
+    return {
+      downloads: {
+        ...state.downloads,
+        [modelKey]: {
+          ...entry,
+          bytesDownloaded: bytes,
+          totalBytes: total,
+          progress,
+          status: 'running',
+          ...liveRate,
+        },
+      },
+    };
+  }),
+
+  updateMmProjProgress: (mmProjDownloadId, bytes) => set(state => {
+    const modelKey = state.downloadIdIndex[mmProjDownloadId];
+    if (!modelKey) {
+      logger.warn('[DownloadDebug] mmproj progress dropped: missing modelKey', { mmProjDownloadId });
+      return state;
+    }
+    const entry = state.downloads[modelKey];
+    if (!entry || entry.mmProjDownloadId !== mmProjDownloadId) {
+      logger.warn('[DownloadDebug] mmproj progress dropped: entry mismatch', {
+        modelKey,
+        mmProjDownloadId,
+        entryMmProjId: entry?.mmProjDownloadId,
+      });
+      return state;
+    }
+    const combinedTotal = entry.combinedTotalBytes || entry.totalBytes;
+    const done = entry.bytesDownloaded + bytes + (entry.companionBytesDownloaded ?? 0);
+    const liveRate = rateFields(entry, done);
+    // Clamp to [0,1] — same reason as updateProgress (main-only denominator + mmproj bytes).
+    const progress = combinedTotal > 0 ? Math.min(1, Math.max(0, done / combinedTotal)) : 0;
+    return {
+      downloads: {
+        ...state.downloads,
+        [modelKey]: {
+          ...entry,
+          mmProjBytesDownloaded: bytes,
+          mmProjStatus: 'running',
+          progress,
+          ...liveRate,
+        },
+      },
+    };
+  }),
+
+  setCompanionBytes: (modelKey, bytes) => set(state => {
+    const entry = state.downloads[modelKey];
+    if (!entry) return state;
+    const combinedTotal = entry.combinedTotalBytes || entry.totalBytes;
+    const done = entry.bytesDownloaded + (entry.mmProjBytesDownloaded ?? 0) + bytes;
+    return {
+      downloads: {
+        ...state.downloads,
+        [modelKey]: {
+          ...entry,
+          companionBytesDownloaded: bytes,
+          status: 'running',
+          progress: combinedTotal > 0 ? Math.min(1, Math.max(0, done / combinedTotal)) : 0,
+          ...rateFields(entry, done),
+        },
+      },
+    };
+  }),
+
+  setStatus: (downloadId, status, error) => {
+    reportEnd(get(), downloadId, status, error?.code);
+    set(state => {
+    const modelKey = state.downloadIdIndex[downloadId];
+    if (!modelKey) return state;
+    const entry = state.downloads[modelKey];
+    if (!entry) return state;
+    const isMmProj = entry.mmProjDownloadId === downloadId;
+    if (isMmProj) {
+      // Sidecar status is independent of the parent. mmproj failure must not
+      // fail the whole download — the main GGUF can still complete and the
+      // model becomes usable text-only with a "repair vision" affordance.
+      let mmProjErrorMessage = entry.errorMessage;
+      if (entry.status !== 'failed') {
+        mmProjErrorMessage = status === 'failed' ? error?.message : entry.errorMessage;
+      }
+      return {
+        downloads: {
+          ...state.downloads,
+          [modelKey]: {
+            ...entry,
+            mmProjStatus: status as DownloadStatus,
+            errorMessage: mmProjErrorMessage,
+            ...terminalRateFields(entry.status, status),
+          },
+        },
+      };
+    }
+    return {
+      downloads: {
+        ...state.downloads,
+        [modelKey]: {
+          ...entry,
+          status,
+          errorMessage: error?.message,
+          errorCode: error?.code,
+          ...terminalRateFields(status, entry.mmProjStatus),
+        },
+      },
+    };
+  });
+  },
+
+  setProcessing: (downloadId) => set(state => {
+    const modelKey = state.downloadIdIndex[downloadId];
+    if (!modelKey) return state;
+    const entry = state.downloads[modelKey];
+    if (!entry) return state;
+    return {
+      downloads: { ...state.downloads, [modelKey]: { ...entry, status: 'processing' } },
+    };
+  }),
+
+  setCompleted: (downloadId) => {
+    reportEnd(get(), downloadId, 'completed');
+    set(state => {
+    const modelKey = state.downloadIdIndex[downloadId];
+    if (!modelKey) return state;
+    const entry = state.downloads[modelKey];
+    if (!entry) return state;
+    return {
+      downloads: {
+        ...state.downloads,
+        [modelKey]: {
+          ...entry,
+          status: 'completed',
+          progress: 1,
+          ...terminalRateFields('completed', entry.mmProjStatus),
+        },
+      },
+    };
+  });
+  },
+
+  setMmProjCompleted: (mmProjDownloadId, bytes) => set(state => {
+    const modelKey = state.downloadIdIndex[mmProjDownloadId];
+    if (!modelKey) return state;
+    const entry = state.downloads[modelKey];
+    if (!entry || entry.mmProjDownloadId !== mmProjDownloadId) return state;
+    return {
+      downloads: {
+        ...state.downloads,
+        [modelKey]: {
+          ...entry,
+          mmProjBytesDownloaded: bytes,
+          mmProjStatus: 'completed' as DownloadStatus,
+          ...terminalRateFields(entry.status, 'completed'),
+        },
+      },
+    };
+  }),
+
+  retryEntry: (modelKey, newDownloadId) => {
+    set(state => {
+    const entry = state.downloads[modelKey];
+    if (!entry) return state;
+    const newIndex = { ...state.downloadIdIndex };
+    delete newIndex[entry.downloadId];
+    // Keep mmProjDownloadId in the index — it is still valid until
+    // setMmProjDownloadId swaps it for the new sidecar ID after the retry
+    // starts. Removing it here creates a window where mmproj progress events
+    // arrive with no index match (updateMmProjProgress would log a mismatch
+    // warning and drop the update).
+    newIndex[newDownloadId] = modelKey;
+    return {
+      downloads: {
+        ...state.downloads,
+        [modelKey]: {
+          ...entry,
+          downloadId: newDownloadId,
+          status: 'pending',
+          bytesDownloaded: 0,
+          // The job's other files stay on disk across a retry and still count.
+          progress: (entry.combinedTotalBytes ?? 0) > 0
+            ? Math.min(1, (entry.companionBytesDownloaded ?? 0) / entry.combinedTotalBytes!)
+            : 0,
+          rateSample: undefined,
+          bytesPerSecond: undefined,
+          errorMessage: undefined,
+          errorCode: undefined,
+          // Preserve mmproj identity fields so the UI still knows this is a
+          // vision model and so updateMmProjProgress can still route events.
+          // Only reset the mutable progress/status to give a clean slate.
+          mmProjStatus: entry.mmProjDownloadId ? 'pending' : undefined,
+          mmProjBytesDownloaded: 0,
+          // mmProjDownloadId, mmProjFileName, mmProjFileSize — preserved via ...entry
+        },
+      },
+      downloadIdIndex: newIndex,
+    };
+  });
+    reportStarted(get().downloads[modelKey]);
+  },
+
+  remove: (modelKey) => set(state => {
+    const entry = state.downloads[modelKey];
+    if (!entry) return state;
+    // A row removed mid-attempt (a cancel) closes the attempt, so a later download starts fresh. A
+    // finished download registered its model first, which already reported it done.
+    downloadDropped(modelKey);
+    const newIndex = { ...state.downloadIdIndex };
+    delete newIndex[entry.downloadId];
+    if (entry.mmProjDownloadId) delete newIndex[entry.mmProjDownloadId];
+    const newDownloads = { ...state.downloads };
+    delete newDownloads[modelKey];
+    return { downloads: newDownloads, downloadIdIndex: newIndex };
+  }),
+}));

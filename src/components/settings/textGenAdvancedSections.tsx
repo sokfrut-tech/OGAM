@@ -1,0 +1,308 @@
+/**
+ * Advanced text-generation setting sections — the SINGLE shared implementation
+ * used by BOTH the Model Settings screen and the in-chat Generation Settings
+ * modal. Previously each surface hand-rolled these (two copies of the backend
+ * selector, KV-cache toggle, etc.) which drifted in copy, labels, and spacing.
+ *
+ * Presentation: the pill-button design (segmented control). Data + behavior come
+ * from the single useTextGenerationAdvanced hook + useAppStore, so the values and
+ * the residency/cache logic are already single-source; this collapses the VIEW to
+ * match. Adding a new backend or setting means editing ONE place.
+ */
+import React, { useEffect, useState } from 'react';
+import { Platform, View, Text } from 'react-native';
+import { SliderSetting } from '../SliderSetting';
+import { useThemedStyles } from '../../theme';
+import { useAppStore } from '../../stores';
+import { CacheType, InferenceBackend, LiteRTBackend, INFERENCE_BACKENDS } from '../../types';
+import {
+  useTextGenerationAdvanced,
+  CACHE_TYPE_DESCRIPTIONS,
+  GPU_LAYERS_MAX,
+  CACHE_TYPE_OPTIONS,
+} from '../../hooks/useTextGenerationAdvanced';
+import { hardwareService } from '../../services/hardware';
+import { batchForBackend } from '../../services/llmHelpers';
+import {
+  REASONING_BUDGET_AUTO,
+  REASONING_BUDGET_OPTIONS,
+  reasoningBudgetLabel,
+} from '@offgrid/models';
+import { HTP_ENABLED as HTP_UI_ENABLED } from '../../config/featureFlags';
+import { createTextGenAdvancedStyles } from './textGenAdvancedStyles';
+import { SegmentedRow, BOOL_OPTIONS, type PillOption } from './segmentedRow';
+
+const isAndroid = Platform.OS === 'android';
+
+// ─── Inference Backend ─────────────────────────────────────────────────────────
+
+type BackendOption = { id: InferenceBackend; label: string; desc: string };
+
+const IOS_BACKENDS: BackendOption[] = [
+  { id: INFERENCE_BACKENDS.CPU, label: 'CPU', desc: 'Always works, at a steady speed.' },
+  // Display label 'GPU' as on Android (few people know Metal); id stays METAL.
+  { id: INFERENCE_BACKENDS.METAL, label: 'GPU', desc: 'Faster answers from larger models. Reloads the model.' },
+];
+
+const ANDROID_BASE_BACKENDS: BackendOption[] = [
+  { id: INFERENCE_BACKENDS.CPU, label: 'CPU', desc: 'Always works, at a steady speed.' },
+  // Display label 'GPU' (users don't know OpenCL); id stays OPENCL.
+  { id: INFERENCE_BACKENDS.OPENCL, label: 'GPU', desc: 'Faster answers on most phones. Reloads the model.' },
+];
+
+const HTP_BACKEND: BackendOption = {
+  id: INFERENCE_BACKENDS.HTP,
+  label: 'NPU (Beta)',
+  desc: 'Experimental. Fastest with Llama and Qwen models; Gemma can fail. Reloads the model.',
+};
+
+export const BackendSelector: React.FC = () => {
+  const styles = useThemedStyles(createTextGenAdvancedStyles);
+  const { settings, updateSettings } = useAppStore();
+  const { gpuLayersEffective } = useTextGenerationAdvanced();
+  const [hasNPU, setHasNPU] = useState(false);
+
+  useEffect(() => {
+    if (isAndroid) {
+      hardwareService.getSoCInfo().then(info => setHasNPU(info.hasNPU));
+    }
+  }, []);
+
+  const androidBackends = hasNPU && HTP_UI_ENABLED ? [...ANDROID_BASE_BACKENDS, HTP_BACKEND] : ANDROID_BASE_BACKENDS;
+  const backends: BackendOption[] = Platform.OS === 'ios' ? IOS_BACKENDS : androidBackends;
+
+  const defaultBackend = Platform.OS === 'ios' ? INFERENCE_BACKENDS.METAL : INFERENCE_BACKENDS.CPU;
+  const current = settings.inferenceBackend ?? defaultBackend;
+  const showLayers = current !== INFERENCE_BACKENDS.CPU;
+  const layersLabel = current === INFERENCE_BACKENDS.HTP
+    ? 'NPU layers'
+    : 'GPU layers';
+
+  return (
+    <SegmentedRow<InferenceBackend>
+      label="Text model hardware"
+      description={backends.find(b => b.id === current)?.desc ?? 'Where text models run.'}
+      options={backends}
+      current={current}
+      onSelect={(id) => updateSettings({ inferenceBackend: id })}
+      testIdFor={(id) => `backend-${id}-button`}
+    >
+      {showLayers && (
+        <View style={styles.layersInline}>
+          <SliderSetting
+            testID="gpu-layers-stepper"
+            label={layersLabel}
+            description="More is faster; too much can crash a full phone. Reloads the model."
+            value={gpuLayersEffective}
+            min={1} max={GPU_LAYERS_MAX} step={1}
+            onChange={(value) => updateSettings({ gpuLayers: value })}
+          />
+        </View>
+      )}
+    </SegmentedRow>
+  );
+};
+
+// ─── LiteRT Acceleration ─────────────────────────────────────────────────────
+
+const LITERT_BACKENDS: { id: LiteRTBackend; label: string; desc: string }[] = [
+  { id: 'gpu', label: 'GPU', desc: 'Faster answers on most phones.' },
+  { id: 'cpu', label: 'CPU', desc: 'Always works. Easier on battery and heat.' },
+];
+
+export const LiteRTBackendSelector: React.FC = () => {
+  const { settings, updateSettings } = useAppStore();
+  const current = settings.liteRTBackend === 'cpu' ? 'cpu' : 'gpu';
+  return (
+    <SegmentedRow<LiteRTBackend>
+      label="Text model hardware"
+      description={LITERT_BACKENDS.find(b => b.id === current)?.desc ?? 'Where text models run.'}
+      options={LITERT_BACKENDS}
+      current={current}
+      onSelect={(id) => updateSettings({ liteRTBackend: id })}
+      testIdFor={(id) => `litert-backend-${id}-button`}
+    />
+  );
+};
+
+// ─── Flash Attention ──────────────────────────────────────────────────────────
+
+/** Lives in its own module for the file-size budget; re-exported so every surface keeps ONE
+ *  import path for the advanced text-generation controls. */
+export { SpeculativeDecodingToggle } from './SpeculativeDecodingToggle';
+
+export const FlashAttentionToggle: React.FC = () => {
+  const { updateSettings } = useAppStore();
+  const { isFlashAttnOn, handleFlashAttnToggle } = useTextGenerationAdvanced();
+  return (
+    <SegmentedRow<'off' | 'on'>
+      label="Flash attention"
+      description="Faster and lighter on memory. Reloads the model."
+      options={BOOL_OPTIONS}
+      current={isFlashAttnOn ? 'on' : 'off'}
+      onSelect={(id) => (id === 'on' ? updateSettings({ flashAttn: true }) : handleFlashAttnToggle(false))}
+      testIdFor={(id) => `flash-attn-${id}-button`}
+    />
+  );
+};
+
+// ─── KV Cache Type ───────────────────────────────────────────────────────────
+
+export const KvCacheTypeToggle: React.FC = () => {
+  const styles = useThemedStyles(createTextGenAdvancedStyles);
+  const { isFlashAttnOn, cacheDisabled, displayCacheType, handleCacheTypeChange } = useTextGenerationAdvanced();
+  return (
+    <SegmentedRow<CacheType>
+      label="KV cache type"
+      description={CACHE_TYPE_DESCRIPTIONS[displayCacheType]}
+      options={CACHE_TYPE_OPTIONS.map((ct: CacheType) => ({ id: ct, label: ct }))}
+      current={displayCacheType}
+      onSelect={handleCacheTypeChange}
+      testIdFor={(ct) => `cache-type-${ct}-button`}
+      isDisabled={(ct) => cacheDisabled && ct !== 'f16'}
+    >
+      {!isFlashAttnOn && (
+        <Text style={styles.warning}>
+          Quantized cache (q8_0/q4_0) will auto-enable flash attention.
+        </Text>
+      )}
+    </SegmentedRow>
+  );
+};
+
+// ─── Aggressive Loading ───────────────────────────────────────────────────────
+
+/**
+ * Reads/writes the single `settings.aggressiveModelLoading` source of truth (the
+ * residency manager is driven off it by loadPolicySync). Shared by the llama and
+ * LiteRT panels on both surfaces.
+ */
+type ModelLoadingMode = 'conservative' | 'balanced' | 'aggressive';
+const MODE_OPTIONS: PillOption<ModelLoadingMode>[] = [
+  // Label is "Lean" (short enough to sit on one line in the 3-segment row); the underlying policy
+  // id stays 'conservative' so nothing downstream changes.
+  { id: 'conservative', label: 'Lean' },
+  { id: 'balanced', label: 'Balanced' },
+  { id: 'aggressive', label: 'Aggressive' },
+];
+
+export const ModelLoadingModeSelector: React.FC = () => {
+  const { settings, updateSettings } = useAppStore();
+  // Single source of truth: the 3-mode setting, falling back to the legacy boolean.
+  const current: ModelLoadingMode =
+    settings.modelLoadingMode ?? (settings.aggressiveModelLoading ? 'aggressive' : 'balanced');
+  return (
+    <SegmentedRow<ModelLoadingMode>
+      label="Model loading"
+      description="How much memory models may use. Aggressive fits bigger models."
+      options={MODE_OPTIONS}
+      current={current}
+      onSelect={(id) => updateSettings({ modelLoadingMode: id })}
+      testIdFor={(id) => `model-loading-mode-${id}-button`}
+    />
+  );
+};
+
+// ─── Thinking Budget ─────────────────────────────────────────────────────────
+
+/** llama.rn path only: the cap rides the completion request as thinking_budget_tokens
+ *  (shared rule: @offgrid/models thinkingBudgetPayload). LiteRT has no thinking channel. */
+export const ThinkingBudgetSelector: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
+  const styles = useThemedStyles(createTextGenAdvancedStyles);
+  const { settings, updateSettings } = useAppStore();
+  const maxTokens = Math.max(1, settings.maxTokens);
+  const steps = [
+    REASONING_BUDGET_AUTO,
+    ...REASONING_BUDGET_OPTIONS.filter(value => value < maxTokens),
+    maxTokens,
+  ];
+  const budget = settings.reasoningBudget ?? REASONING_BUDGET_AUTO;
+  const shownBudget = budget > 0 ? Math.min(budget, maxTokens) : REASONING_BUDGET_AUTO;
+  const selectedStep = steps.indexOf(shownBudget);
+
+  useEffect(() => {
+    if (budget > maxTokens) updateSettings({ reasoningBudget: maxTokens });
+  }, [budget, maxTokens, updateSettings]);
+  return (
+    <View style={[styles.container, compact && styles.compactContainer]}>
+      <SliderSetting
+        testID="thinking-budget"
+        compact={compact}
+        label="Thinking budget"
+        description="A cap ends thinking sooner, so the answer comes sooner."
+        value={Math.max(0, selectedStep)}
+        min={0} max={steps.length - 1} step={1}
+        formatValue={(step) => steps[Math.round(step)] === REASONING_BUDGET_AUTO
+          ? 'Auto (up to max tokens)'
+          : steps[Math.round(step)] % 1024 !== 0 && steps[Math.round(step)] >= 1024
+            ? `${steps[Math.round(step)]} tokens`
+            : reasoningBudgetLabel(steps[Math.round(step)] ?? REASONING_BUDGET_AUTO)}
+        allowValueEditing={false}
+        onChange={(step) => updateSettings({ reasoningBudget: steps[step] })}
+      />
+    </View>
+  );
+};
+
+// ─── Show Generation Details ──────────────────────────────────────────────────
+
+export const ShowGenerationDetailsToggle: React.FC = () => {
+  const { settings, updateSettings } = useAppStore();
+  const on = !!settings.showGenerationDetails;
+  return (
+    <SegmentedRow<'off' | 'on'>
+      label="Show generation details"
+      description="Show how each reply was made, under it."
+      options={BOOL_OPTIONS}
+      current={on ? 'on' : 'off'}
+      onSelect={(id) => updateSettings({ showGenerationDetails: id === 'on' })}
+      testIdFor={(id) => `show-gen-details-${id}-button`}
+    />
+  );
+};
+
+// ─── CPU Threads & Batch Size ────────────────────────────────────────────────
+
+export const CpuThreadsSlider: React.FC = () => {
+  const styles = useThemedStyles(createTextGenAdvancedStyles);
+  const { settings, updateSettings } = useAppStore();
+  const { cpuThreadsSliderValue, cpuThreadsDisplayValue } = useTextGenerationAdvanced();
+  return (
+    <View style={styles.container}>
+      <SliderSetting
+        testID="cpu-threads-stepper"
+        label="CPU threads"
+        description="Parallel threads for inference"
+        value={cpuThreadsSliderValue}
+        // Unset means AUTO, and the slider's own minimum is 1 — so the screen read "1" while the
+        // engine was running the hardware-recommended count. Show what will actually be used.
+        formatValue={() => cpuThreadsDisplayValue}
+        min={1} max={12} step={1}
+        onChange={(v) => updateSettings({ nThreads: v })}
+        onReset={settings.nThreads ? () => updateSettings({ nThreads: 0 }) : undefined}
+        resetLabel="Use automatic threads"
+      />
+    </View>
+  );
+};
+
+export const BatchSizeSlider: React.FC = () => {
+  const styles = useThemedStyles(createTextGenAdvancedStyles);
+  const { settings, updateSettings } = useAppStore();
+  return (
+    <View style={styles.container}>
+      <SliderSetting
+        testID="batch-size-stepper"
+        label="Batch size"
+        description="Tokens processed per batch"
+        value={batchForBackend(settings.nBatch, settings.inferenceBackend)}
+        // 0 means auto: show the batch the engine will actually use.
+        formatValue={(v) => (settings.nBatch ? String(v) : `Auto (${v})`)}
+        min={32} max={512} step={32}
+        onChange={(v) => updateSettings({ nBatch: v })}
+        onReset={settings.nBatch ? () => updateSettings({ nBatch: 0 }) : undefined}
+        resetLabel="Use automatic batch size"
+      />
+    </View>
+  );
+};

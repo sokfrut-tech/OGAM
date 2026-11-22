@@ -1,0 +1,191 @@
+/**
+ * Unified Model Selection Integration Tests
+ *
+ * Tests the flow of selecting local vs remote models and ensuring
+ * generationService correctly routes to the appropriate provider.
+ *
+ * The real remote server store, remoteServerManager, provider registry and providers run here;
+ * nothing of ours is mocked. Choosing a model only builds and activates a provider (no request
+ * goes to the server), so no network fake is needed.
+ */
+
+import { useRemoteServerStore } from '../../../src/stores/remoteServerStore';
+import { providerRegistry } from '../../../src/services/providers/registry';
+import { remoteServerManager } from '../../../src/services/remoteServerManager';
+
+describe('Unified Model Selection', () => {
+  beforeEach(() => {
+    // Reset remote server store and drop any provider a previous test registered.
+    useRemoteServerStore.getState().clearAllServers();
+    providerRegistry.setActiveProvider('local');
+    for (const id of providerRegistry.getProviderIds()) {
+      if (id !== 'local') providerRegistry.unregisterProvider(id);
+    }
+  });
+
+  describe('Remote model selection', () => {
+    it('should set active server and model ID when selecting a remote text model', async () => {
+      // Add a server
+      const serverId = useRemoteServerStore.getState().addServer({
+        name: 'Test Ollama',
+        endpoint: 'http://localhost:11434',
+        providerType: 'openai-compatible',
+      });
+
+      // Add discovered models
+      useRemoteServerStore.getState().setDiscoveredModels(serverId, [
+        {
+          id: 'llama2',
+          name: 'Llama 2',
+          serverId,
+          capabilities: { supportsVision: false, supportsToolCalling: true, supportsThinking: false },
+          lastUpdated: new Date().toISOString(),
+        },
+      ]);
+
+      // Select remote model
+      await remoteServerManager.setActiveRemoteTextModel(serverId, 'llama2');
+
+      // Verify state was updated
+      expect(useRemoteServerStore.getState().activeServerId).toBe(serverId);
+      expect(useRemoteServerStore.getState().activeRemoteTextModelId).toBe('llama2');
+
+      // Verify the server's provider is the active one and carries the chosen model
+      expect(providerRegistry.getActiveProviderId()).toBe(serverId);
+      expect(providerRegistry.getProvider(serverId)?.getLoadedModelId()).toBe('llama2');
+    });
+
+    it('should clear remote selection when switching to local model', async () => {
+      const serverId = useRemoteServerStore.getState().addServer({
+        name: 'Test Server',
+        endpoint: 'http://localhost:11434',
+        providerType: 'openai-compatible',
+      });
+
+      // Set up remote selection first (the way the picker does it)
+      useRemoteServerStore.getState().setDiscoveredModels(serverId, [
+        {
+          id: 'llama2',
+          name: 'Llama 2',
+          serverId,
+          capabilities: { supportsVision: false, supportsToolCalling: true, supportsThinking: false },
+          lastUpdated: new Date().toISOString(),
+        },
+      ]);
+      await remoteServerManager.setActiveRemoteTextModel(serverId, 'llama2');
+      expect(providerRegistry.getActiveProviderId()).toBe(serverId);
+
+      // Clear selection
+      remoteServerManager.clearActiveRemoteModel();
+
+      // Verify state was cleared
+      expect(useRemoteServerStore.getState().activeServerId).toBeNull();
+      expect(useRemoteServerStore.getState().activeRemoteTextModelId).toBeNull();
+      expect(providerRegistry.getActiveProviderId()).toBe('local');
+    });
+
+    it('should handle multiple servers with different models', async () => {
+      const server1Id = useRemoteServerStore.getState().addServer({
+        name: 'Server 1',
+        endpoint: 'http://server1:11434',
+        providerType: 'openai-compatible',
+      });
+
+      const server2Id = useRemoteServerStore.getState().addServer({
+        name: 'Server 2',
+        endpoint: 'http://server2:11434',
+        providerType: 'openai-compatible',
+      });
+
+      // Add models to each server
+      useRemoteServerStore.getState().setDiscoveredModels(server1Id, [
+        {
+          id: 'model-a',
+          name: 'Model A',
+          serverId: server1Id,
+          capabilities: { supportsVision: false, supportsToolCalling: true, supportsThinking: false },
+          lastUpdated: new Date().toISOString(),
+        },
+      ]);
+
+      useRemoteServerStore.getState().setDiscoveredModels(server2Id, [
+        {
+          id: 'model-b',
+          name: 'Model B',
+          serverId: server2Id,
+          capabilities: { supportsVision: true, supportsToolCalling: true, supportsThinking: false },
+          lastUpdated: new Date().toISOString(),
+        },
+      ]);
+
+      // Verify we can get models from each server
+      const modelA = useRemoteServerStore.getState().getModelById(server1Id, 'model-a');
+      const modelB = useRemoteServerStore.getState().getModelById(server2Id, 'model-b');
+
+      expect(modelA?.name).toBe('Model A');
+      expect(modelB?.name).toBe('Model B');
+    });
+  });
+
+  describe('Vision model selection', () => {
+    it('should set active remote image model for vision models', async () => {
+      const serverId = useRemoteServerStore.getState().addServer({
+        name: 'Vision Server',
+        endpoint: 'http://localhost:11434',
+        providerType: 'openai-compatible',
+      });
+
+      useRemoteServerStore.getState().setDiscoveredModels(serverId, [
+        {
+          id: 'llava',
+          name: 'LLaVA',
+          serverId,
+          capabilities: { supportsVision: true, supportsToolCalling: false, supportsThinking: false },
+          lastUpdated: new Date().toISOString(),
+        },
+      ]);
+
+      await remoteServerManager.setActiveRemoteImageModel(serverId, 'llava');
+
+      expect(useRemoteServerStore.getState().activeRemoteImageModelId).toBe('llava');
+      expect(useRemoteServerStore.getState().activeRemoteMediaServerIds.image).toBe(serverId);
+      // Generation reads the server's image model, so the pick must land there.
+      expect(useRemoteServerStore.getState().getServerById(serverId)?.mediaModels?.image).toBe('llava');
+      // An image pick never becomes the server's chat model.
+      expect(providerRegistry.getProvider(serverId)?.getLoadedModelId() ?? null).not.toBe('llava');
+      expect(useRemoteServerStore.getState().activeRemoteTextModelId).not.toBe('llava');
+    });
+  });
+
+  describe('getActiveRemoteModel helpers', () => {
+    it('should return null when no model is set', () => {
+      const model = useRemoteServerStore.getState().getActiveRemoteTextModel();
+      expect(model).toBeNull();
+    });
+
+    it('should return active model when set', () => {
+      const serverId = useRemoteServerStore.getState().addServer({
+        name: 'Test Server',
+        endpoint: 'http://localhost:11434',
+        providerType: 'openai-compatible',
+      });
+
+      useRemoteServerStore.getState().setDiscoveredModels(serverId, [
+        {
+          id: 'test-model',
+          name: 'Test Model',
+          serverId,
+          capabilities: { supportsVision: false, supportsToolCalling: true, supportsThinking: false },
+          lastUpdated: new Date().toISOString(),
+        },
+      ]);
+
+      useRemoteServerStore.getState().setActiveServerId(serverId);
+      useRemoteServerStore.getState().setActiveRemoteTextModelId('test-model');
+
+      const model = useRemoteServerStore.getState().getActiveRemoteTextModel();
+      expect(model).not.toBeNull();
+      expect(model?.id).toBe('test-model');
+    });
+  });
+});

@@ -1,0 +1,180 @@
+import React, { useState, useCallback } from 'react';
+import { View, Text, FlatList } from 'react-native';
+import { LIST_CLIPPING_PROPS } from '../../constants/listClipping';
+import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Feather';
+import { Card } from '../../components';
+import { ListGroup } from '../../components/ListGroup';
+import { CustomAlert, hideAlert } from '../../components/CustomAlert';
+import { useTheme, useThemedStyles } from '../../theme';
+import { createStyles } from './styles';
+import { ActiveDownloadCard, CompletedDownloadCard, formatBytes, type DownloadItem } from './items';
+import { useDownloadManager } from './useDownloadManager';
+import { isQueuedStatus, isDownloadingStatus, isFailedStatus, type DownloadStatus } from '../../stores/downloadStore';
+import { UnderlineTabs, type UnderlineTab } from '../../components/UnderlineTabs';
+import { AliveScreen } from '../../components/AliveScreen';
+import { ScreenHeader } from '../../components/ScreenHeader';
+
+type FilterType = 'all' | 'text' | 'documents' | 'image' | 'video' | 'voice' | 'transcription';
+
+// The Models tabs, the same names in the same order, so a model sits under the same tab in both places
+// (hand test 91: Downloads had Vision and no Documents). Vision models are Text models, as on Models.
+const FILTERS: { id: FilterType; label: string }[] = [
+  { id: 'all',           label: 'All' },
+  { id: 'text',          label: 'Text' },
+  { id: 'documents',     label: 'Documents' },
+  { id: 'image',         label: 'Image' },
+  { id: 'video',         label: 'Video' },
+  { id: 'voice',         label: 'Voice' },
+  { id: 'transcription', label: 'Speech' },
+];
+
+const FILTER_TABS: UnderlineTab<FilterType>[] = FILTERS.map(f => ({ key: f.id, label: f.label, testID: `downloads-filter-${f.id}` }));
+
+function matchesFilter(item: DownloadItem, filter: FilterType): boolean {
+  if (filter === 'all')    return true;
+  if (filter === 'text')   return item.modelType === 'text';
+  if (filter === 'documents') return item.modelType === 'embedding';
+  if (filter === 'image')  return item.modelType === 'image';
+  if (filter === 'video')  return item.modelType === 'video';
+  if (filter === 'voice')  return item.modelType === 'tts';
+  if (filter === 'transcription') return item.modelType === 'stt';
+  return true;
+}
+
+export const DownloadManagerScreen: React.FC = () => {
+  const navigation = useNavigation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const {
+    activeItems,
+    completedItems,
+    alertState,
+    setAlertState,
+    handleRemoveDownload,
+    handleRetryDownload,
+    handlePauseDownload,
+    handleResumeDownload,
+    handleDeleteItem,
+    handleRepairVision,
+    isRepairingVision,
+    totalStorageUsed,
+  } = useDownloadManager();
+
+  const filteredActive = activeItems.filter(item => matchesFilter(item, activeFilter));
+  const filteredCompleted = completedItems.filter(item => matchesFilter(item, activeFilter));
+  // Split "active" into truly-downloading vs queued via the SAME classifier the per-row
+  // clock uses, so the header count can't claim a queued item is actively downloading.
+  const activeQueuedCount = filteredActive.filter(i => isQueuedStatus(i.status as DownloadStatus)).length;
+  // Count only rows actually transferring — NOT (total - queued), which wrongly folded
+  // a failed row into "downloading" and made this diverge from the ModelsScreen badge
+  // (isActiveStatus, which excludes failed). Using the shared isDownloadingStatus makes
+  // downloading + queued equal the badge's isActiveStatus set exactly (B7/T001).
+  const activeDownloadingCount = filteredActive.filter(i => i.status === 'downloading' || isDownloadingStatus(i.status as DownloadStatus)).length;
+  // Failed/retriable rows are shown here as cards; surface their count too so this screen and the
+  // ModelsScreen badge agree on "outstanding download work" (badge = downloading + queued + failed).
+  const activeFailedCount = filteredActive.filter(i => isFailedStatus(i.status as DownloadStatus)).length;
+  const activePausedCount = filteredActive.filter(i => i.status === 'paused').length;
+
+  // The same underline tabs as Models and Gallery (design philosophy: one look for every tab row).
+  const renderHeader = useCallback(() => (
+    <UnderlineTabs tabs={FILTER_TABS} active={activeFilter} onChange={setActiveFilter} />
+  ), [activeFilter]);
+
+  return (
+    <AliveScreen style={styles.container} testID="downloaded-models-screen">
+      <ScreenHeader title="Downloads" onBack={() => navigation.goBack()} backTestID="back-button" />
+
+      <FlatList
+        {...LIST_CLIPPING_PROPS}
+        data={[{ key: 'content' }]}
+        ListHeaderComponent={renderHeader}
+        renderItem={() => (
+          <View style={styles.content}>
+            {/* Active Downloads — only show when there are active items */}
+            {filteredActive.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Downloading</Text>
+                  {/* The count is what is moving; with nothing moving, the words beside it say why. */}
+                  {activeDownloadingCount > 0 && (
+                    <View style={styles.countBadge}>
+                      <Text testID="dm-active-downloading-count" style={styles.countText}>{activeDownloadingCount}</Text>
+                    </View>
+                  )}
+                  {activeQueuedCount > 0 && (
+                    <Text testID="dm-active-queued-count" style={[styles.countText, { color: colors.textSecondary }]}>
+                      {activeQueuedCount} queued
+                    </Text>
+                  )}
+                  {activePausedCount > 0 && (
+                    <Text testID="dm-active-paused-count" style={[styles.countText, { color: colors.textSecondary }]}>
+                      {activePausedCount} paused
+                    </Text>
+                  )}
+                  {activeFailedCount > 0 && (
+                    <Text testID="dm-active-failed-count" style={[styles.countText, { color: colors.error ?? colors.textSecondary }]}>
+                      {activeFailedCount} failed
+                    </Text>
+                  )}
+                </View>
+                <ListGroup style={styles.downloadCardInset}>
+                  {filteredActive.map(item => (
+                    <ActiveDownloadCard key={`active-${item.modelId}-${item.fileName}`} item={item} onRemove={handleRemoveDownload} onRetry={handleRetryDownload} onPause={handlePauseDownload} onResume={handleResumeDownload} />
+                  ))}
+                </ListGroup>
+              </View>
+            )}
+
+            {/* Downloaded Models */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>On this phone</Text>
+                <View style={styles.countBadge}>
+                  <Text style={styles.countText}>{filteredCompleted.length}</Text>
+                </View>
+              </View>
+              {filteredCompleted.length > 0 ? (
+                <ListGroup style={styles.downloadCardInset}>
+                  {filteredCompleted.map(item => (
+                    <CompletedDownloadCard key={`completed-${item.modelId}-${item.fileName}`} item={item} onDelete={handleDeleteItem} onRepairVision={handleRepairVision} onPauseRepair={handlePauseDownload} onResumeRepair={handleResumeDownload} onCancelRepair={handleRemoveDownload} isRepairingVision={isRepairingVision(item.modelId)} />
+                  ))}
+                </ListGroup>
+              ) : (
+                <Card style={styles.emptyCard}>
+                  <Icon name="package" size={24} color={colors.textMuted} />
+                  <Text style={styles.emptyText}>
+                    {activeFilter === 'all' ? 'No models downloaded yet' : `No ${FILTERS.find(f => f.id === activeFilter)?.label ?? ''} models`}
+                  </Text>
+                </Card>
+              )}
+            </View>
+
+            {/* Storage Info */}
+            {completedItems.length > 0 && (
+              <View style={styles.storageSection}>
+                <View style={styles.storageRow}>
+                  <Icon name="hard-drive" size={16} color={colors.textMuted} />
+                  <Text style={styles.storageText}>
+                    {formatBytes(totalStorageUsed)} used on this phone
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+        keyExtractor={item => item.key}
+        contentContainerStyle={styles.listContent}
+      />
+
+      <CustomAlert
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onClose={() => setAlertState(hideAlert())}
+      />
+    </AliveScreen>
+  );
+};

@@ -1,0 +1,170 @@
+import { ToolDefinition } from './types';
+import { videoSeam } from '../../bootstrap/videoSeam';
+
+export const AVAILABLE_TOOLS: ToolDefinition[] = [
+  {
+    id: 'generate_video',
+    name: 'generate_video',
+    displayName: 'Make a video',
+    icon: 'video',
+    summary: 'Turns a description into a short video clip.',
+    description:
+      'Request a short silent video from the selected video model. Generation starts after this text reply finishes. Describe the requested subject and motion.',
+    parameters: {
+      prompt: { type: 'string', description: 'Video prompt', required: true },
+      start_image: {
+        type: 'string',
+        description: 'Start from the last image or video frame in this chat',
+        enum: ['last_image'],
+      },
+    },
+  },
+  {
+    id: 'make_film',
+    name: 'make_film',
+    displayName: 'Make a film',
+    icon: 'film',
+    summary: 'Turns one sentence into a short narrated film. You see the shot list first.',
+    description:
+      'Turn one sentence into a short narrated film. The person sees a draft shot list first and chooses when it renders. Use when they ask for a story, a film, or anything longer than a few seconds.',
+    parameters: {
+      sentence: { type: 'string', description: 'The film in one sentence', required: true },
+    },
+  },
+  {
+    id: 'web_search',
+    name: 'web_search',
+    displayName: 'Web search',
+    summary: 'Looks things up on the web when the answer needs today\'s facts.',
+    description:
+      'Search the live web and return real-time result titles, snippets, and URLs. Use this for any question about current events, prices, weather, news, or anything that requires up-to-date information. When the snippet is insufficient, call read_url on the most relevant result URL to get the full page content.',
+    icon: 'globe',
+    requiresNetwork: true,
+    parameters: {
+      query: {
+        type: 'string',
+        description: 'Search query',
+        required: true,
+      },
+    },
+  },
+  {
+    id: 'calculator',
+    name: 'calculator',
+    displayName: 'Calculator',
+    summary: 'Works out sums exactly instead of guessing.',
+    description: 'Evaluate math expressions',
+    icon: 'hash',
+    parameters: {
+      expression: {
+        type: 'string',
+        description: 'Math expression',
+        required: true,
+      },
+    },
+  },
+  {
+    id: 'get_current_datetime',
+    name: 'get_current_datetime',
+    displayName: 'Date and time',
+    summary: 'Knows today\'s date and the time where you are.',
+    description: 'Get current date and time',
+    icon: 'clock',
+    parameters: {
+      timezone: {
+        type: 'string',
+        description: 'IANA timezone, e.g. America/New_York',
+      },
+    },
+  },
+  {
+    id: 'get_device_info',
+    name: 'get_device_info',
+    displayName: 'Device info',
+    summary: 'Tells you about this phone\'s hardware when you ask.',
+    description: 'Get device hardware info',
+    icon: 'smartphone',
+    parameters: {
+      info_type: {
+        type: 'string',
+        description: 'Info type',
+        enum: ['battery', 'storage', 'memory', 'all'],
+      },
+    },
+  },
+  {
+    id: 'search_knowledge_base',
+    name: 'search_knowledge_base',
+    displayName: 'Knowledge base',
+    summary: 'Answers from your project documents. Counts only in a chat that has some.',
+    description: 'Search uploaded project documents',
+    icon: 'book-open',
+    parameters: {
+      query: {
+        type: 'string',
+        description: 'Search query',
+        required: true,
+      },
+    },
+  },
+  {
+    id: 'read_url',
+    name: 'read_url',
+    displayName: 'Read a web page',
+    summary: 'Reads a web page you share and answers from it.',
+    description:
+      'Fetch the full live content of any URL. Use this after web_search to read the complete text of a result page, or directly when the user shares a link.',
+    icon: 'link',
+    requiresNetwork: true,
+    parameters: {
+      url: {
+        type: 'string',
+        description: 'Full URL to fetch',
+        required: true,
+      },
+    },
+  },
+];
+
+const VIDEO_TOOLS = new Set(['generate_video', 'make_film']);
+
+/** Tools this build can run now. Video is Pro: its tool is offered only while Pro video is on. */
+export function offeredTools(): ToolDefinition[] {
+  return AVAILABLE_TOOLS.filter(tool => !VIDEO_TOOLS.has(tool.id) || videoSeam.available());
+}
+
+export function getToolsAsOpenAISchema(enabledToolIds: readonly string[]) {
+  return offeredTools().filter(tool => enabledToolIds.includes(tool.id)).map(
+    tool => ({
+      type: 'function' as const,
+      function: {
+        name: tool.name,
+        description: tool.description,
+        parameters: {
+          type: 'object',
+          properties: Object.fromEntries(
+            Object.entries(tool.parameters).map(([key, param]) => [
+              key,
+              {
+                type: param.type,
+                description: param.description,
+                ...(param.enum ? { enum: param.enum } : {}),
+              },
+            ]),
+          ),
+          required: Object.entries(tool.parameters)
+            .filter(([_, param]) => param.required)
+            .map(([key]) => key),
+        },
+      },
+    }),
+  );
+}
+
+export function buildToolSystemPromptHint(enabledToolIds: string[]): string {
+  const enabledTools = offeredTools().filter(t => enabledToolIds.includes(t.id));
+  if (enabledTools.length === 0) return '';
+
+  const toolList = enabledTools.map(t => `- ${t.name}: ${t.description}`).join('\n');
+  return `\n\nTools available:\n${toolList}\nUse these tools proactively and precisely — call the right tool at the right moment rather than guessing or saying you cannot help.`;
+}

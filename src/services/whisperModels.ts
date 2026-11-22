@@ -1,0 +1,91 @@
+/**
+ * Whisper model catalog + transcription normalization.
+ *
+ * Extracted from whisperService.ts (behavior-neutral) so the service file stays
+ * within the max-lines budget. whisperService re-exports these symbols, so every
+ * existing `import { WHISPER_MODELS, cleanTranscription } from './whisperService'`
+ * keeps working unchanged.
+ */
+
+import type { MobileWhisperCatalogModel } from '@offgrid/models';
+import { registerBundledCatalog, withRemoteCatalog } from '../stores/modelCatalogStore';
+import { qwenAsrCardFor } from './qwenAsrModel';
+
+const GGML_BASE = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main';
+
+export const WHISPER_MODELS: MobileWhisperCatalogModel[] = [
+  // ── English-only ──────────────────────────────────────────────────────────
+  { id: 'tiny.en',   name: 'Tiny',   size: 75,   lang: 'en',    url: `${GGML_BASE}/ggml-tiny.en.bin`,   description: 'Fastest, English only' },
+  { id: 'base.en',   name: 'Base',   size: 142,  lang: 'en',    url: `${GGML_BASE}/ggml-base.en.bin`,   description: 'Better accuracy, English only' },
+  { id: 'small.en',  name: 'Small',  size: 466,  lang: 'en',    url: `${GGML_BASE}/ggml-small.en.bin`,  description: 'High accuracy, English only' },
+  { id: 'medium.en', name: 'Medium', size: 1500, lang: 'en',    url: `${GGML_BASE}/ggml-medium.en.bin`, description: 'Near human-level, English only, ~2 GB RAM' },
+  // ── Multilingual ──────────────────────────────────────────────────────────
+  { id: 'tiny',           name: 'Tiny',             size: 75,   lang: 'multi', url: `${GGML_BASE}/ggml-tiny.bin`,           description: 'Fastest, 99 languages' },
+  { id: 'base',           name: 'Base',             size: 142,  lang: 'multi', url: `${GGML_BASE}/ggml-base.bin`,           description: 'Better accuracy, 99 languages' },
+  { id: 'small',          name: 'Small',            size: 466,  lang: 'multi', url: `${GGML_BASE}/ggml-small.bin`,          description: 'High accuracy, 99 languages' },
+  { id: 'medium',         name: 'Medium',           size: 1500, lang: 'multi', url: `${GGML_BASE}/ggml-medium.bin`,         description: 'Near human-level, 99 languages, ~2 GB RAM' },
+  { id: 'large-v3-turbo', name: 'Large v3 Turbo',  size: 1550, lang: 'multi', url: `${GGML_BASE}/ggml-large-v3-turbo.bin`, description: 'Fast + accurate, distilled large, 99 languages' },
+  { id: 'large-v3',       name: 'Large v3',         size: 2952, lang: 'multi', url: `${GGML_BASE}/ggml-large-v3.bin`,       description: 'Best quality, 99 languages, ~3 GB RAM' },
+];
+/** The name a person sees. The English-only and the 99-language builds share names ("Small"), so the
+ *  English one says so; ids and files are unchanged (hand test 91: two "Small" rows disagreed). */
+export function whisperDisplayName(model: { name: string; lang: 'en' | 'multi' }): string {
+  return model.lang === 'en' && !/english/i.test(model.name) ? `${model.name} English` : model.name;
+}
+
+// The bundled fallback: read it merged with the remote catalog (withRemoteCatalog('transcription', …)).
+registerBundledCatalog('transcription', WHISPER_MODELS);
+
+/** A local transcription model by id: a Whisper model from `whisperModels`, else Qwen3-ASR. */
+export function findTranscriptionModel(
+  whisperModels: readonly MobileWhisperCatalogModel[],
+  modelId: string | null | undefined,
+): MobileWhisperCatalogModel | undefined {
+  return whisperModels.find(model => model.id === modelId) ?? qwenAsrCardFor(modelId);
+}
+
+/** The name a person knows a transcription model by: "Whisper Tiny (English)", "Qwen3 ASR 0.6B". */
+export function transcriptionModelName(modelId: string): string {
+  const asr = qwenAsrCardFor(modelId);
+  if (asr) return asr.name;
+  const whisper = withRemoteCatalog('transcription', WHISPER_MODELS).find(model => model.id === modelId);
+  if (!whisper) return modelId;
+  return `Whisper ${whisper.name}${whisper.lang === 'en' ? ' (English)' : ''}`;
+}
+
+/** Qwen3-ASR's KV cache and compute buffers beside its weights (4096-token context). */
+const QWEN_ASR_RUNTIME_MB = 512;
+
+/** What a resident transcription model holds in memory, for the residency budget. */
+export function transcriptionResidentSizeMB(modelId: string): number {
+  const asr = qwenAsrCardFor(modelId);
+  if (asr) return asr.size + QWEN_ASR_RUNTIME_MB;
+  return withRemoteCatalog('transcription', WHISPER_MODELS).find(model => model.id === modelId)?.size ?? 200;
+}
+
+/**
+ * Normalize a raw Whisper transcription: strip the non-speech markers Whisper
+ * emits for silence/noise — [BLANK_AUDIO], [ Silence ], [MUSIC], (inaudible),
+ * (speaking foreign language), etc. — and return '' when nothing but markers
+ * (or punctuation) remains. Without this, a silent/too-short clip returned the
+ * literal "[BLANK_AUDIO]" token, which then got SENT as the message text instead
+ * of being treated as "couldn't hear that". The single place this rule lives, so
+ * every path (file + realtime) treats no-speech identically.
+ */
+export function cleanTranscription(raw: string): string {
+  if (!raw) return '';
+  const stripped = raw
+    .replace(/\[[^\]]*\]/g, ' ') // [BLANK_AUDIO], [ Silence ], [MUSIC]
+    .replace(/\([^)]*\)/g, ' ')  // (silence), (speaking foreign language)
+    .split(/\r?\n/)
+    .map(line => line.replace(/[^\S\r\n]+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n')
+    .trim();
+  // Only markers / punctuation left → no real speech.
+  // Unicode letters/numbers are speech too. The old Latin-only check discarded
+  // valid Hindi, Japanese, Korean, Arabic, and other non-Latin transcripts as
+  // if they were silence.
+  if (!/[\p{L}\p{N}]/u.test(stripped)) return '';
+  return stripped;
+}

@@ -1,0 +1,73 @@
+name: Build Jarvis Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jarvis-android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: arm64 debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+
+      - name: Require private workspace access
+        env:
+          PRO_SUBMODULE_PAT: ${{ secrets.PRO_SUBMODULE_PAT }}
+        shell: bash
+        run: |
+          if [[ -z "$PRO_SUBMODULE_PAT" ]]; then
+            echo "::error::Add the PRO_SUBMODULE_PAT repository secret with read access to off-grid-ai/mobile-pro and off-grid-ai/shared, then run this workflow again."
+            exit 1
+          fi
+
+      - name: Set up Node workspace and private packages
+        uses: ./.github/actions/setup-mobile
+        with:
+          private-token: ${{ secrets.PRO_SUBMODULE_PAT }}
+          save-caches: 'false'
+
+      - name: Set up Java 17, pinned Android NDK and native runtime
+        uses: ./.github/actions/setup-android
+        with:
+          video: 'true'
+          save: 'false'
+
+      - name: Verify bundled Qualcomm QNN runtime assets
+        run: bash scripts/verify-qnn-assets.sh
+
+      - name: Set up Android SDK tools
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Build arm64 debug APK
+        run: |
+          cd android
+          ./gradlew --no-daemon assembleDebug -PreactNativeArchitectures=arm64-v8a
+
+      - name: Verify APK and write checksum
+        shell: bash
+        run: |
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          sha256sum "$APK" | tee android/app/build/outputs/apk/debug/app-debug.apk.sha256
+          ls -lh "$APK"
+
+      - name: Upload APK and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: Jarvis-OGAM-arm64-debug
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/app-debug.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
