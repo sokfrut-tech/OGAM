@@ -59,7 +59,7 @@ class JarvisPcmStreamPlayerTest {
     val factory = QueueTrackFactory(first, second)
     val player = JarvisPcmStreamPlayer(factory, FakeFocus())
 
-    val firstGeneration.set(player.begin(24_000))!!
+    val firstGeneration = player.begin(24_000)!!
     player.cancel(firstGeneration)
     val secondGeneration = player.begin(24_000)!!
 
