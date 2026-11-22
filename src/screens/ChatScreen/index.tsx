@@ -9,7 +9,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { scrollToContentEnd } from './scrollToContentEnd';
 import { useUiModeStore } from '../../stores/uiModeStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import {
@@ -49,6 +49,7 @@ import { useChatStore } from '../../stores';
 import { useIsFocused } from '@react-navigation/native';
 import { LivingField } from '../../components/LivingField';
 import { useGetPro } from '../../hooks/useGetPro';
+import { recordingController } from '../../services/recordingController';
 
 function countConversationImages(messages: Message[] | undefined): number {
   return (messages || []).reduce(
@@ -62,11 +63,21 @@ export const ChatScreen: React.FC = () => {
   const isNearBottomRef = React.useRef(true);
   const rootNavigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Chat'>>();
   const { colors } = useTheme();
   const getPro = useGetPro();
   const styles = useThemedStyles(createStyles);
   const isFocused = useIsFocused();
   const chat = useChatScreen();
+
+  // Android's system-assistant service enters through offgrid://assistant/voice.
+  // Reuse the exact same ChatInput/Whisper/Qwen recorder as a manual mic press;
+  // recordingController checks that a real input backend is available first.
+  useEffect(() => {
+    if (!route.params?.startVoice) return;
+    recordingController.start();
+    rootNavigation.setParams({ startVoice: undefined });
+  }, [route.params?.startVoice, rootNavigation]);
   // Counted once per change to the chat, not on every render: opening a sheet re-renders this screen.
   const activeMessages = chat.activeConversation?.messages;
   const imageCount = useMemo(() => countConversationImages(activeMessages), [activeMessages]);
