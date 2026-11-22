@@ -83,3 +83,40 @@ The connected GitHub integration can read `sokfrut-tech/OGAM`, but requests for 
 
 - Authorized source material for the pinned Pro commit and the shared workspace revision is not available through the current GitHub connection.
 - The exact shared commit/ref used by the existing setup action is selected dynamically from the matching branch or its base branch; it must be recorded before copying so the migration is reproducible.
+
+
+## Follow-up dependency audit (2026-11-22, current PR head)
+
+The current PR head is `f2a5ef6f8b796567a982914be93cb8846d13e5e0` (PR #1 remains open/draft).
+
+### What the current open-core wiring already does
+
+- `pro/` is detected by checking for `pro/package.json`. If absent, Metro and Jest route `@offgrid/pro` to `src/bootstrap/proStub.js`.
+- Jest skips the enumerated Pro-dependent suites only when the Pro submodule is absent. This is an explicit reduced open-core test mode, not a full Pro migration.
+- `tsconfig.json` excludes `pro/**` and a list of tests that import Pro paths.
+- The CI composite action conditionally checks out both private repositories only when its `private-token` input is non-empty. The CI workflow passes an empty token on workflow_dispatch and passes `secrets.PRO_SUBMODULE_PAT` for PR/push events.
+- The manual APK workflow still hard-fails when `PRO_SUBMODULE_PAT` is empty.
+
+### Why shared remains a hard build dependency
+
+- The lockfile records all nine `@offgrid/*` packages as npm link dependencies whose resolved paths are `../shared/packages/<package>`. A clean OGAM-only checkout therefore does not contain the package targets required by `npm ci`.
+- `metro.config.js` resolves and watches shared package directories outside the repository, including design, models, notes, notes-editor, rag, speech, sync, ui and writing; it also expects shared's root `node_modules`.
+- `jest.config.js` maps source imports for design, sync (including adapters), writing and notes directly into `../shared/packages/.../src`.
+- The setup action moves the private shared checkout to `../shared`, installs its workspace, builds the packages and caches its dependencies/dist output.
+- This confirms that simply omitting the shared checkout or adding a Pro-style stub would break dependency installation, Metro resolution and at least part of Jest. No such workaround has been applied.
+
+### CI evidence
+
+- PR head workflow run `45014455066` (CI run 16) was reported as `pending` when checked. The jobs endpoint had not populated jobs yet, so there is no new pass/fail evidence to report.
+- Earlier failure evidence remains applicable: missing private workspace checkout caused module/type-resolution failures. It is not proof that the changed application code itself is defective, but it also is not a successful validation.
+
+### Revised next implementation sequence
+
+1. Build a complete source-level consumer map for each of the nine shared packages and every `@offgrid/pro` entry point, including app bootstrap, runtime registration, native integration, tests and build scripts. The Git tree and configuration prove the package-level wiring, but the connected source-search index returned no matching code hits; do not treat that as evidence that imports are absent.
+2. For each shared package, classify its API surface as (a) essential to free app runtime, (b) optional feature, (c) Pro-only, or (d) build/test tooling. Record exact importers and tests before moving anything.
+3. Prefer a first-party in-repository package move only where source and redistribution rights are confirmed. Otherwise specify an independent implementation with behavior-level tests; do not copy private code or fabricate compatibility stubs.
+4. Only after the map exists, create a dedicated migration branch/slice for one package at a time. Keep the existing PR draft and avoid broad dependency or lockfile edits until the first vertical slice can be installed and tested in a clean checkout.
+
+### Current conclusion
+
+The Pro fallback is already partially implemented for open-core CI. The remaining autonomy blocker is materially larger than one missing checkout: nine sibling packages are encoded as required npm links and referenced by Metro/Jest. The next safe action is a source-level consumer map, not changing CI to skip shared.
