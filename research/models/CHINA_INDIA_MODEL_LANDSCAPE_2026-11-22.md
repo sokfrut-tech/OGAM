@@ -184,3 +184,51 @@ This batch inspected repository READMEs, selected source files and license files
 4. Inspect the exact LiteRT-LM Kotlin sample API, Android packaging, model metadata and lifecycle before changing OGAM dependencies.
 5. Keep all voice modules replaceable behind internal ASR/TTS interfaces; do not bind the assistant core to one vendor runtime.
 6. Do not mark any of these as integrated or device-tested until a reproducible build and PGEM10 run are recorded.
+
+## OPPO Snapdragon 8 Gen 2-specific speech path — source audit 2026-11-22
+
+### Exact Qwen3-ASR artifact split
+Official LiteRT-LM Omni source and model card now provide a much clearer integration picture:
+- The 960 MB INT8 qwen3_asr_0.6b_5s_i8.litertlm package is the easiest complete ASR prototype for CPU/GPU via LiteRT-LM Omni. It includes audio front-end, Qwen3 decoder, tokenizer and metadata; the model card describes 5-second sliding windows, overlap, early partial hypotheses and seam reconciliation.
+- A separate 794 MB .tflite INT8 graph is provided for direct LiteRT SDK integration.
+- The SoC-specific AOT NPU artifacts are .tflite, not .litertlm, and use FP32 variants listed at 1.88–2.19 GB. The card lists Qualcomm_SM8550 (Snapdragon 8 Gen 2) explicitly. Therefore do not assume the 960 MB INT8 bundle automatically runs on NPU; NPU is a separate direct-LiteRT integration track with a much larger artifact and device delegate/plugin requirements.
+- Russian is explicitly listed among supported languages. This establishes advertised language support, not Russian command accuracy.
+- Official card: https://huggingface.co/litert-community/Qwen3-ASR-0.6B
+- Official Omni implementation guide: https://github.com/google-ai-edge/LiteRT-LM/blob/main/omni/docs/Qwen3-ASR-0.6B.README.md
+
+### LiteRT-LM Omni code architecture
+- Current LiteRT-LM source version.bzl reports in-development VERSION 0.20.0 and LiteRT 2.4.0. This is a source-tree version, not a guarantee that Maven artifacts of that version are already published. Pin a published Maven release for an Android build.
+- omni/README.md explicitly labels LiteRT Omni an EXPERIMENTAL effort. It exposes a C++ OmniEngine/OmniSession interface and supports ASR, TTS, text-to-image and multimodal Any-to-Any models.
+- The documented Android route in Omni README is a Bazel-built ARM64 command-line runner plus native shared libraries and model files pushed to /data/local/tmp; it is not a ready-made stable Kotlin Android SDK integration.
+- OmniSession supports push-based streaming input, ProcessAsync callbacks, ProcessNext, Flush, and explicit end-of-input. ASR outputs separate confirmed_text and unconfirmed_text, which maps well to live captions and low-latency command capture.
+- AudioInputMetadata defaults to 16 kHz mono; audio samples are float PCM. App integration must handle microphone capture, resampling, lifecycle, cancellation and conversion to PCM correctly.
+- OmniEngine::Settings supports CPU/GPU/NPU, thread count, model/cache paths, remote model URLs, and NPU dispatch library directory. Model/cache files should be stored app-private and model downloads hash-verified.
+- omni/speech2text/qwen3_asr.cc registers Qwen3-ASR 0.6B and 1.7B names and builds the audio encoder, tokenizer and LM decoder as a multi-stage streaming pipeline.
+- Official source references:
+  - https://github.com/google-ai-edge/LiteRT-LM/blob/main/omni/README.md
+  - https://github.com/google-ai-edge/LiteRT-LM/blob/main/omni/omni_engine.h
+  - https://github.com/google-ai-edge/LiteRT-LM/blob/main/omni/omni_session.h
+  - https://github.com/google-ai-edge/LiteRT-LM/blob/main/omni/base/io_types.h
+  - https://github.com/google-ai-edge/LiteRT-LM/blob/main/omni/speech2text/qwen3_asr.cc
+
+### Qwen3-TTS revised size and Russian evidence
+- The current LiteRT community card lists qwen3_tts_int8_v2.litertlm at 2.44 GB and INT4 at 2.24 GB. Both include Talker, MTP drafter, codec decoder, tokenizer and speaker embedding. Russian is explicitly supported.
+- The card reports near-real-time RTF on Galaxy S26 (GPU 1.24, CPU 1.29) and peak memory around 1.44 GB GPU / 1.90 GB CPU. These are vendor/community card figures for a different phone; do not extrapolate to PGEM10.
+- The v2 bundle requires a runtime supporting the newer per-head MTP signatures; the card says v1 bundles remain for older runtimes. Pin matching model/runtime versions.
+- TTS language config is BCP-47 (ru-RU); the official Omni proto exposes language, voice and streaming text chunk config.
+- Card: https://huggingface.co/litert-community/Qwen3-TTS-12Hz-0.6B-Base
+- Runtime config: https://github.com/google-ai-edge/LiteRT-LM/blob/main/runtime/proto/text2speech_session_config.proto
+
+### Revised OGAM decision
+1. First build the 960 MB Qwen3-ASR INT8 LiteRT-LM Omni CPU/GPU prototype. It has the clearest single-file streaming ASR path and avoids premature NPU complexity.
+2. In parallel, test a separate SM8550 AOT NPU .tflite prototype only after verifying the OPPO firmware's LiteRT/QNN/Qualcomm delegate compatibility and available NPU dispatch libraries. It is not a drop-in replacement for the .litertlm package.
+3. Treat Omni as an experimental C++ subsystem wrapped behind OGAM's internal ASR interface; keep Sherpa/Whisper fallback and do not couple the main Jarvis planner to LiteRT-specific types.
+4. Evaluate Qwen3-TTS only as an on-demand optional voice package; its 2.24–2.44 GB storage size and ~1.4–1.9 GB reported peak memory make it unsuitable for unconditional preloading alongside a local LLM until PGEM10 measurements prove otherwise.
+5. Do not use a latest.release dependency in reproducible builds. Resolve and pin an actually published Maven version and compatible Kotlin metadata; record Gradle/AGP/Kotlin/NDK/Bazel/LiteRT versions together.
+6. Benchmark three distinct routes: (A) Qwen3-ASR INT8 Omni CPU; (B) Qwen3-ASR INT8 Omni GPU; (C) SM8550 AOT NPU .tflite. Record cold/warm load, first partial transcript, stable transcript latency, Russian WER/CER, peak RSS, CPU/GPU/NPU utilization if available, thermal throttling, battery and offline behavior.
+7. Before any model download/build on the user's device, build a small reproducible APK/runner and confirm storage headroom, model hashes, network-resume behavior and explicit user consent.
+
+### Current limitations
+- This was a GitHub source/model-card audit only. No weights were downloaded, no Android binary was built, no model was run, no NPU delegate was loaded and no OPPO Find X6 Pro measurement was performed.
+- omni/README.md labels Omni experimental. The Android command-line runner instructions prove an ARM64 route, not a production-ready Kotlin embedding API.
+- NPU availability is not established merely by the Snapdragon model suffix: actual OPPO firmware, driver versions, vendor dispatch libraries, delegate support and permissions must be checked.
