@@ -30,6 +30,10 @@ test('the assistant session launches Chat through the documented URI without req
   assert.match(session, /startVoiceActivity\(launchIntent\)/);
   assert.doesNotMatch(session, /SHOW_WITH_ASSIST|SHOW_WITH_SCREENSHOT/);
   assert.match(metadata, /android:supportsAssist="true"/);
+  const service = read('android/app/src/main/java/ai/offgridmobile/voice/JarvisVoiceInteractionService.kt');
+  assert.match(service, /setDisabledShowContext\\([\\s\\S]*SHOW_WITH_ASSIST[\\s\\S]*SHOW_WITH_SCREENSHOT/);
+  const app = read('App.tsx');
+  assert.match(app, /linking=\\{jarvisVoiceLinking\\}/);
 });
 
 test('system assistant invokes the shared recorder only when a voice backend exists', () => {
