@@ -100,9 +100,23 @@ For each candidate with cleared rights, pin one exact model revision and compare
 
 No such OGAM/OPPO measurements exist yet. Do not call any candidate production-ready based on vendor measurements.
 
+## Android PCM playback boundary added to OGAM
+
+On 2026-11-22 an engine-neutral Android playback class was added:
+
+- Source: `android/app/src/main/java/ai/offgridmobile/voice/JarvisPcmStreamPlayer.kt`.
+- Unit tests: `android/app/src/test/java/ai/offgridmobile/voice/JarvisPcmStreamPlayerTest.kt` (8 JVM tests; not yet executed by Gradle).
+- It accepts ordered mono Float32 chunks at 8–96 kHz, uses streaming `AudioTrack` with non-blocking writes, and keeps a generation token for every reply.
+- `cancel()` invalidates the token before releasing the track; stale callbacks cannot write into a later reply. The code also protects a new AudioFocus request from late cleanup of an older in-flight start.
+- AudioFocus is transient and speech-typed. It ducks on `AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK`, cancels on permanent/transient loss and releases focus after completion/cancellation.
+- The class is model-independent and does not create a microphone, wake-word service, network path or TTS model. A future Sherpa `OfflineTts.generateWithCallback` adapter can feed its `FloatArray` chunks and return cancellation to the native generator.
+
+This is a reusable native output component, not yet a user-visible speech feature: it is not registered as a React Native module and no TTS engine calls it yet.
+
 ## Current status
 
 - No Sherpa, Soniqo, Supertonic, TeraTTSv2, Piper or local-tts dependency has been added to OGAM.
 - No TTS model weights have been downloaded or packaged by this research step.
 - No local Russian TTS reply path exists in the Free/Core build yet.
-- Next implementation slice: build and test the vendor-neutral sentence-stream and Android PCM playback/cancellation boundary, then connect the selected backend after its licence and OPPO footprint gates are passed.
+- Open-core CI checks the PCM source contract, but does not compile Kotlin or run the 8 JVM tests. Android Gradle and OPPO verification remain outstanding.
+- Next implementation slice: create the streaming text-to-TTS adapter contract and sentence chunker, then connect a selected backend after its licence and OPPO footprint gates are passed.
