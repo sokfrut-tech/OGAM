@@ -389,7 +389,7 @@ async function executeToolCallSafely(
     : exts.find(e => e.canHandle(tc.name));
   const start = Date.now();
   try {
-    const raw = ext ? await ext.execute(tc) : await executeToolCall(tc);
+    const raw = ext ? await ext.execute(tc) : await executeToolCall(tc, enabledBuiltInToolIds);
     return normalizeToolResult(tc, raw);
   } catch (err) {
     logger.error(
