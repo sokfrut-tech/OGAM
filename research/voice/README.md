@@ -12,6 +12,9 @@ Status: public source research and design notes; no new TTS/KWS model is integra
 
 - [Russian audio evaluation corpus v1](JARVIS_RUSSIAN_AUDIO_EVALUATION_CORPUS_V1_2026-11-22.md) — fixed phrases for Russian stress/homographs, numbers and units, technical language, Jarvis responses, wake-word positive/negative tests, AEC scenarios, and a repeatable PGEM10 benchmark protocol. Text-only; no user audio stored.
 
+
+- [Qwen3-TTS Android integration/build-isolation plan](OGAM_QWEN3_TTS_ANDROID_INTEGRATION_PLAN_2026-11-22.md) — exact NDK/CMake/GGML pins, confirmed duplicate-target risk with the existing Stable Diffusion native build, isolated Android library options, JNI callback contract and benchmark acceptance gates.
+
 ## Decisions / no-go boundaries
 
 1. Keep the physical microphone owner unique: OGAM AudioRecorderService. KWS/ASR/Whisper must share/subcribe to it or coordinate through one native capture service; never start a competing recorder.
