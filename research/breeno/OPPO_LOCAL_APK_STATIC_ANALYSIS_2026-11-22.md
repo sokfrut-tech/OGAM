@@ -107,6 +107,8 @@ Additional OEM-adjacent HeyTap products have separate extracted fingerprints: Br
 
 ## 5. Priority Research Answers (Section 6 Checklist)
 
+**Evidence discipline for this section:** Component declarations, permissions, DEX class descriptors, URI/database strings, asset names, hostnames and native-library filenames were extracted statically. They are architectural clues, not proof that a method executes, that an endpoint is reachable by OGAM, or that a feature works offline. Statements about dispatch, data flow, indexing or model invocation remain hypotheses until supported by JADX method/call-graph tracing or a runtime trace.
+
 ### 5.1 Breeno (`com.heytap.speechassist` — `13.4.3_08c04e4_261110` & Diff vs `13.3.2`)
 
 1. **Assistant Entry, Summon & Request Dispatch:**
@@ -173,7 +175,7 @@ Static inspection found indicators consistent with a **candidate on-device searc
 
 1. **`Сервисный модуль ИИ` (`com.oplus.aiunit` `16.1.33_spshop`, `260920`):**
    - Central shared AI daemon on ColorOS 16: declares `com.oplus.aiunit.large.model = true` and `ai::meta::enable_local_llm_settings_ui = true`.
-   - Exposes `AIUnitService` (`oplus.intent.action.AIUNIT_SERVICE`) + `AIUnitProvider` (`com.oplus.aiunit.authority.open`) + `AIUnitDownloadService` (`BIND_DOWNLOAD_SERVICE`) + **201 sandboxed `ServiceProcess0..200` worker processes**.
+   - Exposes `AIUnitService` (`oplus.intent.action.AIUNIT_SERVICE`) + `AIUnitProvider` (`com.oplus.aiunit.authority.open`) + `AIUnitDownloadService` (`BIND_DOWNLOAD_SERVICE`) + **201 non-exported worker service/process declarations (`:worker0` through `:worker200`)**; the decoded manifest sets `isolatedProcess=false`, so these are same-app-UID worker processes, not Android isolated-process sandboxes. This is manifest evidence only; runtime scheduling and execution boundaries were not traced..
    - Bundles `libaiunit_framework.so` (1.24 MB), **`libcore_tokenizers.so` (7.66 MB)**, `libopencv_java4.so` (17.82 MB), **`libdmabufheap.so` (96 KB, zero-copy NPU/DSP buffers)**, `mediatek.permission.ACCESS_APU_SYS`, and dynamic model CDN endpoints (`acdp-download-cn.allawntech.com`, `odin.allawntech.com`). Client apps (`SpeechService`, `Memory`, `Scanner`, `AccessibilityAssistant`, `AiCall`, `AiWriter`) bind via tiny `libaiunit_sdk_core.so` (12–14 KB) stubs.
 2. **`Быстрый поиск Breeno` (`com.coloros.colordirectservice` `16.12.2`, `261019`):**
    - Dual `AccessibilityService`s (`ColorTextAccessibilityService`, `FlashNotesAccessibilityService`), `InvokeEntranceService` (`SPEECHASSIST_WAKEUP_DIRECTSERVICE`, `INFO_COLLECTION`, `TRANSLATE`, `BREENO_SHOPPING`), NCNN classifier (`TextCNN_Attention.ncnn.bin` 2.65 MB), `libsmart_read_engine.so` (4.16 MB), `libCutoutEffect.so`, `libimage-crop.so`, `libpaint.so` (6.86 MB), ACRCloud audio ID, and feeds Flash Notes / Bills into `aimemory` (`DataShareProvider/datacollectmemory`).
