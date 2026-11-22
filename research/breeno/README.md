@@ -207,3 +207,5 @@ The source survey now includes Chinese platforms and Chinese-language projects (
 - [Qwen3-TTS Android integration/build-isolation plan](../voice/OGAM_QWEN3_TTS_ANDROID_INTEGRATION_PLAN_2026-11-22.md) — identifies the dual-GGML CMake conflict with OGAM's existing Stable Diffusion build and defines a separate Kotlin/JNI benchmark module with measurable acceptance gates.
 
 - [Soniqo Supertonic-3 and LocalVQE AEC audit](../voice/SONIQO_SUPERTONIC_LOCALVQE_ANDROID_AUDIT_2026-11-22.md) — Russian 31-language LiteRT TTS, OpenRAIL-M terms and published Galaxy S23 Ultra performance; explicit-reference 16 kHz LocalVQE AEC design, fail-closed timestamp alignment and Android integration gaps.
+
+- [CosyVoice 3 and VoxCPM2 mobile TTS audit](../voice/COSYVOICE_VOXCPM2_MOBILE_TTS_AUDIT_2026-11-22.md) — CosyVoice public Russian wrong-language issue and Android native build constraints; VoxCPM2 author-reported Russian intelligibility benchmark and why its 2B / 8.7 GB ARM LiteRT variant is reference-only for PGEM10.
