@@ -4,7 +4,7 @@ import {
   type TaskPlanStep,
   type TaskPlanStatus,
   type TaskStepStatus,
-} from './taskPlan';
+} from './taskPlan.ts';
 
 export interface TaskPlanRun {
   planId: string;
