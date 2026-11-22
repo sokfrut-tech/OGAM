@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import {
   isRuntimeOnlyMessage,
   PROMPT_ENHANCEMENT_REASONING_LABEL,
-} from '@offgrid/sync';
+} from '../utils/chatSyncPrimitives';
 import { useAppStore, useChatStore } from '../stores';
 import { GeneratedImage, GenerationMeta, Message } from '../types';
 import { parseModelOutput } from '../utils/messageContent';

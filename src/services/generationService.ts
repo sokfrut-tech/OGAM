@@ -40,7 +40,7 @@ import {
   takeNextQueued,
   type ChatQueueHold,
   type ChatQueueSignal,
-} from '@offgrid/sync';
+} from '../utils/chatQueue';
 
 const SHARE_PROMPT_DELAY_MS = 1500;
 type StreamChunk = string | { content?: string; reasoningContent?: string };

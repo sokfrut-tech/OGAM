@@ -1037,4 +1037,17 @@ The detailed, license-aware voice study is now in `docs/jarvis/VOICE_STACK_RESEA
 - **Tests & CI updated:** Added `scripts/__tests__/transcription-languages.node.test.mjs` (4/4) and `scripts/__tests__/voice-session-machine.node.test.mjs` (7/7), wired into `.github/workflows/ogam-external-dependency-audit.yml`.
 - **Verified locally (Node `v26.13.1`):** All **19** open-core Node test suites (**80/80** test cases) passed locally with 0 failures and 0 skipped; `node scripts/audit-offgrid-imports.mjs` measured `1,987` files scanned, `1,335` total external refs (`1,339 → 1,335`), `3` `localFileDependencies` (`4 → 3`: `@offgrid/models`, `@offgrid/rag`, `@offgrid/sync`), `0` `@offgrid/speech` hits in `src/` and build config (`1` synthetic fixture in `scripts/__tests__/audit-offgrid-imports.test.mjs`). Same strict verification limits still apply: TypeScript `tsc`, full Jest, Gradle/Kotlin, APK build, and OPPO Find X6 Pro runtime/device tests remain unexecuted here.
 
+### Slice 4 checkpoint — `@offgrid/sync` Half A pure utilities migrated (`44 → 29` `src/` imports, 2026-11-22)
+
+- **14 pure `src/` files cleared of `@offgrid/sync` (`15` import statements removed, zero Half B mesh/crypto files modified):**
+  - `src/utils/messageContent.ts` restored from MIT `25276231^` + `withoutReasoning`.
+  - `src/utils/chatMarkdown.ts` (`preprocessChatMarkdown`, `safeChatExternalUrl`) → `src/components/MarkdownText.tsx`.
+  - `src/utils/chatThreadCore.ts` (`CHAT_THREAD_ROOT`, `chatThread`, `appendPlace`, `neighbourVersion`, `parentOfVersion`) → `src/utils/chatThread.ts`.
+  - `src/utils/chatQueue.ts` (`chatQueueHeld`, `chatQueueHoldAfter`, `markQueuedSendNow`, `takeNextQueued`) → `src/services/generationService.ts`, `src/components/ChatInput/Toolbar.tsx`.
+  - `src/utils/chatStreamHelpers.ts` (`startChatStreamTool`, `completeChatStreamTool`, `splitInlineReasoning`, `isSupportingChatContext`, `chatStreamPhase*`, `chatStreamPreview*`) → `chatStreamTools.ts`, `ChatMessage/index.tsx`, `ChatScreen/types.ts`, `useRemoteChatStreamPreviews.ts`, `remoteChatStreamStore.ts`.
+  - `src/utils/chatSyncPrimitives.ts` (`chatListPreviewLine`, `isRuntimeOnlyMessage`, `PROMPT_ENHANCEMENT_*`, `readGatewayComputerId`) → `visibleMessages.ts`, `imagePromptEnhancement.ts`, `imageGenerationHelpers.ts`, `networkDiscovery.ts`.
+- **Tests & CI updated:** Added 4 Node suites (`message-content`, `chat-markdown-and-sync-primitives`, `chat-thread-core`, `chat-queue-and-stream`) and wired all 4 into `.github/workflows/ogam-external-dependency-audit.yml`.
+- **Verified locally (Node `v26.13.1`):** All **23** open-core Node test suites (**99/99** test cases) passed locally with 0 failures and 0 skipped; `node scripts/audit-offgrid-imports.mjs` measured `1,996` files scanned, `1,320` total external refs (`1,335 → 1,320`), `packageImports: 432` (`@offgrid/sync` `src/`: `44 → 29`, total: `148 → 133`), `localFileDependencies: 3`. TypeScript `tsc`, full Jest, Gradle/Kotlin, APK build, and OPPO Find X6 Pro runtime/device tests remain unexecuted here.
+
+
 

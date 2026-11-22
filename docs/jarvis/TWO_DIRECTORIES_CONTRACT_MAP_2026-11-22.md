@@ -3,28 +3,29 @@
 This document resolves the core blocker in `sokfrut-tech/OGAM` PR #1 (`feature/jarvis-step-2-storage-privacy`): **what lived inside the two external/private directories (`pro/` and `../shared/packages/*`), what open-source MIT source already exists in OGAM's own git history, what must be ported vs kept gated/dropped, and exact consumer-pinned TypeScript contracts.**
 
 Evidence base:
-- Automated audit JSONs (`ogam-import-audit.json` baseline `1,976` files / `1,354` refs → post-Slice 3A–3D `1,983` files / `1,339` refs → post-`@offgrid/speech` completion `1,987` files / `1,335` refs).
+- Automated audit JSONs (`ogam-import-audit.json` baseline `1,976` files / `1,354` refs → post-Slice 3A–3D `1,983` files / `1,339` refs → post-`@offgrid/speech` `1,987` files / `1,335` refs → post-`@offgrid/sync` Half A `1,996` files / `1,320` refs).
 - Full AST/regex symbol parse of all **240** importing `src/` and `__tests__/` files on PR #1.
 - `package.json`, `package-lock.json`, `metro.config.js`, `jest.config.js`, `tsconfig.json`, `.dependency-cruiser.js`, and `docs/SYNC_INTEGRATION_PLAN.md`.
 - Local git history of `sokfrut-tech/OGAM` (`LICENSE`: **MIT License**).
 
-> **Licensing note:** In `package-lock.json`, the external `../shared/packages/*` workspaces declare `"license": "AGPL-3.0-only"`, whereas `sokfrut-tech/OGAM` itself is MIT-licensed. Any code restored from `sokfrut-tech/OGAM`'s commits *prior* to extraction (`d300dbb0`, `908af16a`, `767e0b91`, `6ba7d5cb`, `aaf68870`, `efc85a70`) comes from OGAM's MIT history. Unseen `../shared` / `pro/` source must be re-implemented cleanly in OGAM from consumer contracts and MIT/Apache references, never copied blindly.
+> **Licensing note:** In `package-lock.json`, the external `../shared/packages/*` workspaces declare `"license": "AGPL-3.0-only"`, whereas `sokfrut-tech/OGAM` itself is MIT-licensed. Any code restored from `sokfrut-tech/OGAM`'s commits *prior* to extraction (`d300dbb0`, `908af16a`, `767e0b91`, `6ba7d5cb`, `aaf68870`, `efc85a70`, `25276231^`) comes from OGAM's MIT history. Unseen `../shared` / `pro/` source must be re-implemented cleanly in OGAM from consumer contracts and MIT/Apache references, never copied blindly.
 
 ---
 
-## 1. Measured Audit Delta After `@offgrid/speech` Completion (2026-11-22)
+## 1. Measured Audit Delta After Slice 4 (`@offgrid/sync` Half A, 2026-11-22)
 
-| Metric | Baseline (`b7c06988`) | After Slices 3A–3D | After `@offgrid/speech` 100% | Total Change |
+| Metric | Baseline (`b7c06988`) | After `@offgrid/speech` | After `@offgrid/sync` Half A | Total Change |
 |---|---:|---:|---:|---|
-| Files scanned | 1,976 | 1,983 | **1,987** | `+11` (`6` OGAM TS modules + `5` Node test suites) |
-| `localFileDependencies` (`package.json`) | 8 | 4 | **3** | **`-5`** (`design`, `notes`, `notes-editor`, `writing`, `speech` removed) |
-| Total external refs | 1,354 | 1,339 | **1,335** | **`-19`** |
-| `packageImports` | 457 | 450 | **447** | **`-10`** |
-| `sharedWorkspacePaths` | 73 | 65 | **64** | **`-9`** |
+| Files scanned | 1,976 | 1,987 | **1,996** | `+20` (`+5` OGAM TS modules + `4` Node test suites in Slice 4) |
+| `localFileDependencies` (`package.json`) | 8 | 3 | **3** | **`-5`** (`design`, `notes`, `notes-editor`, `writing`, `speech` removed) |
+| Total external refs | 1,354 | 1,335 | **1,320** | **`-34`** |
+| `packageImports` | 457 | 447 | **432** | **`-25`** |
+| `sharedWorkspacePaths` | 73 | 64 | **64** | **`-9`** |
 | `@offgrid/design` imports | 2 | 0 | **0** | **100% eliminated** (`src/theme/designTokens.ts`) |
-| `@offgrid/speech` imports | 9 | 4 | **1** *(0 in `src/`, 1 test fixture)* | **100% eliminated from `src/` & `package.json` & `metro.config.js`** (`scripts/__tests__/audit-offgrid-imports.test.mjs` fixture only) |
+| `@offgrid/speech` imports | 9 | 1 | **1** *(0 in `src/`, 1 test fixture)* | **100% eliminated from `src/`, `package.json`, `metro.config.js`** |
+| `@offgrid/sync` imports (`src/` / total) | 44 / 148 | 44 / 148 | **29 / 133** | **`-15` source imports across `14` files (Half A 100% DONE; Half B Personal Mesh only left)** |
 | `@offgrid/notes`, `@offgrid/notes-editor`, `@offgrid/writing` | 0 / 0 / 0 | 0 / 0 / 0 | **0 / 0 / 0** | Removed from `package.json`, `metro.config.js`, `jest.config.js` |
-| Remaining `localFileDependencies` | — | 4 | **3** (`@offgrid/models`, `@offgrid/rag`, `@offgrid/sync`) | Remaining migration targets mapped below |
+| Remaining `localFileDependencies` | — | 3 | **3** (`@offgrid/models`, `@offgrid/rag`, `@offgrid/sync`) | Remaining migration targets mapped below |
 
 ---
 
@@ -69,7 +70,7 @@ All packages below carry `"license": "AGPL-3.0-only"` in `package-lock.json`. Co
 | **`@offgrid/speech`** | **Removed (this PR)** | *(cleared from `package.json` & `metro.config.js`; `package-lock.json` left untouched per `340c80e2`)* | `8 → 0` | `0` *(+1 synthetic fixture in audit test)* | `aaf68870:src/services/speechEndpoint.ts` (`94f8f714^`); `9fc50207` / `a6cd8033` Qwen3-ASR language map | **DONE (100% eliminated)**: `wavTrimPlan.ts`, `speechEndpoint.ts`, `voiceTurnSettings.ts`, `transcriptionLanguages.ts`, `voiceSessionMachine.ts` |
 | **`@offgrid/rag`** (`+ /documents`) | Remains (`file:../shared/packages/rag`) | `@langchain/textsplitters ^1.0.2` (dev) | `19` | `4` | `6ba7d5cb:src/services/rag/{chunking,retrieval,vectorMath}.ts` (`5c12cc2f^`) | **KEEP & PORT NEXT** (19 `src/` + 4 `__tests__/`, 31 unique symbols) |
 | **`@offgrid/models`** | Remains (`file:../shared/packages/models`) | `minisearch ^7.2.0` (dev) | `87` | `31` *(+2 scripts)* | Partial (`ggufSplitFiles`, `modelCompanionFiles`, `formatFileSize` already ported in PR #1) | **KEEP & PORT BY SLICES `M2..M7`** (`148` unique symbols across `src/` & `__tests__/`) |
-| **`@offgrid/sync`** (`+ /rn, /rn-discovery, /portable`) | Remains (`file:../shared/packages/sync`) | `@noble/hashes 1.8.0`, `@offgrid/automation`, `@offgrid/models`, `bonjour-service`, `js-sha512`, `tweetnacl` | `43` | `103` *(+2 scripts)* | `docs/SYNC_INTEGRATION_PLAN.md` (`c06b2211`) | **SPLIT INTO HALF A (PURE CHAT HELPERS) + HALF B (PERSONAL MESH)** (`171` symbols) |
+| **`@offgrid/sync`** (`+ /rn, /rn-discovery, /portable`) | Remains (`file:../shared/packages/sync`) | `@noble/hashes 1.8.0`, `@offgrid/automation`, `@offgrid/models`, `bonjour-service`, `js-sha512`, `tweetnacl` | `44 → 29` | `104` | `25276231^:src/utils/messageContent.ts` + `src/components/MarkdownText.tsx`; `docs/SYNC_INTEGRATION_PLAN.md` (`c06b2211`) | **HALF A 100% DONE** (`14` `src/` files cleared via `messageContent.ts`, `chatMarkdown.ts`, `chatThreadCore.ts`, `chatQueue.ts`, `chatStreamHelpers.ts`, `chatSyncPrimitives.ts`); **HALF B (Personal Mesh) REMAINS** |
 
 ---
 
@@ -119,18 +120,17 @@ All packages below carry `"license": "AGPL-3.0-only"` in `package-lock.json`. Co
 
 A critical discovery from AST analysis of all `33` `src/` consumers + `rn`/`rn-discovery` adapters: **nearly half of `@offgrid/sync` is pure chat-formatting/queue logic with ZERO cryptography or networking**, placed in `@offgrid/sync` only for desktop-mobile sharing.
 
-#### Half A: Pure Chat / Reasoning / Markdown / Queue Utilities (`~9` `src/` files — Fast Standalone Extraction)
-Zero TCP/NaCl/mDNS dependency; extract into `src/utils/` & `src/services/chat/` with Node tests:
-- `src/utils/messageContent.ts`: `REASONING_DELIMITERS`, `ReasoningDelimiter`, `TOOL_CALL_OPENERS`, `TOOL_CALL_CLOSERS`, `XML_TOOL_CALL_FUNCTION_MARKER`, `XML_TOOL_CALL_PARAMETER_MARKER`, `parseChatModelOutput`, `parseChatThinkingContent`, `partialTagSuffix`, `maxPartialTagSuffix`, `stripChatControlTokens`
-- `src/components/MarkdownText.tsx`: `preprocessChatMarkdown`, `safeChatExternalUrl`
-- `src/screens/ChatScreen/types.ts` & `useRemoteChatStreamPreviews.ts`: `ChatStreamPreviewRow`, `splitInlineReasoning`, `isSupportingChatContext`, `chatStreamPhaseLabel`, `chatStreamPhaseIsStatus`, `chatStreamPreviewHasMessageBody`, `chatStreamPreviewRows`
-- `src/services/generationService.ts` & `Toolbar.tsx`: `ChatQueueHold`, `ChatQueueSignal`, `chatQueueHeld`, `chatQueueHoldAfter`, `markQueuedSendNow`, `takeNextQueued`
-- `src/utils/chatThread.ts` & `visibleMessages.ts`: `chatThread`, `appendPlace`, `neighbourVersion`, `parentOfVersion`, `chatListPreviewLine`
-- `src/services/sync/chatStreamTools.ts` & `imageGenerationHelpers.ts` & `imagePromptEnhancement.ts`: `startChatStreamTool`, `completeChatStreamTool`, `ChatStreamTool`, `PROMPT_ENHANCEMENT_REASONING_LABEL`, `PROMPT_ENHANCEMENT_STATUS`, `isRuntimeOnlyMessage`
-- `src/services/networkDiscovery.ts`: `readGatewayComputerId`
+#### Half A: Pure Chat / Reasoning / Markdown / Queue Utilities — **100% DONE (`14` `src/` Files, `-15` `@offgrid/sync` Imports)**
+Zero TCP/NaCl/mDNS dependency; migrated into OGAM-owned self-contained modules and verified by 4 standalone Node test suites:
+- `src/utils/messageContent.ts` (MIT `25276231^` + `withoutReasoning`, `2` `@offgrid/sync` imports eliminated, tested by `scripts/__tests__/message-content.node.test.mjs`, 4/4 pass): `REASONING_DELIMITERS`, `ReasoningDelimiter`, `TOOL_CALL_OPENERS`, `TOOL_CALL_CLOSERS`, `XML_TOOL_CALL_FUNCTION_MARKER`, `XML_TOOL_CALL_PARAMETER_MARKER`, `parseModelOutput`, `parseThinkingContent`, `partialTagSuffix`, `maxPartialTagSuffix`, `stripControlTokens`, `stripStreamingControlTokens`, `prepareMessageForSpeech`, `templateEmitsReasoning`, `withoutReasoning`.
+- `src/utils/chatMarkdown.ts` (`src/components/MarkdownText.tsx`, tested by `chat-markdown-and-sync-primitives.node.test.mjs`): `preprocessChatMarkdown`, `safeChatExternalUrl`.
+- `src/utils/chatThreadCore.ts` (`src/utils/chatThread.ts`, tested by `scripts/__tests__/chat-thread-core.node.test.mjs`, 4/4 pass): `CHAT_THREAD_ROOT`, `chatThread`, `appendPlace`, `neighbourVersion`, `parentOfVersion`.
+- `src/utils/chatQueue.ts` (`src/services/generationService.ts`, `src/components/ChatInput/Toolbar.tsx`, tested by `scripts/__tests__/chat-queue-and-stream.node.test.mjs`): `ChatQueueHold`, `ChatQueueSignal`, `chatQueueHeld`, `chatQueueHoldAfter`, `markQueuedSendNow`, `takeNextQueued`.
+- `src/utils/chatStreamHelpers.ts` (`src/services/sync/chatStreamTools.ts`, `src/components/ChatMessage/index.tsx`, `src/screens/ChatScreen/types.ts`, `useRemoteChatStreamPreviews.ts`, `src/stores/remoteChatStreamStore.ts`, tested by `chat-queue-and-stream.node.test.mjs`): `startChatStreamTool`, `completeChatStreamTool`, `ChatStreamTool`, `splitInlineReasoning`, `isSupportingChatContext`, `chatStreamPhaseLabel`, `chatStreamPhaseIsStatus`, `chatStreamPreviewHasMessageBody`, `chatStreamPreviewRows`, `ChatStreamPreview`, `ChatStreamPreviewRow`.
+- `src/utils/chatSyncPrimitives.ts` (`src/utils/visibleMessages.ts`, `src/services/imageGenerationHelpers.ts`, `src/services/imagePromptEnhancement.ts`, `src/services/networkDiscovery.ts`, tested by `chat-markdown-and-sync-primitives.node.test.mjs`): `PROMPT_ENHANCEMENT_REASONING_LABEL`, `PROMPT_ENHANCEMENT_STATUS`, `isRuntimeOnlyMessage`, `chatListPreviewLine`, `readGatewayComputerId`.
 
-#### Half B: Personal Mesh Protocol, NaCl Crypto, Blobs, & State Sync (`~24` `src/` files + `@offgrid/sync/rn` & `/rn-discovery`)
-- Real encrypted device-to-device Personal Mesh (`SyncEngine`, `MultiTransportBridge`, `CompositeDiscoveryService`, `DiscoveryOrchestrator`, `BlobChannelHost`, `IncrementalChecksum`, `blobKeyBase64`, `createBlobMaterial`, `OFFGRID_SYNC_PORT`, `CHUNK_SIZE`, `BLOB_FRAME_BYTES`, `RnTcpTransport`, `RnDiscovery`, OpLog LWW state entities `KNOWLEDGE_DOCUMENT_ENTITY`, `SHARED_FILE_ENTITY`, `TASK_*_ENTITY`, etc.).
+#### Half B: Personal Mesh Protocol, NaCl Crypto, Blobs, & State Sync (`~20` Remaining `src/` Files, `29` Imports + `@offgrid/sync/rn` & `/rn-discovery`)
+- Real encrypted device-to-device Personal Mesh (`SyncEngine`, `MultiTransportBridge`, `CompositeDiscoveryService`, `DiscoveryOrchestrator`, `BlobChannelHost`, `IncrementalChecksum`, `blobKeyBase64`, `createBlobMaterial`, `OFFGRID_SYNC_PORT`, `CHUNK_SIZE`, `BLOB_FRAME_BYTES`, `RnTcpTransport`, `RnDiscovery`, `hasProAccess`, OpLog LWW state entities `KNOWLEDGE_DOCUMENT_ENTITY`, `SHARED_FILE_ENTITY`, `TASK_*_ENTITY`, etc.).
 - **Decision:** Keep intact during initial core standalone unblocking, then migrate deliberately using `docs/SYNC_INTEGRATION_PLAN.md` + `tweetnacl` + `@noble/hashes` (or decide whether Personal Mesh stays core or optional module after Android APK & Jarvis voice/skill MVP ship).
 
 ---
@@ -138,7 +138,7 @@ Zero TCP/NaCl/mDNS dependency; extract into `src/utils/` & `src/services/chat/` 
 ## 4. Recommended Next Execution Sequence for GPT
 
 1. ~~Finish `@offgrid/speech` (`transcriptionLanguages` + `voiceSession` state machine)~~ → **DONE (`4 → 3` `localFileDependencies`, `0` `@offgrid/speech` imports in `src/`).**
-2. Extract `@offgrid/sync` **Half A** pure chat/reasoning/markdown/queue helpers into `src/utils/`.
+2. ~~Extract `@offgrid/sync` **Half A** pure chat/reasoning/markdown/queue helpers into `src/utils/`~~ → **DONE (`44 → 29` `@offgrid/sync` `src/` imports across `14` files).**
 3. Port `@offgrid/rag/documents` + `@offgrid/rag` starting from MIT commit `6ba7d5cb:src/services/rag/*` → removes `@offgrid/rag` (`3 → 2`).
 4. Port `@offgrid/models` slices `M2` → `M3` → `M4` → `M5` → `M6` → `M7` with strict parity against Jest specs → removes `@offgrid/models` (`2 → 1`).
 5. Port or scope `@offgrid/sync` **Half B** (Personal Mesh) + `@offgrid/automation` → reaches **`0` `localFileDependencies` and clean standalone Android/Jest/TSC builds without `../shared` or `pro/`**.
