@@ -33,7 +33,7 @@ class JarvisAssistantRoleModule(
 
   private val activityListener = object : BaseActivityEventListener() {
     override fun onActivityResult(
-      activity: Activity?,
+      activity: Activity,
       requestCode: Int,
       resultCode: Int,
       data: Intent?,
@@ -90,7 +90,7 @@ class JarvisAssistantRoleModule(
       return
     }
 
-    val activity = currentActivity
+    val activity = getCurrentActivity()
     if (activity == null) {
       promise.reject("NO_ACTIVITY", "Open OGAM before requesting the Jarvis assistant role.")
       return
