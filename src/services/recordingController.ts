@@ -89,11 +89,13 @@ class RecordingController {
    * a double-tap. The latch that stops it lives in the recorder, not here: it has to hold for every
    * duplicate ask, not just the two this method happens to make.
    */
-  start(): void {
-    if (this.getPhase() !== 'idle' || !this.handlers) return;
-    if (this.handlers.canStart && !this.handlers.canStart()) return;
+  start(): 'started' | 'busy' | 'no-recorder' | 'unavailable' {
+    if (this.getPhase() !== 'idle') return 'busy';
+    if (!this.handlers) return 'no-recorder';
+    if (this.handlers.canStart && !this.handlers.canStart()) return 'unavailable';
     voiceSession.dispatch('userStart');
     void this.handlers.start();
+    return 'started';
   }
 
   /** Stop the in-flight recording. Listening counts: the mic is open, so stop must reach it -
