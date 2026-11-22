@@ -998,3 +998,8 @@ All Android integrations are original OGAM/Jarvis code using public Android APIs
 ### Canonical capability inventory
 
 The current source-derived feature inventory and Siri parity status are maintained in `docs/jarvis/OGAM_FEATURE_PORT_MATRIX.md`. Update that matrix whenever a capability is migrated, blocked, verified or removed. It explicitly distinguishes existing OGAM functionality from new Jarvis parity work and records the remaining private-workspace/APK blockers.
+
+
+### Russian-first voice stack research
+
+The detailed, license-aware voice study is now in `docs/jarvis/VOICE_STACK_RESEARCH_RU_2026-11-22.md`. It compares MIT/Apache/BSD speech runtimes, Russian ASR/TTS/VAD candidates, measured server results versus unverified mobile performance, the private OGAM Pro audio feature contracts, and the OPPO device test plan. No Russian TTS default is selected until exact model revision/provenance and on-device quality/performance are verified.
