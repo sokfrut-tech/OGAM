@@ -44,6 +44,14 @@ test('rejects missing dependencies, duplicate IDs and dependency cycles', () => 
   assert.ok(validateTaskPlan(cycle).errors.some(error => error.includes('cycle')));
 });
 
+test('rejects malformed dependency arrays without throwing', () => {
+  const plan = makePlan();
+  plan.steps[0].dependsOn = null;
+  const result = validateTaskPlan(plan);
+  assert.equal(result.valid, false);
+  assert.deepEqual(result.topologicalOrder, []);
+});
+
 test('refuses to schedule a draft or malformed plan', () => {
   const plan = makePlan();
   plan.status = 'draft';
