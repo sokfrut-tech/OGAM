@@ -9,6 +9,9 @@ Status: public source research and design notes; no new TTS/KWS model is integra
 - [Russian Android TTS backend audit](OGAM_RUSSIAN_TTS_ANDROID_BACKEND_AUDIT_2026-11-22.md) — RuVoice TTS source/license audit, Qwen3-TTS Android Kotlin/JNI, native streaming callback already exists in JNI C++ but is not exposed by Kotlin QwenEngine, Sherpa-ONNX callback path, microphone ownership and a public Android AEC experiment route (unverified on PGEM10).
 - [Earlier Chinese/Indian on-device speech scan](../china-india/CHINESE_INDIAN_ON_DEVICE_SPEECH_SCAN_2026-11-22.md) — Qwen3-ASR/ASR and LiteRT routes, Qwen3-TTS LiteRT and Indian/Indic speech model scan.
 
+
+- [Russian audio evaluation corpus v1](JARVIS_RUSSIAN_AUDIO_EVALUATION_CORPUS_V1_2026-11-22.md) — fixed phrases for Russian stress/homographs, numbers and units, technical language, Jarvis responses, wake-word positive/negative tests, AEC scenarios, and a repeatable PGEM10 benchmark protocol. Text-only; no user audio stored.
+
 ## Decisions / no-go boundaries
 
 1. Keep the physical microphone owner unique: OGAM AudioRecorderService. KWS/ASR/Whisper must share/subcribe to it or coordinate through one native capture service; never start a competing recorder.
