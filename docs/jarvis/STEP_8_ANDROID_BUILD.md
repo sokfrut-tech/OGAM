@@ -1,0 +1,51 @@
+# Jarvis — Step 8: Android build configuration and APK workflow
+
+Status: a safe, manual, arm64 debug-APK workflow is committed. It does not publish a release, bump the app version, push to a branch, or require a signing keystore.
+
+## Verified existing OGAM Android toolchain
+
+The fork's actual Gradle files were inspected before adding a workflow:
+
+- Java: 17 (the repository's `.github/actions/setup-android` pins Temurin 17)
+- Gradle wrapper: 8.13, with distribution SHA-256 validation
+- Android Gradle Plugin: 8.8.2
+- Kotlin Gradle Plugin: 2.4.0
+- NDK: 27.1.12297006 (pinned in `android/build.gradle` and installed by the shared setup action)
+- CMake: 3.22.1 (pinned in `android/app/build.gradle`)
+- compileSdk / targetSdk: 36
+- minSdk: 24
+- React Native architectures: `arm64-v8a,x86_64`; the Jarvis APK workflow explicitly builds `arm64-v8a`
+- Hermes enabled
+- `useLegacyPackaging = true` and `extractNativeLibs = true` are already configured for native runtime libraries
+- `libOpenCL.so` is excluded from APK packaging so the device-provided Qualcomm OpenCL loader is used
+- Native video CMake requires the pinned stable-diffusion.cpp source, shaderc, and Hexagon DSP build inputs before Android CMake configuration.
+
+The original planning note proposed NDK 26.1.10909125, but that is not the NDK used by this OGAM revision. The build workflow intentionally preserves the checked-in 27.1.12297006 pin rather than introducing a toolchain mismatch.
+
+## New workflow
+
+File: `.github/workflows/jarvis-android-apk.yml`
+
+- Trigger: manual `workflow_dispatch` only.
+- Builds a debug APK for `arm64-v8a`, suitable for installation/testing on the OPPO Find X6 Pro.
+- Uses the repository's shared workspace setup and pinned Android toolchain/video-runtime action.
+- Uploads `app-debug.apk` plus a SHA-256 checksum as a 14-day GitHub Actions artifact.
+- Does not create a GitHub Release, alter versions, push commits, or upload to Play Store.
+- No release keystore or Play Store credentials are needed.
+
+## Private workspace dependency
+
+OGAM declares local workspace dependencies under `file:../shared/packages/*` and uses the private `off-grid-ai/mobile-pro` submodule. The existing setup action needs the `PRO_SUBMODULE_PAT` Actions secret with read access to both `off-grid-ai/mobile-pro` and `off-grid-ai/shared`. The new workflow checks for this secret before starting dependency installation and fails with an explicit message if it is absent. It does not replace private packages with stubs or bypass Pro licensing.
+
+## Qualcomm / Hexagon boundaries
+
+The workflow builds OGAM's checked-in Hexagon video runtime. This is separate from the Qualcomm QNN runtime libraries used by local-dream image generation. No proprietary Qualcomm QNN SDK binaries are added or redistributed by this change. The requested QNN runtime set must still be sourced from an appropriately licensed SDK and version-matched before an OPPO NPU runtime test can be claimed.
+
+## Verification and execution status
+
+- Gradle and Android toolchain versions were read from the checked-in configuration.
+- Workflow file and artifact paths were reviewed against the existing setup actions and Gradle output layout.
+- No APK build has been executed yet.
+- No GitHub Actions run exists for the latest commit.
+- The workflow is on the feature branch and is not yet present on the repository default branch. GitHub's manual workflow dispatch requires the workflow file to exist on the default branch, so it cannot be dispatched until this PR is merged. This PR remains draft; no merge is performed without the user's explicit approval.
+- A successful CI/unit-test run, Android APK build, APK install test and OPPO Find X6 Pro verification remain outstanding.
