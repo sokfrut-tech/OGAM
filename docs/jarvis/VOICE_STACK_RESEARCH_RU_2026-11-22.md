@@ -118,3 +118,63 @@ Official source paths inspected:
 - `android/SherpaOnnxAar/sherpa_onnx/src/main/java/com/k2fsa/sherpa/onnx/Vad.kt`
 - `android/SherpaOnnxAar/sherpa_onnx/src/main/java/com/k2fsa/sherpa/onnx/Tts.kt`
 - Release: https://github.com/k2-fsa/sherpa-onnx/releases/tag/v2.0.3
+
+
+## 6. Current Android voice-agent implementation study — Jandal AI (Apache-2.0)
+
+Repository inspected at commit `c55203575f4087b395cc1bfb651fac2581c42611` on 2026-11-22:
+https://github.com/NickMonrad/kernel-ai-assistant
+
+The project is a useful current Android reference because it has a native Kotlin voice module, local inference, typed capture lifecycle and an Android default-assistant integration. Its source tree and tests were inspected; this is an architecture study, not a code copy.
+
+### Patterns worth adapting independently
+
+- **Typed capture events:** `VoiceInputEvent` distinguishes `ListeningRequested`, `ListeningStarted`, `SpeechDetected`, `PartialTranscript`, `Transcript`, `SpeechEnded`, `Error` and `ListeningStopped`.
+- **Session ownership:** every capture has a monotonically allocated `captureSessionId`. Scoped stop/cancel and admission callbacks prevent stale UI or backend cleanup from stopping a newer recording.
+- **Mic arbitration:** `WakeMicYieldGate` releases the wake-word microphone on a capture request/start and only rearms it when the matching capture session stops. A stale stop from a replaced session is ignored.
+- **Single speech-stop authority:** `SpeechStopCoordinator` tracks SpeakingStarted/SpeakingStopped and accepts one stop request only while speech is active; with no UI collector it stops the output controller directly.
+- **Default-assistant path:** `VoiceInteractionService` registers the app; `VoiceInteractionSessionService` creates a session; `VoiceInteractionSession.onShow` delegates to the same voice-command activity used by other entry points. The example pauses the wake-word service before the activity takes the microphone and restores it on hide.
+- **Backend selection and recovery:** the voice module separates input/output interfaces from Android native, Sherpa and asr4all engines; it models unavailable/fallback outcomes and session-scoped events instead of sharing mutable booleans across UI/native layers.
+
+Relevant inspected paths:
+- `core/voice/src/main/java/com/kernel/ai/core/voice/VoiceInputController.kt`
+- `core/voice/src/main/java/com/kernel/ai/core/voice/SelectableVoiceInputController.kt`
+- `core/voice/src/main/java/com/kernel/ai/core/voice/SpeechStopCoordinator.kt`
+- `app/src/main/java/com/kernel/ai/assistant/JandalVoiceInteractionService.kt`
+- `app/src/main/java/com/kernel/ai/assistant/JandalVoiceInteractionSession.kt`
+- `app/src/main/java/com/kernel/ai/assistant/WakeMicYieldGate.kt`
+- Matching unit tests under `core/voice/src/test` and `app/src/test`.
+
+### What must NOT be transplanted blindly
+
+- Jandal's voice stack uses its own model/backend policies and a different app architecture. OGAM needs to keep its existing Whisper/Qwen ASR, direct-audio models, audio recorder, model residency and cancellation contracts.
+- Its privileged/root-only patterns from PocketDaemon are not required and must not be introduced.
+- Code reuse must preserve Apache-2.0 notices; the safer first step is to reproduce the observable contracts in OGAM-owned Kotlin/TypeScript modules with OGAM tests.
+- Jandal's wake detector is an always-on feature with battery, microphone permission and OEM background implications. Jarvis must keep wake-word detection opt-in and explicitly visible.
+
+## 7. OGAM voice-session migration — reverse-engineered contract and open boundary
+
+Current OGAM consumers and tests on the active branch establish these behaviours:
+
+1. `userStart` moves an idle/stopped session into `listen` with a user-visible `listening` phase.
+2. `speechHeard` changes only the phase to `recording`; it must notify UI subscribers but must NOT cause the edge-triggered mic driver to start another recording.
+3. `turnCaptured` moves the turn to the `transcribing` phase and closes the microphone before transcription/LLM work.
+4. `userStop` is an explicit stop boundary; the recording-controller test expects the final UI phase to be `idle`.
+5. `nothingHeard` may be dispatched once or twice depending on which path ended the turn. Do not collapse the two-event empty-turn paths until each caller and hands-free return rule is specified.
+6. `dictationFinished` closes chat dictation without borrowing the assistant-response lifecycle.
+7. Replay has a distinct return-to-previous-floor contract: `Voice.ts` checks `replayReturnsTo`; cancelling capture due to replay must not dispatch `dictationFinished`, because replay owns the floor and `replayEnded` returns it.
+
+Verified OGAM files/tests:
+- `src/services/voiceSession.ts`
+- `src/services/recordingController.ts`
+- `src/components/ChatInput/useVoiceSessionDriver.ts`
+- `src/components/ChatInput/Voice.ts`
+- `src/components/ChatInput/useSilenceEndpoint.ts`
+- `__tests__/unit/services/recordingController.test.ts`
+- `docs/GAPS_BACKLOG.md` (hands-free race and edge-trigger contract)
+
+**Migration blocker:** the exact `@offgrid/speech` transition implementation and private Pro replay/playback callers are not available in this connected fork. The event names above are grounded in OGAM consumers/tests, but the complete replay state contract and all hidden Pro callers are not yet proven. Do not replace `voiceSession` with an inferred three-state boolean machine. The next safe migration step is to create a full caller/event inventory (including the Pro-side replay start/end seam), then implement a pure OGAM-owned transition table with tests for initial hands-free, userStart idempotency, speechHeard phase-only notification, turnCaptured, userStop, one/two nothingHeard, dictationFinished, replay return and stale capture ownership.
+
+## 8. Scope note for the Russian locale correction
+
+The 2026-11-22 change to `voiceService.ts` corrects the separate `react-native-voice` wrapper and its `useVoiceRecording` hook. Repository code search found no production call site for that legacy hook. The current main ChatInput flow instead uses `audioRecorderService` plus Whisper/Qwen transcription and `useWhisperStore.transcriptionLanguage`. Therefore the RU/EN wrapper fix is useful maintenance, but it is **not** proof that the primary ChatInput pipeline or offline ASR defaults are already Russian. Verify the actual selected Whisper/Qwen language and model on OPPO before release.
