@@ -128,8 +128,9 @@ export async function enhanceImagePrompt(
   params: GenerateImageParams,
   setState: EnhancementStateWriter,
   isCancelled: () => boolean = () => false,
+  force = false,
 ): Promise<string> {
-  if (!useAppStore.getState().settings.enhanceImagePrompts) return params.prompt;
+  if (!force && !useAppStore.getState().settings.enhanceImagePrompts) return params.prompt;
   const loaded =
     isRemoteTextModelActive() ||
     (getActiveEngineService()?.isModelLoaded() ?? false) ||
