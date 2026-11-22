@@ -790,3 +790,64 @@ These are product-behaviour references only. No Apple private implementation, so
 - Added __tests__/unit/services/skills/contract.test.ts for valid/invalid inputs, capability denial, network gating and mandatory approval. This is a source/test addition only; it is not yet wired into the existing tool loop or Android executor.
 - Latest commit at this progress point: 4382366c943e1a7ffbfd74f209508bcfcb9bfd1e. Audit workflow run 45020177196 was queued at last check. No full Jest/TypeScript/Android build result is claimed.
 - Next: wire the skill contract into tool definitions and dispatch in a backwards-compatible manner, then add an explicit approval/progress/cancel execution record. In parallel, design the voice state machine from recovered exact contracts or a newly specified OGAM-owned transition table with tests.
+
+
+## Progress update — OGAM tool contracts and Siri capability research (2026-11-22)
+
+### Implemented on the current branch
+
+- Added `src/services/skills/toolContracts.ts`. It adapts the existing OGAM built-in tool registry into versioned Jarvis skill contracts; the current tool schema remains the single source of truth for parameters and required fields.
+- Added fail-closed tool classification. A built-in tool without an explicit risk classification receives no contract and cannot execute through the guarded core path.
+- Wired `executeToolCall` to validate arguments, reject unknown fields, require the corresponding user-enabled tool capability, and require a network capability for enabled tools that declare network use.
+- Added a final guard that blocks any tool whose contract reports mandatory approval until an explicit approval path is connected. Existing built-ins are currently read-only or reversible generation actions; this guard is for future external-communication, destructive and financial skills.
+- Updated `generationToolLoop.ts` to pass the enabled built-in tool IDs into the execution boundary.
+- Added Jest tests at `__tests__/unit/services/skills/toolContracts.test.ts` and a dependency-light Node contract test at `scripts/__tests__/skill-contract.node.test.mjs`; the standalone audit workflow now runs the latter.
+- This is not yet a complete capability broker: Pro/MCP extension tools still have their own dispatch path and must be brought under the same contract/approval model before exposing high-impact actions. Timeout metadata is recorded but a central cancellable execution supervisor is not implemented yet.
+
+Latest code commit at this progress point: `db4f005b3293e2c4f3b8030b88599ee1e38e2742`. Workflow run `45020500244` was in progress at last inspection; do not report the new test as passing until the run concludes. Full Jest, TypeScript and Android builds remain unverified.
+
+### Voice subsystem source recovery
+
+The current fork imports these voice primitives from the private sibling workspace package `@offgrid/speech`:
+- voice-session transition functions and types (`initialVoiceSession`, `nextVoiceSession`, `micShouldBeOpen`, `speechMayPlay`);
+- voice turn settings and labels/defaults;
+- `SpeechEndpointTimer` and onset look-back constants;
+- WAV header/trim planning helpers;
+- transcription language catalogue.
+
+The public upstream OGAM tree at `ff6abb8babdeb0836bb64d1df61dd90dd39cfd42` confirms the consuming contracts but does not include the private package implementation. Recovered observable invariants from upstream source and tests:
+- states include listening, speaking and stopped; phases distinguish listening, recording and transcribing;
+- mic may open only when the session says listen; speech may play only when it says speak;
+- a hands-free arm is edge-triggered, never level-triggered; a phase-only transition must notify surfaces but must not start a second recording;
+- `userStart` while already listening is a no-op;
+- two `nothingHeard` verdicts end an empty hands-free session; one verdict is not enough in all call paths;
+- `turnCaptured` hands the floor from the person to transcription/assistant; chat dictation then dispatches `dictationFinished`;
+- user stop in hands-free suspends auto-rearm; replay cancellation is distinct from finishing a spoken turn;
+- chat dictation must not auto-end on silence; hands-free waits for speech onset and then ends on the configured silence interval;
+- WAV trimming preserves original audio on failure and removes front/tail silence only when the trim is worthwhile.
+
+Do not recreate the missing state machine from assumptions. Next recovery step is to enumerate every event, state and field used by OGAM and its tests, then build an OGAM-owned transition table with exhaustive tests against these observable invariants. Keep the native audio capture, transcription and playback mechanics unchanged during this state-only migration.
+
+### Additional open-source voice research
+
+- `k2-fsa/sherpa-onnx` — Apache-2.0; supports Android arm64, Kotlin/Java, VAD, keyword spotting, ASR, TTS, speech enhancement and speaker functions. Strong candidate for a future optional local speech backend, subject to APK size, Russian model availability, latency, memory, model licences and device tests. Repository: https://github.com/k2-fsa/sherpa-onnx
+- `soniqo/speech-android` — Apache-2.0; current Android pipeline combines streaming ASR, VAD, TTS and noise cancellation, with an optional Smart Turn model. It is a useful architecture/benchmark reference; model weights and all transitive assets still require separate license and offline verification. Repository: https://github.com/soniqo/speech-android
+- `Wolfpkhan/voice_assistant` — no root LICENSE file found in inspected paths; no code copying. Its README documents a sherpa-onnx + Silero VAD Android pipeline, but the missing license keeps it reference-only.
+- `MosetiReagan/Tavi` — Apache-2.0; local Android assistant with typed native tools, clarification persistence, offline memory, speech and confirmation workflows. Strong reference for deterministic request routing and persistent clarification, not a dependency selected yet. Repository: https://github.com/MosetiReagan/Tavi
+
+### Apple Siri research refinement
+
+Apple's public App Intents documentation makes the core integration model clear: typed schemas describe app actions and entities so Siri, Spotlight and Shortcuts can discover and invoke them. Apple also documents associating visible app entities with views for on-screen context, and donating actions/content as signals for suggestions. Siri HIG recommends using familiar user-facing names and surfacing relevant content rather than exposing every internal action.
+
+Android/Jarvis equivalents to implement:
+- discoverable skill/action catalogue with stable IDs, localized names, schemas and entities;
+- Android App Shortcuts, deep links, share targets and launcher shortcuts for high-frequency skills;
+- context references bound to explicit visible app state (selected item/document/message), not indiscriminate screen scraping;
+- opt-in, local suggestion signals based on user-approved actions, with quiet hours and rate limits;
+- plan previews/snippets that ask for missing details or approval before execution.
+
+References:
+- https://developer.apple.com/documentation/appintents
+- https://developer.apple.com/documentation/appintents/apple-intelligence-and-siri-ai
+- https://developer.apple.com/documentation/appintents/getting-started-with-the-app-intents-framework
+- https://developer.apple.com/design/human-interface-guidelines/siri
