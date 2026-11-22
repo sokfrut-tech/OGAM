@@ -567,3 +567,6 @@ The single remaining M2 symbol still imported from `@offgrid/models` is `reasoni
 - Updated candidate order for experiments: Supertonic 3 INT8 as lightweight fallback; Qwen3-TTS 0.6B Q4 as possible expressive/clone voice; CosyVoice3-MNN as high-quality reference. Keep Piper baseline until measured.
 - All candidates require real PGEM10 tests: same Russian prompts, pronunciation, cold/warm latency, RTF, peak RSS, thermal throttling, cancellation and airplane mode. Desktop/SM8850 numbers are not extrapolated to SM8550.
 - Research note: [Chinese model evaluation](https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/china/CHINESE_OPEN_MODELS_EVALUATION_2026-11-22.md).
+
+
+- Additional maturity evidence for `Danmoreng/qwen3-tts-android`: public v0.1.0 arm64 APK release (49,955,560 bytes; model downloaded separately), GitHub Actions release workflow uses JDK 17 / NDK 27.2.12479018 / API 36 / CMake 3.22.1. No dedicated unit/instrumentation tests were found in the reviewed tree. Treat as a smoke-test artifact/reference, not a production-ready proof.
