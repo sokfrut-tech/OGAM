@@ -1,5 +1,6 @@
 package ai.offgridmobile.voice
 
+import android.os.SystemClock
 import java.util.UUID
 
 /**
@@ -10,22 +11,38 @@ import java.util.UUID
  * cannot launch the bridge because it is not exported.
  */
 internal object JarvisAssistantLaunchGuard {
+  /** A bridge handoff should complete immediately; never leave a valid token pending indefinitely. */
+  internal const val TOKEN_TTL_MS = 10_000L
+
   @Volatile
   private var pendingToken: String? = null
+  private var pendingIssuedAtMs: Long? = null
 
   private val encodedByte = Regex("%([0-9a-fA-F]{2})")
 
   @Synchronized
-  fun issue(): String {
+  fun issue(nowMs: Long = SystemClock.elapsedRealtime()): String {
     val token = UUID.randomUUID().toString()
     pendingToken = token
+    pendingIssuedAtMs = nowMs
     return token
   }
 
   @Synchronized
-  fun consume(candidate: String?): Boolean {
+  fun consume(
+    candidate: String?,
+    nowMs: Long = SystemClock.elapsedRealtime(),
+  ): Boolean {
     if (candidate == null || candidate != pendingToken) return false
+    val issuedAtMs = pendingIssuedAtMs
+    val ageMs = issuedAtMs?.let { nowMs - it }
+    if (ageMs == null || ageMs < 0L || ageMs > TOKEN_TTL_MS) {
+      pendingToken = null
+      pendingIssuedAtMs = null
+      return false
+    }
     pendingToken = null
+    pendingIssuedAtMs = null
     return true
   }
 
@@ -73,5 +90,6 @@ internal object JarvisAssistantLaunchGuard {
   @Synchronized
   internal fun resetForTesting() {
     pendingToken = null
+    pendingIssuedAtMs = null
   }
 }
