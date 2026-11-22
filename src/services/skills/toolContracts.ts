@@ -21,7 +21,7 @@ const TOOL_RISKS: Record<string, SkillContract['risk']> = {
   get_device_info: 'read-only',
   search_knowledge_base: 'read-only',
   read_url: 'read-only',
-}
+};
 
 /** Convert the existing OGAM tool registry into the shared Jarvis skill contract. */
 export function getToolSkillContract(toolName: string): SkillContract | null {
@@ -92,4 +92,19 @@ export function validateBuiltInToolInvocation(
   }
 
   return validateSkillInvocation(skill, input, grantedCapabilities);
+}
+
+/**
+ * Discover only the built-in skills that are both available in this build and
+ * explicitly enabled for the current conversation. This is the catalogue the
+ * Jarvis planner/HUD may present; discovery never grants execution permission.
+ */
+export function getAvailableToolSkillContracts(
+  enabledToolIds: readonly string[],
+): SkillContract[] {
+  const enabled = new Set(enabledToolIds);
+  return offeredTools()
+    .filter(tool => enabled.has(tool.id))
+    .map(tool => getToolSkillContract(tool.name))
+    .filter((skill): skill is SkillContract => skill !== null);
 }
