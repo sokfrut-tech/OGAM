@@ -310,3 +310,29 @@ Inspected README, LICENSE, NOTICE, PERMISSIONS.md, AndroidManifest.xml, tool rou
 High-value reference. Reimplement independently: typed capability registry; progressive tool discovery; bounded long-horizon orchestration; native engine process supervisor; paired Binder capability bridge; permission/risk dashboard; signed first-party extension contracts. Do not import the entire application, privilege ladder, unrestricted terminal, or unreviewed plugin ecosystem.
 
 Detailed notes: [ZORVAI_SOURCE_AUDIT.md](ZORVAI_SOURCE_AUDIT.md).
+
+
+## Deep audits: Eta, Phtomt and PocketMind (2026-11-22)
+
+### Eta — ColorOS system assistant
+Canonical GitHub: https://github.com/Mangi-11/Eta
+GitCode mirror: https://gitcode.com/gh_mirrors/eta9/Eta
+- Root license is GPL-3.0. Current Gradle minSdk 34, targetSdk 37, compileSdk 37.2, ARM64-only; README's Android 13+ wording is stale against Gradle.
+- Source audit confirms native VoiceInteractionService/Session, separate overlay, Android Assist/screenshot context, session expiry, password-node exclusion and screen context not persisted by default.
+- ColorOS adapter targets OplusSpeechHandler.handleMessage(0x3F3), ColorDirect screen recognition and com.oplus.aimemory. Private OEM hooks require LSPosed; Xiaobu memory path may require root. Exact Find X6 Pro firmware compatibility is not proven.
+- See ETA_COLOROS_SOURCE_AUDIT.md.
+
+### Phtomt / Happy Phone Agent
+Canonical GitHub: https://github.com/xkx121029/Phtomt
+GitCode mirror: https://gitcode.com/xkx1029/Phtomt
+- Canonical GitHub LICENSE and README badge say AGPL-3.0; GitCode mirror page labels MIT. Treat canonical source license as authoritative until upstream confirms otherwise.
+- Main app isolates Accessibility, embedded Shizuku and Termux channels in a separate Provider APK with AIDL, signature-level bind permission, API version checks, Binder-death handling and chunked payload transfer.
+- Uses semantic intents + declarative risk tiers and separates action authority from device-channel availability; Free mode also exposes direct shell/A11Y routes and must be treated as advanced.
+- See PHTOMT_POCKETMIND_SOURCE_AUDIT.md.
+
+### PocketMind
+Canonical GitHub: https://github.com/badhope/pocketmind
+- Root Apache-2.0.
+- Source audit confirms server/runtime-enforced risk approval before tool execution, fail-closed if approval callback is missing, unknown tool approval, global deny precedence, session/global allow, timeout-default-deny, safe-only retries and durable file checkpoints/undo.
+- Its Termux runtime and standalone APK have different tool counts/capabilities; do not conflate them.
+- See PHTOMT_POCKETMIND_SOURCE_AUDIT.md.
