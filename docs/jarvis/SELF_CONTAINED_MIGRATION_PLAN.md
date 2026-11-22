@@ -592,3 +592,29 @@ The previous message's link to run 45017758354 is an external-dependency-audit w
 ### Next safe slice
 
 Use the uploaded JSON inventory as the authoritative per-file/per-line map. Extract the exact `@offgrid/models` imports by scope, then implement only the pure, license-independent model contract functions in an OGAM-owned module, one contract at a time. Keep catalog data, network URL policy, model RAM estimator, GGUF multipart behavior and runtime load gate unchanged until their contracts have dedicated regression coverage. Do not remove the remaining shared dependency links or change Metro/Jest mappings based only on package-level counts.
+
+
+### Inventory interpretation — exact package boundaries
+
+The JSON artifact was downloaded and parsed, so the counts below are based on file/line evidence rather than inferred from manifests:
+
+| Package | Source references | Test references | Interpretation |
+|---|---:|---:|---|
+| `@offgrid/models` | 94 | 37 | Broad cross-cutting contract: catalog, model identity, device fit, GGUF helpers, reasoning, image policy, guide content and settings. Not safe to replace wholesale in one pass. |
+| `@offgrid/sync` | 44 | 104 | Core chat/sync/network/security contracts plus Pro entitlement consumers. High-risk boundary; preserve protocol and admission invariants. |
+| `@offgrid/rag` | 19 | 4 | Document ingest/retrieval/citations and paired-computer search. Core feature; requires behavior-level replacement. |
+| `@offgrid/speech` | 8 | 1 | Voice-turn state, transcription language and WAV trimming contracts. |
+| `@offgrid/design` | 2 | 0 | Shared design tokens imported from two source modules. |
+| `@offgrid/notes`, `@offgrid/notes-editor`, `@offgrid/ui`, `@offgrid/writing`, `@offgrid/automation` | 0 | 0 | No direct scoped imports detected in source/tests by this scanner. They remain declared file dependencies or Metro/build mappings where applicable; zero imports alone does not authorize removal. |
+
+Additional repository-wide counts: **468 package imports**, **73 `../shared` workspace path references**, **787 Pro source-path references**, and **37 private checkout references**. These include tests and build configuration; do not interpret them as unique files or runtime-only dependencies.
+
+### `@offgrid/models` source import groups confirmed by the artifact
+
+- Model catalogue/types and recommendation: `src/constants/models.ts`, `src/screens/ModelsScreen/*`, `src/services/devicePicks.ts`, `src/utils/recommendedModels.ts`.
+- GGUF/model-file handling: `src/services/modelArtifactClassifier.ts`, `src/services/modelManager/*`, `src/services/modelScannerService.ts`, `src/services/mtpHeads.ts`, `src/services/mmproj.ts`.
+- Device/RAM/runtime policy: `src/services/memoryBudget.ts`, `src/services/activeModelService/memory.ts`, `src/services/modelResidency/*`, `src/services/llamaEngineSupport.ts`, `src/services/cpuTopologyReader.ts`.
+- Model cards/reasoning and catalog refresh: `src/services/modelCardReasoning.ts`, `src/services/modelCatalogFiles.ts`, `src/stores/modelCatalogStore.ts`.
+- UI/content/settings policy: model cards, media styles, guide flows, image parameter policy, text generation settings and boost-promo presentation.
+
+Migration order should start with isolated pure functions whose exact outputs are characterized by tests, not with the catalog or runtime estimator. Preserve the shared catalog and RAM-fit invariants until their full test matrix is executable in OGAM-only CI.
