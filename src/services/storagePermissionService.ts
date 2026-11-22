@@ -1,36 +1,42 @@
 import { NativeModules, Platform } from 'react-native';
 
-type NativeStoragePermissionModule = {
-  isAllFilesAccessGranted(): Promise<boolean>;
-  openAllFilesAccessSettings(): Promise<boolean>;
+type NativeDownloadsPermissionModule = {
+  accessState(): Promise<{
+    media: boolean;
+    allFiles: boolean;
+    canRequestAllFiles: boolean;
+  }>;
+  requestAllFilesAccess(): Promise<boolean>;
 };
 
-const nativeModule = NativeModules.StoragePermissionModule as
-  | NativeStoragePermissionModule
+const nativeModule = NativeModules.SyncDownloadsModule as
+  | NativeDownloadsPermissionModule
   | undefined;
 
 /**
- * Android's special all-files-access permission is not requested automatically.
- * Prefer the Storage Access Framework for ordinary user-selected files/folders.
+ * Reuses the app's existing Downloads native bridge instead of introducing a second
+ * Android permission implementation. The system permission is global to this app,
+ * while SAF remains the preferred route for user-selected folders.
  */
 export const StoragePermissionService = {
   async isAllFilesAccessGranted(): Promise<boolean> {
     if (Platform.OS !== 'android') return true;
     if (!nativeModule) {
       throw new Error(
-        'StoragePermissionModule is unavailable. Rebuild the Android application.',
+        'SyncDownloadsModule is unavailable. Rebuild the Android application.',
       );
     }
-    return nativeModule.isAllFilesAccessGranted();
+    const state = await nativeModule.accessState();
+    return state.allFiles;
   },
 
   async openAllFilesAccessSettings(): Promise<boolean> {
     if (Platform.OS !== 'android') return true;
     if (!nativeModule) {
       throw new Error(
-        'StoragePermissionModule is unavailable. Rebuild the Android application.',
+        'SyncDownloadsModule is unavailable. Rebuild the Android application.',
       );
     }
-    return nativeModule.openAllFilesAccessSettings();
+    return nativeModule.requestAllFilesAccess();
   },
 };
