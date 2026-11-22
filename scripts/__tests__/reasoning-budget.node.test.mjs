@@ -38,3 +38,11 @@ test('sends an explicit integer token cap only when enabled', () => {
   assert.deepEqual(thinkingBudgetPayload(true, -100), {});
   assert.deepEqual(thinkingBudgetPayload(true, Number.NaN), {});
 });
+
+test('sends OpenRouter reasoning as enabled-by-default or as an explicit token cap', async () => {
+  const { openRouterReasoningPayload } = await import('../../src/utils/reasoningBudget.ts');
+  assert.deepEqual(openRouterReasoningPayload(true), { reasoning: { enabled: true } });
+  assert.deepEqual(openRouterReasoningPayload(true, 1024), { reasoning: { max_tokens: 1024 } });
+  assert.deepEqual(openRouterReasoningPayload(true, 1024.8), { reasoning: { max_tokens: 1024 } });
+  assert.deepEqual(openRouterReasoningPayload(false), { reasoning: { enabled: false } });
+});
