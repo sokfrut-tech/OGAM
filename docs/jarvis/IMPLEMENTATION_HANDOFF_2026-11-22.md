@@ -33,10 +33,11 @@ This file is the durable continuation point for the current OGAM fork work. It r
 - Raw LLM prompt and assistant-prefix prefill paths in the llama.rn service.
 - Local image generation screen with Whisper dictation, editable positive/negative prompts, explicit enhancement preview, supported generation controls, progress/cancel/output path.
 - Russian/English dictionaries and device-locale selection for new screens.
+- The primary ChatInput Whisper/Qwen path now defaults new profiles to the app/device language (`ru` or `en`); an existing persisted transcription-language choice is preserved.
 - Task-plan validation (DAG/dependency/cycle checks), run state transitions, approval wait, completion/failure/retry/pause/resume/cancel guards, and local Zustand persistence.
 - Built-in tool skill contracts validate schemas and enabled-tool capabilities; high-risk skill types have an approval rule.
 - OGAM-owned pure progress helpers and file-size/split-GGUF/companion-file utilities.
-- The legacy `react-native-voice` wrapper now maps the app locale to `ru-RU` or `en-US`, replacing its hard-coded English recognizer locale. Repository search found no production call site for its `useVoiceRecording` hook; the primary ChatInput path uses `audioRecorderService` plus Whisper/Qwen and `useWhisperStore.transcriptionLanguage`. Do not claim that primary path is already proven Russian by this wrapper fix.
+- The legacy `react-native-voice` wrapper also maps the app locale to `ru-RU` or `en-US`; it has no production call site found. The primary ChatInput path is separately fixed through `useWhisperStore.transcriptionLanguage`, which is passed to Whisper realtime/file transcription and Qwen's language prefill.
 - Android APK workflow is manual-only, arm64 debug, SHA-256 + 14-day artifact; it currently cannot build standalone because setup still requires private workspaces.
 - External dependency audit workflow and scanner tests are included.
 - Versioned Russian model-evaluation suite added: six candidate profiles, 14 fixed scenarios and a strict JSONL run validator/scorer. It requires exact model revision, artifact SHA-256, license review, runtime/device details, human scores and explicit safety flags. It never downloads weights or runs a model itself.
@@ -45,11 +46,13 @@ This file is the durable continuation point for the current OGAM fork work. It r
 
 ## Latest implementation slice — Russian speech locale
 
-- Commit `dc22e8a8fc20180ca51a889bc81161dc01851ee1`: `src/services/voiceService.ts` imports the existing app locale and uses `getVoiceRecognitionLocale()` when starting speech recognition.
-- Commit `ad62d0c7bc467da21e31ca02ef6ce3f4155bbdcf`: voice service unit tests cover `ru → ru-RU`, `en → en-US`, and assert that `Voice.start` receives the selected app locale.
-- This is a narrow legacy-wrapper correction only. It does not implement offline ASR, wake word, VAD, TTS, barge-in, or Android system-assistant integration.
-- The legacy `voiceService` Jest tests are committed but have not been run in the latest Node-only CI workflow; do not report those tests as passing.
-- Jandal AI (Apache-2.0) was inspected as a current Android reference: typed capture events, monotonic capture-session IDs, stale-stop rejection, wake-mic arbitration and Android VoiceInteractionService/Session. A detailed behaviour comparison and OGAM migration contract were added to `docs/jarvis/VOICE_STACK_RESEARCH_RU_2026-11-22.md`.
+- Legacy wrapper: `src/services/voiceService.ts` maps `ru → ru-RU`, `en → en-US`; this wrapper has no production `useVoiceRecording` call site found.
+- Primary app path: `src/stores/whisperStore.ts` now initializes new profiles from the detected app/device locale using `src/utils/defaultTranscriptionLanguage.ts`. Russian app locale selects Whisper/Qwen code `ru`; English and unsupported app locales use `en`.
+- Persisted settings are not migrated or overwritten. A person who already selected a transcription language keeps that choice across the update.
+- `src/components/ChatInput/Voice.ts` and `src/hooks/useWhisperTranscription.ts` pass this setting to Whisper realtime and recorded-file transcription; Qwen uses it to prefill `language Russian<asr_text>`.
+- Added a Qwen ChatInput integration test for the Russian language route. It is committed but not yet executed in Jest because the current open-core CI job does not run the private-workspace-dependent Jest suite.
+- The pure default-language tests passed 2/2 in GitHub Actions run #129. This validates locale selection logic, not microphone/ASR accuracy on OPPO.
+- The Jandal AI (Apache-2.0) comparison is documented in `docs/jarvis/VOICE_STACK_RESEARCH_RU_2026-11-22.md`, including typed capture events, monotonic capture-session IDs, stale-stop rejection, wake-mic arbitration and Android VoiceInteractionService/Session.
 
 ## Model research decisions
 
@@ -61,7 +64,7 @@ This file is the durable continuation point for the current OGAM fork work. It r
 
 ## Russian voice research decisions
 
-- Preserve existing OGAM Whisper realtime path first; migrate the private speech-turn contract without dropping tap/silence/hands-free settings.
+- Preserve existing OGAM Whisper realtime path first; new profiles now default to RU/EN from app locale while saved preferences stay unchanged. Migrate the private speech-turn contract without dropping tap/silence/hands-free settings.
 - T-one is a candidate for low-latency Russian streaming, not a replacement before OPPO measurements; its alphabet limitations require a correction path.
 - GigaAM-v3 is a batch correction/transcription candidate, not the duplex streaming default.
 - Silero VAD is a candidate; Smart Turn is deferred until a labelled Russian dialogue benchmark exists.
@@ -111,7 +114,8 @@ A public fork survey found:
 
 - PR #1 remains open/draft/unmerged.
 - PR metadata currently reports `mergeable: false`; do not merge just to unlock the manual APK workflow.
-- Latest CI run #120 (`45024429349`) on head `df86881cdfdb61bf114c7aae595e5446e36fa6ad` completed successfully: all existing Node audit suites and the new model-evaluation validator (6/6 tests) passed. The workflow scanned 1,964 files and reported 1,354 external dependency references; artifact `ogam-import-audit` (ID `14755157246`) was uploaded.
+- Latest CI run #129 (`45024767123`) on head `dcbefb038d1200adf0af35a6b4eace0884d9a1cc` completed successfully: model-evaluation validator 6/6 and locale-aware transcription default tests 2/2 passed, alongside all existing open-core Node audit suites. The workflow scanned 1,966 files and reported 1,354 external dependency references; artifact `ogam-import-audit` (ID `14755202715`) was uploaded. The prior model-evaluation workflow run #120 also passed.
 - This CI workflow checks an open-core Node subset only. It does not run Jest/TypeScript/full React Native tests, clean standalone installation, Gradle APK build or OPPO device checks. The legacy voiceService Jest tests therefore remain unverified.
+- The new Qwen/Russian path integration test is present but remains unexecuted in Jest; no ASR microphone accuracy result is available.
 - No APK artifact, clean standalone install, or OPPO device verification has been demonstrated.
 - Continue from the active branch and current source, not by replaying the already completed steps above.
