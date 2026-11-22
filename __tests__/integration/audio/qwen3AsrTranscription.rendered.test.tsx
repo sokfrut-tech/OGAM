@@ -185,6 +185,25 @@ describe('dictation with Qwen3-ASR selected', () => {
     expect(view.queryByTestId('transcription-notice')).toBeNull();
   });
 
+  it('sends Russian as the pinned language through the primary ChatInput Qwen3-ASR path', async () => {
+    const h = await setupChatScreen({ navigation: 'real', engine: 'llama', platform: 'android', whisper: true, llamaAudio: true });
+    engineReportsShippedBuild();
+    await selectQwenAsr(h);
+    await chooseLanguage(h, 'ru');
+    h.render();
+    const view = h.view!;
+
+    h.boundary.llama!.scriptCompletion({ text: 'Привет, мир' });
+    await dictate(h);
+
+    await h.rtl.waitFor(() => {
+      expect(view.getByTestId('chat-input').props.value ?? '').toBe('Привет, мир');
+    }, { timeout: 4000 });
+    const prompts = h.boundary.llama!.calls.completion.map(([params]) => String((params as { prompt?: string }).prompt ?? ''));
+    expect(prompts.some(prompt => prompt.endsWith('language Russian<asr_text>'))).toBe(true);
+    expect(view.queryByTestId('transcription-notice')).toBeNull();
+  });
+
   it('offers Qwen3-ASR\'s own languages, and a pinned one reaches the model by the name it writes', async () => {
     const h = await setupChatScreen({ navigation: 'real', engine: 'llama', platform: 'android', whisper: true, llamaAudio: true });
     engineReportsShippedBuild();
