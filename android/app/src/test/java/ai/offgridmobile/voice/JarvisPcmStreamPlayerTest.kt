@@ -94,6 +94,27 @@ class JarvisPcmStreamPlayerTest {
   }
 
   @Test
+  fun aLateFailedStartCannotAbandonFocusForANewerGeneration() {
+    val firstTrack = FakeTrack()
+    val secondTrack = FakeTrack()
+    val factory = ControlledTrackFactory(firstTrack, secondTrack)
+    val focus = FakeFocus()
+    val player = JarvisPcmStreamPlayer(factory, focus)
+
+    val firstGeneration = player.begin(24_000)!!
+    player.cancel(firstGeneration)
+    val secondGeneration = player.begin(24_000)!!
+
+    // A delayed completion/cleanup from the first generation must not affect the second.
+    player.finish(firstGeneration)
+    player.cancel(firstGeneration)
+
+    assertTrue(player.isActive)
+    assertTrue(player.write(secondGeneration, floatArrayOf(0.5f)))
+    assertFalse(secondTrack.released)
+  }
+
+  @Test
   fun focusLossCancelsTheCurrentGeneration() {
     val track = FakeTrack()
     val focus = FakeFocus()
@@ -136,6 +157,13 @@ class JarvisPcmStreamPlayerTest {
   }
 
   private class QueueTrackFactory(
+    private vararg val tracks: FakeTrack,
+  ) : JarvisPcmTrackFactory {
+    private var index = 0
+    override fun create(sampleRate: Int): JarvisPcmTrack = tracks[index++]
+  }
+
+  private class ControlledTrackFactory(
     private vararg val tracks: FakeTrack,
   ) : JarvisPcmTrackFactory {
     private var index = 0
