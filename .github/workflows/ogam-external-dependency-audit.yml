@@ -67,6 +67,8 @@ jobs:
         run: node --experimental-strip-types --test scripts/__tests__/tool-result-budget.node.test.mjs
       - name: Verify OGAM-owned reasoning budget policy
         run: node --experimental-strip-types --test scripts/__tests__/reasoning-budget.node.test.mjs
+      - name: Verify OGAM-owned tool loop budget policy
+        run: node --experimental-strip-types --test scripts/__tests__/tool-loop-budget.node.test.mjs
       - name: Generate complete source/config inventory
         run: node scripts/audit-offgrid-imports.mjs --output=ogam-import-audit.json
       - name: Upload audit evidence
