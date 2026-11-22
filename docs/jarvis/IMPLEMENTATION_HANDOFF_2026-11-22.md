@@ -584,3 +584,24 @@ The single remaining M2 symbol still imported from `@offgrid/models` is `reasoni
 - v2.0.3 Android JNI callback wrapper captures JNIEnv/local jobject. C++ callback appears synchronous in the inspected Supertonic generation loop, but no explicit thread-attach/global-ref safety exists. There is an upstream reported Android SIGABRT issue #3492; smoke-test on device and patch if thread-crossing is observed.
 - Immediate audio barge-in is already supported by JarvisPcmStreamPlayer. Native compute cancellation is not yet proven; do not overlap a new TTS generation with an old Supertonic generation unless the old worker is actually stopped/released.
 - Updated priority: tiny-voca-ru compact prototype; Supertonic-3 streaming-oriented after patch/license/device gates; Qwen3-TTS/CosyVoice batch quality comparisons.
+
+
+## Engine-neutral TTS contract and incremental speech chunker added (2026-11-22)
+
+Added source-only implementation on this branch:
+- `android/app/src/main/java/ai/offgridmobile/voice/JarvisTtsBackend.kt`
+  - Defines a model-neutral blocking backend contract, called only on worker threads.
+  - Keeps model inference separate from AudioTrack, AudioFocus, microphone capture and conversation lifecycle.
+  - Explicit capabilities distinguish `BATCH`, `SENTENCE_CHUNKED`, and `MODEL_STREAMING`; includes native cancellation, voice cloning, instruction control, language hints and supported language tags.
+  - Defines validated request/result types and duration calculation from PCM samples.
+- `android/app/src/main/java/ai/offgridmobile/voice/JarvisSpeechChunker.kt`
+  - Incremental Russian/English sentence chunker for token-streamed assistant text.
+  - Preserves punctuation, avoids splitting decimal numbers, common abbreviations and initials, handles fragment boundaries and limits chunk length without breaking words.
+  - Supports `flush()` at end of turn and `reset()` on barge-in/new turn.
+- Tests:
+  - `JarvisSpeechChunkerTest.kt` (6 tests)
+  - `JarvisTtsBackendContractTest.kt` (3 tests)
+  - Existing `JarvisPcmStreamPlayerTest.kt` (8 tests)
+- Important: these tests have been added but no Gradle/JUnit run has been confirmed. The manual Android APK workflow remains default-branch-only; no APK/device verification.
+- No Sherpa, Qwen, CosyVoice, Supertonic or other TTS dependency/model has been added yet. The new contract is intentionally model-neutral and keeps the selected model decision separate.
+- The Supertonic callback-stop patch remains a proposed patch file and has not been applied to a compiled AAR.
