@@ -243,3 +243,36 @@ This does **not** yet prove the complete public export surface, the full field s
 - **Pro-only:** none of the confirmed imports above is directly imported from a Pro source file in this pass. Pro-only consumers must be classified separately after the Pro boundary is mapped.
 - **Unresolved:** complete catalog schema and contents, all exported APIs, exact parser and naming edge cases, update/versioning contract, licensing and attribution of catalog metadata.
 
+
+
+## `@offgrid/models` — test-backed behavioral contract (2026-11-22)
+
+A second pass inspected focused OGAM tests. These tests provide useful behavioral evidence, but they do not recover the private package's full source or catalog.
+
+### Behaviors explicitly pinned by tests
+
+- **Mobile curated recommendations:** `recommendedModelsForDevice` includes models only when `minRam <= deviceRam` and `maxRam` is absent or `deviceRam <= maxRam`; preserves editorial order. The trending selector chooses at most one best-fit member per family using the lowest `ramFitScore`. Evidence: `__tests__/unit/utils/recommendedModels.test.ts`.
+- **Quantization order:** Android CPU/NPU prefers Q4_0, then Q4_K_M; Android GPU and iOS prefer Q4_K_M; when Q4_0 is absent, Q4_K_M remains first. The UI test verifies both the Recommended card and the first item in All files. Evidence: `__tests__/integration/models/preferredQuantOrder.rendered.test.tsx`.
+- **Vision projector matching:** a model must only use its matching model-family projector; quantization may differ; unrelated projectors must be rejected even if they share a quant suffix. A missing correct projector returns undefined, never an unrelated fallback. Evidence: `__tests__/integration/models/mmProjMatchesModel.test.ts`. This behavior is currently implemented in OGAM's own `src/services/mmproj.ts`, not attributed to `@offgrid/models`.
+- **Projector download hydration:** `*-projector.gguf` and `*-clip.gguf` sidecars must not appear as standalone downloads. Evidence: `__tests__/integration/models/mmProjHydrationClassify.test.ts`.
+- **Catalog display names:** video display names are looked up by exact catalog ID and kind, with caller fallback (consumer code in `src/utils/modelHelpers.ts`; dedicated test path is `__tests__/integration/models/catalogGgufDisplayName.rendered.test.tsx`).
+- **Catalog replacement and licensing fields:** `supersededBy` supports a “Newer” warning; `nonCommercial` on a remote text-catalog entry drives a “Research licence” label. The test also records that the published catalog's text section was empty at that time, so the UI wiring alone is not evidence that real entries were present. Evidence: `__tests__/integration/models/modelCardReplacedAndResearchLicence.rendered.test.tsx`.
+- **Catalog capability facts:** tests expect selected bundled recommendations to surface “Thinking likely”, “Tool calling likely”, and “Vision” capabilities. Evidence: `__tests__/integration/models/catalogChoice.rendered.test.tsx`.
+
+### Important test gap — do not overclaim
+
+The inspected tests do **not** directly test the private `splitGgufPartNames` or `isCompanionFile` exports. Existing scanner tests exercise projector cleanup and generic GGUF scanning, but no split-GGUF naming matrix was found in the inspected test files. The exact split filename convention and companion-file predicate therefore remain unresolved and need independent fixtures before porting.
+
+Likewise, no focused unit test for `modelCardUrl` / `modelCardDeniesReasoning` was identified in this pass. The app's model-card reasoning behavior has a consumer-level contract, but parser edge cases remain unverified.
+
+### Additional portability concern
+
+The catalog update path is a separate external integration: `src/stores/modelCatalogStore.ts` imports `MOBILE_CATALOG_URL` and fetches the remote catalog. Tests refer to the old upstream catalog URL `https://raw.githubusercontent.com/off-grid-ai/OGAM/main/catalog/models.json`. A truly self-owned OGAM release must audit and repoint the catalog source to a repository-controlled URL (or a documented, independently hosted source), while retaining the bundled offline fallback. Do not silently keep a runtime dependency on the original organization's repository.
+
+### Next implementation gate
+
+Before changing production imports:
+1. Add/locate explicit fixture tests for split GGUF naming and companion sidecars.
+2. Specify the full catalog schema and publish a versioned, license-audited catalog owned by `sokfrut-tech/OGAM`.
+3. Port the proven helpers with parity tests, then migrate consumers one helper at a time.
+4. Keep the complete bundled catalog and the offline fallback; test offline startup and remote catalog failure.
