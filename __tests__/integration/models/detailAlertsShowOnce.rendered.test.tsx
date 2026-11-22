@@ -12,6 +12,7 @@
  * download module, the file system (and its free-space reading), and Hugging Face (fetch).
  */
 import { installNativeBoundary, requireRTL, GB, MB } from '../../harness/nativeBoundary';
+import { formatFileSize } from '../../../src/utils/formatFileSize';
 import { createDownloadedModel } from '../../utils/factories';
 
 const modelId = 'ibm-granite/granite-4.0-micro-GGUF';
@@ -106,7 +107,6 @@ describe("alerts from a model's detail view", () => {
       require('@react-native-async-storage/async-storage').default ??
       require('@react-native-async-storage/async-storage');
     await AsyncStorage.clear();
-    const { formatFileSize } = require('@offgrid/models');
     const { rtl, screen } = await openDetail(boundary);
 
     // BEFORE: no alert.

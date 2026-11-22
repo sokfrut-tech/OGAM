@@ -1,4 +1,5 @@
 import { installNativeBoundary, requireRTL, MB, GB } from '../../harness/nativeBoundary';
+import { formatFileSize } from '../../../src/utils/formatFileSize';
 
 // A download that waits in the three-at-a-time queue must check free space when it actually
 // STARTS, against the space free at that moment — not the space free when the user tapped it.
@@ -34,7 +35,6 @@ describe('a queued download checks free space when it starts', () => {
     };
     const React = require('react');
     const rtl = requireRTL();
-    const { formatFileSize } = require('@offgrid/models');
     const { registerCoreDownloadProviders } = require('../../../src/services/modelDownloadService/registerProviders');
     const { ModelsScreen } = require('../../../src/screens/ModelsScreen');
     registerCoreDownloadProviders();
