@@ -149,3 +149,14 @@ Commits:
 - On the preceding head, the Android compile stopped before Kotlin/JUnit execution; the 20 current Kotlin test cases (7 launch guard, 5 role snapshot, 8 PCM player) have not yet been proven to run.
 - The same preceding full CI run also had unrelated, already-known JS workspace migration failures: unresolved `@offgrid/models`, `@offgrid/sync`, `@offgrid/rag` imports and inaccessible private `pro/*` test modules; the lint/type/architecture job likewise reported missing workspace modules and downstream type errors. These require completion of the OGAM package migration and test-boundary work; they are not evidence that the native assistant tests passed or failed.
 - PR #1 remains draft/unmerged. Manifest merge, APK assembly, instrumentation testing, emulator testing and PGEM10 runtime behavior remain outstanding.
+
+
+## Latest CI result — Gradle dependency rate limit, Kotlin patch not yet recompiled (2026-11-22)
+
+- Latest full CI run [#45049107228](https://github.com/sokfrut-tech/OGAM/actions/runs/45049107228), head `95682ccb2246eb9a2a2cea4521eb137498f43771`, finished with failure.
+- Android job reached the Gradle setup/run step but failed resolving `com.google.code.gson:gson:2.9.1`, a transitive dependency of `org.gradle.toolchains:foojay-resolver:0.5.0`. Maven Central returned HTTP `429 Too Many Requests` for `https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.9.1/gson-2.9.1.pom`. The Gradle Plugin Portal fallback resolved to the same Maven Central URL and was rate-limited too.
+- No `:app:compileDebugKotlin` task began and no Kotlin diagnostics were produced on this latest head. Therefore this run neither validates nor falsifies the corrective patches to `JarvisAssistantRoleModule.kt` and `JarvisPcmStreamPlayer.kt`.
+- The previous actual compiler diagnostics were on head `df3fdb3`: wrong RN callback signature, unresolved synthetic `currentActivity`, and PCM `setVolume` return-type mismatch. Source fixes were committed as `53ef299f` and `20650c13`.
+- External source-contract audit [#45049107229](https://github.com/sokfrut-tech/OGAM/actions/runs/45049107229) succeeded on latest head `95682ccb`. It does not compile Kotlin.
+- Full CI's JavaScript lint/type/Jest gates remain red because the ongoing standalone migration still leaves `@offgrid/models`, `@offgrid/sync`, and `@offgrid/rag` consumers unresolved in this branch, as well as test imports from private `pro/*` paths that are not present in the checkout. Continue the exact package-slice migration and test-boundary cleanup rather than masking these imports.
+- Required next step: repeat the Android Gradle run after the external Maven rate limit clears, preferably with a populated Gradle dependency cache. The successful build must show `:app:compileDebugKotlin`, `:app:testDebugUnitTest`, and Android manifest merge results on the same commit. Then proceed to APK assembly and instrumentation/PGEM10 testing.
