@@ -184,3 +184,32 @@ Added to `feature/jarvis-step-2-storage-privacy`:
 - External dependency audit run 426 completed successfully on this exact head: https://github.com/sokfrut-tech/OGAM/actions/runs/45058165618
 - The passing audit includes the TTS backend/chunker source contract, assistant bridge source contracts, PCM playback source contract and the other configured Node-only checks.
 - Full CI run 182 is still pending/no job result at last inspection. Gradle/JUnit, APK build and PGEM10 tests are not verified.
+
+
+## 2026-11-22 follow-up: latest sherpa-onnx release, real-time gate, and chunker regression fix
+
+### Sherpa-ONNX v2.0.3 release audit
+- GitHub marks v2.0.3 as the latest sherpa-onnx release on 2026-11-22: https://github.com/k2-fsa/sherpa-onnx/releases/tag/v2.0.3
+- Official Android AAR asset: `sherpa-onnx-2.0.3.aar`, 52,411,426 bytes, SHA-256 `4c766e2e74c9d33d595338c21fe3b305c73ba45d47e96a235675c33142a2ec50`.
+- The official Kotlin API exposes `OfflineTts.generateWithConfigAndCallback(...)`. It invokes a PCM callback as generation proceeds and returns a final `GeneratedAudio`; callers can therefore stream PCM to OGAM's player while the call is still generating. The API's returned audio array is still accumulated, so the adapter must consider peak memory and avoid retaining unnecessary duplicate PCM.
+- Official Android sample uses a worker thread, an `AudioTrack`, and callback return 0/1. The sample is a useful API reference, not production-ready integration: its own player lifecycle is simpler than OGAM's generation-token/AudioFocus ownership.
+- Supertonic's C++ implementation in v2.0.3 still invokes `callback(...)` but ignores the return value in `OfflineTtsSupertonicImpl::ProcessChunksAndConcatenate()`. This confirms that callback PCM is incremental but native generation cancellation is not honored. The OGAM patch remains necessary and must be applied to a pinned sherpa source build, then tested before native cancellation is advertised.
+- JNI callback review correction: in the inspected v2.0.3 wrapper, `OfflineTts_generateWithConfigImpl` calls `tts->Generate(...)` synchronously, and the callback is invoked inside that synchronous generation loop. The inspected call path does not demonstrate cross-thread callback invocation; therefore capturing `JNIEnv*` and a local callback reference is not by itself proof of a thread-affinity bug. Keep Android smoke tests, but do not add speculative AttachCurrentThread/global-ref changes unless a real asynchronous path or device crash reproduces the need.
+
+### CosyVoice3-MNN performance downgrade
+- Separate upstream research branch: https://github.com/Nian27/CosyVoice3-MNN/blob/main/research/mnn-cosyvoice3/README.md
+- The published Stage 1 Flow benchmark on Honor BKQ_AN90 / Adreno 840 reports about 1.152 s steady median for one sequence-256 estimator call. The official 10-step solver implies about 11.52 s of Flow compute; after subtracting a 2.0 s prompt from 5.12 s mel context, the newly generated portion is about 3.12 s, giving an estimated Flow-only RTF around 3.69 before wrapper overhead.
+- The report explicitly says Stage 1 fails its real-time performance gate. This is not an end-to-end OGAM or OPPO Find X6 Pro benchmark, but it is enough to demote CosyVoice3-MNN from the first conversational prototype to an optional batch-quality experiment. Its 1.399 GB main model archive and ~998 MB optional enrollment archive further increase storage and memory pressure.
+- Do not copy the SM8850/Adreno 840 NPU path to SM8550. OPPO Find X6 Pro remains untested.
+
+### Chunker regression fix
+- Updated `JarvisSpeechChunker.kt` to include closing quotes/brackets when detecting sentence boundaries and protect both periods in spaced Russian abbreviations such as `и т. д.` / `т. п.`.
+- Added JUnit regression cases in `JarvisSpeechChunkerTest.kt`: `keepsSpacedRussianAbbreviationsInsideTheSameSentence` and `closesQuotedSentenceBeforeStartingTheNextSentence`.
+- A local isolated Kotlin compile + focused harness passed 7 representative cases (fragment boundaries, flush, spaced abbreviation, Russian/English closing quotes, decimals and initials). This was not a Gradle/JUnit run and not an Android test.
+- Source-contract audit test was extended to require these regression fixtures. Latest audit result for the new commit is pending at the time of this note.
+
+### Full CI status / blockers
+- Full CI run on the preceding merge head `8a90878592e0e44a2d25dcbf7077e0e669fcee15`: https://github.com/sokfrut-tech/OGAM/actions/runs/45058750893
+- The full CI was not green. Lint/type/architecture/knip and Jest shards failed. The type logs show missing private workspace packages `@offgrid/sync` and `@offgrid/models`, followed by cascaded missing types; Jest shards report many suites failing to load/configure. This is an environment/private-workspace dependency blocker plus broader pre-existing branch integration debt, not evidence that the new Kotlin chunker failed.
+- Android test job was still running at the last status check; no final Android Gradle/JUnit result is claimed.
+- The separate external-dependency source-contract workflow had passed on the previous head. Recheck it on the new commit before treating the current source audit as green.
