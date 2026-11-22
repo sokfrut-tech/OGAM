@@ -187,3 +187,15 @@ The old store default was hard-coded to `en`. On 2026-11-22 the new-profile defa
 ## 9. Scope note for the legacy Russian locale correction
 
 The 2026-11-22 change to `voiceService.ts` corrects the separate `react-native-voice` wrapper and its `useVoiceRecording` hook. Repository code search found no production call site for that legacy hook. The current main ChatInput flow instead uses `audioRecorderService` plus Whisper/Qwen transcription and `useWhisperStore.transcriptionLanguage`. Therefore the RU/EN wrapper fix is useful maintenance, but it is **not** proof that the primary ChatInput pipeline or offline ASR defaults are already Russian. Verify the actual selected Whisper/Qwen language and model on OPPO before release.
+
+## 10. System-assistant one-shot conversation behavior
+
+The Android system-assistant route now sets a one-shot flag on the existing ChatScreen and passes it through ChatMessageArea → ChatInput → voice handlers. It does not create a second microphone or message-sending implementation.
+
+- For an empty composer with no pending attachments, a non-empty recognized phrase is submitted through the normal `chat.handleSend` path. The normal user-message history, routing and model pipeline remain the source of truth.
+- If typed draft text or any pending attachment already exists, the spoken phrase is appended to the composer and left for review. The app does not silently send the pre-existing draft or attachments just because the system assistant was invoked.
+- Ordinary manual Chat-mode dictation is unchanged: it still fills the composer without auto-sending.
+- The one-shot flag is cleared on successful send, fallback-to-draft, an empty capture, a failed transcription, a cancellation or a stale result that no longer belongs to the open chat. Whisper now exposes an `onCaptureSettled(hasTranscript)` signal for both manually and automatically completed captures; the existing `onCaptureEnded` voice-session semantics remain separate.
+- New `voiceNoteSend.test.ts` Jest tests cover assistant auto-send, draft protection and pending-attachment protection. A new Node source-contract test is part of open-core CI. The Jest tests have not yet run in this CI workflow.
+- This still does not provide a spoken reply in free/core mode: local Russian TTS, sentence streaming and duplex/barge-in remain separate open implementation slices. No OPPO device verification has been performed.
+
