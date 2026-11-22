@@ -234,3 +234,55 @@ Substantive independent report is now available; this supersedes the earlier sta
 5. Obtain exact Instructions 17.7.2 APK from the device; run pinned JADX/apksigner/aapt2 only in an out-of-repository scratch directory. Do not commit raw proprietary output.
 
 Gemini's B1–B5 findings are reviewer findings, not all reproduced defects. No runtime code has been changed from these claims. Reproduce/verify each finding, then implement and test the smallest safe fix. Preserve the original offline-first and clean-room requirements.
+
+
+## B4 security finding reproduced and mitigated — 2026-11-22
+
+This section supersedes the earlier status above that described B4 only as an unverified hypothesis.
+
+### Root cause confirmed against the locked React Navigation versions
+
+- OGAM's `package-lock.json` resolves `@react-navigation/native 7.5.1` and `@react-navigation/core 7.24.0`.
+- At the corresponding upstream source revision `379552a`, `extractPathFromURL.tsx` collapses repeated slashes before passing the path to the core router; `getStateFromPath.tsx` ensures a trailing slash and its static-path matcher accepts percent-encoded path characters.
+- Therefore the pre-fix native predicate (`scheme == offgrid && host == assistant && path == /voice`) did not cover every spelling the JS router could resolve to the same Chat route.
+- Concrete bypass spelling: `offgrid://assistant/voice/?startVoice=1`. Android exposes `/voice/` as the path, so the old equality check against `/voice` did not classify it as the protected assistant intent, while React Navigation's route pattern accepts the trailing slash. This is a confirmed source-level parser mismatch; no live device exploit was executed.
+
+Upstream source references:
+- [React Navigation 7.5.1 URL extraction](https://github.com/react-navigation/react-navigation/blob/379552a/packages/native/src/extractPathFromURL.tsx)
+- [React Navigation 7.24.0 route parser](https://github.com/react-navigation/react-navigation/blob/379552a/packages/core/src/getStateFromPath.tsx)
+- [OGAM locked dependency versions](https://github.com/sokfrut-tech/OGAM/blob/feature/jarvis-step-2-storage-privacy/package-lock.json)
+
+### OGAM mitigation committed to PR #1 branch
+
+- `JarvisAssistantLaunchGuard.matchesAssistantVoiceRoute(uri)` now normalizes repeated/leading/trailing slashes, recognises percent-encoded unreserved static characters, and conservatively matches case variants of the protected route.
+- `MainActivity.isJarvisAssistantIntent` now delegates to that matcher for ACTION_VIEW intents. Both cold-start (`onCreate`) and warm-start (`onNewIntent`) continue to pass through the same one-use-token consumer before React Native receives the assistant URL.
+- Non-assistant routes such as `offgrid://oauth/callback` and `offgrid://pro/unlock` remain outside this route guard.
+- Kotlin/JUnit regression vectors cover the canonical URL, trailing and repeated slashes, one-/three-slash authority forms, percent-encoded static characters, unrelated routes and malformed schemes. Existing one-use, forged-token and token-replacement tests remain intact.
+- The open-core Node source-contract test checks that the route matcher stays wired into MainActivity and that these regression vectors remain in the Kotlin suite.
+
+Files changed:
+- `android/app/src/main/java/ai/offgridmobile/voice/JarvisAssistantLaunchGuard.kt`
+- `android/app/src/main/java/ai/offgridmobile/MainActivity.kt`
+- `android/app/src/test/java/ai/offgridmobile/voice/JarvisAssistantLaunchGuardTest.kt`
+- `scripts/__tests__/android-assistant-contract.node.test.mjs`
+
+Commits:
+- Guard normalizer: `72abc73c68a72439f4bb80b4ea4559daf3ce0a3e`
+- MainActivity wiring: `557a8d279ab2435685881610aab04e7f40d17a93`
+- Kotlin/JUnit regression cases: `d60a3e143961bd72ac8f118359300d1340e1a070`
+- Node contract coverage: `681aea5e7bb74accbaeabf54f0ce9f776e51f2b8`
+
+### Fresh verification and limits
+
+- GitHub Actions `OGAM external dependency audit` run [#45047342804](https://github.com/sokfrut-tech/OGAM/actions/runs/45047342804) completed successfully. Its `Verify Android Jarvis assistant contract` step passed with the new source wiring checks.
+- This run is an open-core Node/source-contract workflow. It did **not** run the Kotlin/JUnit suite, Gradle compilation, Android manifest merge, APK assembly, or an on-device adversarial intent test.
+- The Kotlin test additions are committed but remain unexecuted in the available evidence. Do not mark the full Android security acceptance criterion as passed yet.
+- PR #1 remains open/draft/unmerged. No APK release or PGEM10 validation is claimed.
+
+### Next security verification steps
+
+1. Run `./gradlew :app:testDebugUnitTest` and the Kotlin compile against the exact RN 0.83.1 / pinned Android toolchain.
+2. Add/execute Activity-level cold-start and `onNewIntent` instrumentation tests that submit the adversarial URLs and confirm the voice route is not delivered without a valid token.
+3. Verify a valid private-bridge-issued token still opens the Chat voice route exactly once.
+4. Test the same flows on an Android emulator and OPPO PGEM10 / ColorOS 16, including task already running and process recreation.
+5. Then continue B1–B3 build/API verification and A1–A5 PR #2 documentation corrections; do not merge either draft PR merely because the Node contract workflow is green.
