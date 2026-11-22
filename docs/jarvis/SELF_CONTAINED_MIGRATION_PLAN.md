@@ -913,3 +913,17 @@ References:
 3. Build a complete `@offgrid/speech` contract inventory from all imports, event call sites and tests. Only then port the transition machine and endpoint timer.
 4. Create the local TTS provider interface in core and a sherpa-onnx Android proof-of-concept on a separate branch; no model bundling until exact license and real-device test.
 5. Unify ASR, TTS, turn state and HUD with a single event timeline; keep AEC and wake-word as separate verified milestones.
+
+
+### Progress update — dependency-aware Jarvis task plans (2026-11-22)
+
+Implemented in the OGAM branch:
+- `src/services/planner/taskPlan.ts` defines a versioned, platform-neutral task-plan schema.
+- Validation rejects malformed plans, unknown/duplicate/self dependencies, duplicate step IDs, invalid skill references and dependency cycles; it returns a deterministic topological order.
+- `getReadyTaskSteps` only exposes steps whose dependencies are completed, and refuses draft, malformed or otherwise non-runnable plans. It is a pure function: reading readiness cannot execute or mutate anything.
+- Added Node tests for valid order, dependency gating, missing dependencies, duplicate IDs, cycles, malformed dependency arrays and draft-plan rejection.
+- Added the task-plan tests to the standalone audit workflow.
+
+Boundary: this is the declarative plan/graph foundation, not yet a full execution engine. Persistent run history, pause/resume/cancel, retry, per-step approval UI, timeouts, compensation/undo and background scheduling remain future slices. The executor must resolve each `skillId` against the installed skill catalogue and the Android capability broker; model-provided plan JSON never executes directly.
+
+The latest standalone workflow run after this change must be checked before treating the new test as passing.
