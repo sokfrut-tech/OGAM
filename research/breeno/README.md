@@ -186,3 +186,5 @@ The source survey now includes Chinese platforms and Chinese-language projects (
 - [Offline static analysis of 26 local OPPO / Breeno / ColorOS 16 APKs](OPPO_LOCAL_APK_STATIC_ANALYSIS_2026-11-22.md) — hashes, signing certificate trust clusters, `Breeno 13.3.2 -> 13.4.3` diff, `Memory` + `SearchService (com.oplus.dmp)` static indicators of SQLCipher/vector-oriented search/RAG separation (runtime call flow remains unverified), `AIUnit` daemon, `Pantanal UMS`, `SystemUI`, and clean-room architecture conclusions.
 
 - [26-APK manifest & native inventory JSON](OPPO_APK_MANIFEST_AND_NATIVE_INVENTORY_2026-11-22.json) — machine-readable certificates, SDK targets, OEM permissions, exported services/providers, native libraries, DB names, and hosts across all 26 APKs.
+
+- [Gemini APK audit corrections A1–A5](GEMINI_APK_AUDIT_CORRECTIONS_2026-11-22.md) — evidence-boundary corrections, package/certificate grouping, AIUnit worker-process interpretation, size units, and PR #1 verification status.
