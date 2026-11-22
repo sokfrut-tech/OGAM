@@ -993,3 +993,8 @@ Official references:
 - Long-running worker limits: https://developer.android.com/develop/background-work/background-tasks/persistent/how-to/long-running
 
 All Android integrations are original OGAM/Jarvis code using public Android APIs. No proprietary Apple code or assets are involved.
+
+
+### Canonical capability inventory
+
+The current source-derived feature inventory and Siri parity status are maintained in `docs/jarvis/OGAM_FEATURE_PORT_MATRIX.md`. Update that matrix whenever a capability is migrated, blocked, verified or removed. It explicitly distinguishes existing OGAM functionality from new Jarvis parity work and records the remaining private-workspace/APK blockers.
