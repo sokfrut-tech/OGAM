@@ -31,12 +31,17 @@ import { voiceSession } from './voiceSession';
 
 export type RecordPhase = 'idle' | 'listening' | 'recording' | 'transcribing';
 
+export interface RecordingStartOptions {
+  /** System-assistant requests must be convertible to text before the normal chat send path. */
+  requiresTranscript?: boolean;
+}
+
 interface RecordingHandlers {
   start: () => void | Promise<void>;
   stop: () => void | Promise<void>;
   cancel: () => void;
   /** Current backend/model availability. False leaves the session idle and the mic untouched. */
-  canStart?: () => boolean;
+  canStart?: (options?: RecordingStartOptions) => boolean;
 }
 
 type Listener = (phase: RecordPhase) => void;
@@ -89,10 +94,10 @@ class RecordingController {
    * a double-tap. The latch that stops it lives in the recorder, not here: it has to hold for every
    * duplicate ask, not just the two this method happens to make.
    */
-  start(): 'started' | 'busy' | 'no-recorder' | 'unavailable' {
+  start(options: RecordingStartOptions = {}): 'started' | 'busy' | 'no-recorder' | 'unavailable' {
     if (this.getPhase() !== 'idle') return 'busy';
     if (!this.handlers) return 'no-recorder';
-    if (this.handlers.canStart && !this.handlers.canStart()) return 'unavailable';
+    if (this.handlers.canStart && !this.handlers.canStart(options)) return 'unavailable';
     voiceSession.dispatch('userStart');
     void this.handlers.start();
     return 'started';
