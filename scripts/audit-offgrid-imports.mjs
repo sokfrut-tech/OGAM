@@ -18,16 +18,16 @@ const SKIP_DIRS = new Set([
 ]);
 
 function scopeFor(file) {
-  if (file.includes('/__tests__/') || /\.(test|spec)\.[^.]+$/.test(file)) return 'test';
+  if (file.startsWith('__tests__/') || file.includes('/__tests__/') || /\.(test|spec)\.[^.]+$/.test(file)) return 'test';
   if (file.startsWith('.github/') || /(^|\/)(package\.json|package-lock\.json|metro\.config\.js|jest\.config\.js|tsconfig\.json|\.gitmodules)$/.test(file)) return 'build-config';
-  return 'source-or-config';
+  return 'source';
 }
 
 export function scanFileContent(file, content) {
   const hits = [];
   const importPattern = /(?:\bfrom\s*|\bimport\s*(?:\(\s*)?|\brequire\s*\(\s*)['"](@offgrid\/(?:models|rag|sync|speech|notes|notes-editor|ui|writing|design|automation|pro)(?:\/[^'"]*)?)['"]/g;
   const sharedPattern = /(?:file:)?\.\.\/shared(?:\/[^\s"'\x60]*)?/g;
-  const proPattern = /(?:PRO_SUBMODULE_PAT|off-grid-ai\/mobile-pro|off-grid-ai\/shared|git submodule|pro\/package\.json|(?:\.\.\/|\.\/)?pro\/)/gi;
+  const privatePattern = /(?:PRO_SUBMODULE_PAT|off-grid-ai\/mobile-pro|off-grid-ai\/shared|git submodule)/gi;\n  const proPathPattern = /(?:\.\.\/|\.\/|\/)pro\//g;
   const lines = content.split(/\r?\n/);
 
   for (let index = 0; index < lines.length; index += 1) {
@@ -40,8 +40,11 @@ export function scanFileContent(file, content) {
     for (const match of line.matchAll(sharedPattern)) {
       hits.push({ kind: 'shared-workspace-path', value: match[0], line: index + 1, text: line.trim().slice(0, 260) });
     }
-    for (const match of line.matchAll(proPattern)) {
-      hits.push({ kind: 'pro-or-private-checkout-reference', value: match[0], line: index + 1, text: line.trim().slice(0, 260) });
+    for (const match of line.matchAll(proPathPattern)) {
+      hits.push({ kind: 'pro-source-path', value: match[0], line: index + 1, text: line.trim().slice(0, 260) });
+    }
+    for (const match of line.matchAll(privatePattern)) {
+      hits.push({ kind: 'private-checkout-reference', value: match[0], line: index + 1, text: line.trim().slice(0, 260) });
     }
   }
   return hits.map(hit => ({ file, scope: scopeFor(file), ...hit }));
@@ -86,6 +89,12 @@ export function buildReport(root = process.cwd()) {
     return [key, hits.filter(hit => hit.kind === 'package-import' && hit.package === key).length];
   }));
 
+  const byPackageAndScope = Object.fromEntries(['source', 'test', 'build-config'].map(scope => [scope,
+    Object.fromEntries(PACKAGES.map(name => {
+      const key = `@offgrid/${name}`;
+      return [key, hits.filter(hit => hit.kind === 'package-import' && hit.package === key && hit.scope === scope).length];
+    }))
+  ]));
   return {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
@@ -93,10 +102,12 @@ export function buildReport(root = process.cwd()) {
     filesScanned: files.length,
     localFileDependencies: localDependencies,
     packageImportCounts: byPackage,
+    packageImportCountsByScope: byPackageAndScope,
     hitCounts: {
       packageImports: hits.filter(hit => hit.kind === 'package-import').length,
       sharedWorkspacePaths: hits.filter(hit => hit.kind === 'shared-workspace-path').length,
-      proOrPrivateCheckoutReferences: hits.filter(hit => hit.kind === 'pro-or-private-checkout-reference').length,
+      proSourcePaths: hits.filter(hit => hit.kind === 'pro-source-path').length,
+      privateCheckoutReferences: hits.filter(hit => hit.kind === 'private-checkout-reference').length,
     },
     hits,
   };
@@ -110,7 +121,8 @@ function renderSummary(report) {
     `- Local file dependencies: **${report.localFileDependencies.length}**`,
     `- Package imports: **${report.hitCounts.packageImports}**`,
     `- Shared workspace path references: **${report.hitCounts.sharedWorkspacePaths}**`,
-    `- Pro/private checkout references: **${report.hitCounts.proOrPrivateCheckoutReferences}**`,
+    `- Pro source paths: **${report.hitCounts.proSourcePaths}**`,
+    `- Private upstream checkout references: **${report.hitCounts.privateCheckoutReferences}**`,
     '',
     '## Local package dependencies',
     '',
