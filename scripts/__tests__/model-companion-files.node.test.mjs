@@ -23,3 +23,13 @@ test('exposes specific MTP, draft and imatrix classifications', () => {
   assert.equal(isDraftModelFile('Qwen3.5-9B-DFlash-Q4_0.gguf'), true);
   assert.equal(isImatrixFile('Spark-X2.6-4B-imatrix.gguf'), true);
 });
+
+import { readFile } from 'node:fs/promises';
+
+test('local model import rejects companion artifacts without importing the private classifier', async () => {
+  const source = await readFile(new URL('../../src/services/modelManager/importLocalModel.ts', import.meta.url), 'utf8');
+  assert.match(source, /from ['"]\.\.\/\.\.\/utils\/modelCompanionFiles['"]/);
+  assert.match(source, /if \(isImatrixFile\(fileName\)\)/);
+  assert.match(source, /if \(isCompanionFile\(fileName\)\)/);
+  assert.doesNotMatch(source, /from ['"]@offgrid\/models['"]/);
+});
