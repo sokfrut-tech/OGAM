@@ -163,6 +163,16 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
 
   const ensureWhisper = createWhisperReadiness(downloadedModelId, remoteTranscriptionAvailable);
 
+  // A failed start must return the session to idle as well as clear Jarvis's one-shot flag.
+  // Otherwise the state machine remains in listen with no microphone actually open.
+  const settleFailedCaptureStart = () => {
+    if (voiceSession.current().state === 'listen') {
+      voiceSession.dispatch('turnCaptured');
+      voiceSession.dispatch('dictationFinished');
+    }
+    onAssistantVoiceInputConsumedRef.current?.();
+  };
+
   const {
     isRecording: isWhisperRecording,
     isModelLoading,
@@ -182,6 +192,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
     onCaptureSettled: hasTranscript => {
       if (!hasTranscript) onAssistantVoiceInputConsumedRef.current?.();
     },
+    onCaptureStartFailed: settleFailedCaptureStart,
     onCaptureEnded: () => {
       logger.log('[TURN] capture ended by itself');
       if (isInAudioInterfaceMode()) {
