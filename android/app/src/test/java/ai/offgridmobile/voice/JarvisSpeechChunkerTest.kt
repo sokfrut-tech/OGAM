@@ -28,6 +28,30 @@ class JarvisSpeechChunkerTest {
   }
 
   @Test
+  fun keepsSpacedRussianAbbreviationsInsideTheSameSentence() {
+    val chunker = JarvisSpeechChunker()
+
+    assertEquals(
+      listOf("В комплект входят винты, гайки и т. д. — всё готово."),
+      chunker.append("В комплект входят винты, гайки и т. д. — всё готово. "),
+    )
+  }
+
+  @Test
+  fun closesQuotedSentenceBeforeStartingTheNextSentence() {
+    val chunker = JarvisSpeechChunker()
+
+    assertEquals(
+      listOf("Он сказал: «Привет!»", "Как дела?"),
+      chunker.append("Он сказал: «Привет!» Как дела? "),
+    )
+    assertEquals(
+      listOf("The task is complete.”", "What is next?"),
+      chunker.append("The task is complete.” What is next? "),
+    )
+  }
+
+  @Test
   fun keepsInitialsTogether() {
     val chunker = JarvisSpeechChunker()
 
