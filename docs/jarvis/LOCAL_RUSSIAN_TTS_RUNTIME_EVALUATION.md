@@ -171,3 +171,9 @@ Added to `feature/jarvis-step-2-storage-privacy`:
 - `JarvisSpeechChunker.kt`: incremental text chunker with Russian abbreviations, decimal numbers, initials, fragment boundaries, maximum chunk size, flush and reset.
 - Tests: 6 chunker tests + 3 backend-contract tests. Existing PCM player has 8 JVM tests.
 - No native engine/model dependency added. No Gradle tests run or Android device test confirmed.
+
+
+### CI source-contract check for the new native TTS boundary
+- Added `scripts/__tests__/jarvis-tts-backend.node.test.mjs` and wired it into `ogam-external-dependency-audit.yml`.
+- Node source-contract audit run 423 passed on commit `a8113ac77c35108dc9f2a88da9f990923e9bbd08`: https://github.com/sokfrut-tech/OGAM/actions/runs/45058086277
+- This checks the source boundary and regression-test presence only. It does not compile Kotlin, run JUnit, build APK or prove device behavior.
