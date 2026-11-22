@@ -136,3 +136,36 @@ Recommended next sequence:
 - No Zafiro APK was downloaded or installed.
 - No Jarvis source code was changed and no build/device test was run.
 - No dedicated Breeno hook test file was found in the inspected repository tree; the source search did not establish runtime compatibility by tests.
+
+
+## 9. Important cross-check: OGAM already has the standard Android assistant role
+
+A separate source audit of OGAM PR #1 branch `feature/jarvis-step-2-storage-privacy`, inspected HEAD `67159e2f821b14616eebcaf0e6da997633cd7aa4`, found that OGAM already implements a no-root Android system-assistant entry point:
+
+- `JarvisVoiceInteractionService` is registered with `BIND_VOICE_INTERACTION`.
+- `JarvisVoiceInteractionSessionService` runs in a separate `:jarvis_voice` process.
+- `JarvisVoiceInteractionSession` hands off the invocation to the normal app Chat screen via a private, non-exported bridge Activity and one-shot launch token.
+- `JarvisAssistantRoleModule` asks Android's `RoleManager` to show the system-owned `ROLE_ASSISTANT` confirmation UI. It does not silently change the role.
+- Status is considered ready only when the role is held AND the VoiceInteractionService is actually active; a successful activity result alone is not trusted.
+- Android 12 / API 31+ enables the service. The base resource disables it below API 31 because a local legacy RecognitionService path is not implemented.
+- The service disables both `SHOW_WITH_ASSIST` and `SHOW_WITH_SCREENSHOT`; the session explicitly avoids foreground-app text, hierarchy, screenshots and audio context at this stage. It relies on the app's normal visible microphone permission/recording path.
+- Existing tests include one-use/TTL/forged-token/URI-normalization tests and role-state tests. The source-contract suite also asserts the private bridge, BIND permission, Android 12 gate, no assist/screenshot collection, explicit RoleManager flow and reuse of the shared recorder.
+
+This is distinct from Zafiro's Breeno takeover:
+- **Android RoleManager path (already in OGAM):** asks the OS to make Jarvis the default assistant; no root or LSPosed is required by this integration design. ColorOS/OEM may still refuse or fail to activate it, so verify actual `ready` state on the phone.
+- **Breeno-internal takeover (Zafiro reference):** injects hooks into `com.heytap.speechassist` and replaces/filters Breeno's internal conversation pipeline; Zafiro README explicitly requires root + LSPosed.
+
+### Consequence for Jarvis architecture
+
+Do not replace OGAM's existing RoleManager implementation with Xposed. Keep the standard system assistant as the primary no-root integration tier. Treat a Breeno-internal adapter as an optional, separately permissioned/advanced compatibility tier only if the standard assistant role cannot deliver the desired ColorOS invocation behavior and the user explicitly chooses the root/LSPosed route.
+
+The existing session currently hands off to the normal Chat screen; it is not yet proof of a complete always-on wake-word, lock-screen, foreground-app context or Siri-like background conversation implementation. Those are separate product capabilities and must be benchmarked/tested independently.
+
+### OGAM source links pinned to inspected PR #1 HEAD
+
+- Android manifest: https://github.com/sokfrut-tech/OGAM/blob/67159e2f821b14616eebcaf0e6da997633cd7aa4/android/app/src/main/AndroidManifest.xml
+- VoiceInteractionService: https://github.com/sokfrut-tech/OGAM/blob/67159e2f821b14616eebcaf0e6da997633cd7aa4/android/app/src/main/java/ai/offgridmobile/voice/JarvisVoiceInteractionService.kt
+- Voice session: https://github.com/sokfrut-tech/OGAM/blob/67159e2f821b14616eebcaf0e6da997633cd7aa4/android/app/src/main/java/ai/offgridmobile/voice/JarvisVoiceInteractionSession.kt
+- RoleManager bridge: https://github.com/sokfrut-tech/OGAM/blob/67159e2f821b14616eebcaf0e6da997633cd7aa4/android/app/src/main/java/ai/offgridmobile/voice/JarvisAssistantRoleModule.kt
+- Role-state tests: https://github.com/sokfrut-tech/OGAM/blob/67159e2f821b14616eebcaf0e6da997633cd7aa4/android/app/src/test/java/ai/offgridmobile/voice/JarvisAssistantRoleSnapshotTest.kt
+- Source-contract tests: https://github.com/sokfrut-tech/OGAM/blob/67159e2f821b14616eebcaf0e6da997633cd7aa4/scripts/__tests__/android-assistant-contract.node.test.mjs
