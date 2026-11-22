@@ -182,3 +182,14 @@ The job's “Set up the workspace” step reported success, but the subsequent J
 4. Re-run CI only after the workspace checkout behavior is corrected or the test strategy is intentionally and transparently redesigned.
 
 The PR remains draft and must not be merged. This run produced no successful APK evidence.
+
+
+### CI checkout root cause — confirmed from job log
+
+A follow-up inspection of run 18's actual job log resolves the earlier uncertainty:
+
+- The composite setup action was invoked with `workspace: true` and `shared: true`, but its internal “Pick the pro and shared branches”, “Check out pro”, “Check out the shared monorepo”, “Put shared beside this checkout”, “Restore the built shared packages”, and “Build shared” steps were all explicitly marked `skipped`.
+- The node_modules cache restore succeeded, so “Set up the workspace” was marked successful even though the required sibling source trees were not present. The dependency install step was also skipped because the cached node_modules was reused.
+- This directly explains the Jest missing-module errors and TypeScript TS2307 errors. The CI is therefore exercising neither a complete private-workspace checkout nor a valid standalone open-core test mode.
+
+This is a confirmed control-flow issue, not a guessed package API issue. Do not ask the user to create or share a token for the upstream organization's private repositories: the chosen product direction is to make OGAM self-contained. Next work should define a transparent migration/test boundary that can run from OGAM alone, while preserving real free-core features and not pretending Pro-dependent suites ran.
