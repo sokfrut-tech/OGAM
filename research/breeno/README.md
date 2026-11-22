@@ -172,3 +172,5 @@ The source survey now includes Chinese platforms and Chinese-language projects (
 ## New source audits
 - [Eta ColorOS system-assistant audit](ETA_COLOROS_SOURCE_AUDIT.md)
 - [Phtomt + PocketMind provider/approval audit](PHTOMT_POCKETMIND_SOURCE_AUDIT.md)
+
+- [AzCode + Aries AI automation audit](AZCODE_ARIES_SOURCE_AUDIT.md)
