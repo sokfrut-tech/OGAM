@@ -34,6 +34,7 @@ import {
   DeviceInfoScreen,
   StorageSettingsScreen,
   LocalModelsScreen,
+  ImageGenScreen,
   SearchModelScreen,
   SecuritySettingsScreen,
   EngineUpdatesScreen,
@@ -257,6 +258,7 @@ export const AppNavigator: React.FC = () => {
         <RootStack.Screen name="DeviceInfo" component={DeviceInfoScreen} />
         <RootStack.Screen name="StorageSettings" component={StorageSettingsScreen} />
         <RootStack.Screen name="LocalModels" component={LocalModelsScreen} />
+        <RootStack.Screen name="ImageGen" component={ImageGenScreen} />
         <RootStack.Screen name="SearchModel" component={SearchModelScreen} />
         <RootStack.Screen name="SecuritySettings" component={SecuritySettingsScreen} />
         <RootStack.Screen name="EngineUpdates" component={EngineUpdatesScreen} />
