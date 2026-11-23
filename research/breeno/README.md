@@ -217,3 +217,7 @@ The source survey now includes Chinese platforms and Chinese-language projects (
 - [Russian microWakeWord and Android KWS audit](../voice/OGAM_RUSSIAN_MICROWAKEWORD_ANDROID_AUDIT_2026-11-22.md) — custom Russian «Джарвис» model recipe and measured-author claims, Android TFLite/MicroFrontend porting requirements, shared-mic boundary and precise Android VoiceInteractionService / microphone-FGS limits.
 
 - [Alkove and Voicute Android KWS comparison](../voice/OGAM_ALKOVE_VOICUTE_ANDROID_KWS_AUDIT_2026-11-22.md) — shared-PCM Alkove Android API and voice isolation/AEC reference, limitations of its seven-language Spot/Lex, and Voicute's Android ONNX engine/hard-negative optimisation without Russian model coverage.
+
+
+## Android streaming speech stack follow-up (2026-11-23)
+- [Android streaming speech stack and Russian model candidates](../voice/OGAM_ANDROID_STREAMING_SPEECH_STACK_AND_RUSSIAN_MODELS_2026-11-23.md) — public-source audit of Soniqo Speech Android, Russian Parakeet-EOU/Nemotron, Supertonic-3, Qwen3-TTS Android, Voicute KWS and the no-second-microphone integration boundary.
