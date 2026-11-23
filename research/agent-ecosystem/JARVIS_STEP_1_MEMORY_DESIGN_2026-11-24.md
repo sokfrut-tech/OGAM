@@ -246,3 +246,27 @@ Step 1 is not complete until all acceptance gates for M1–M4 pass and device va
 - Based on the read-only Step 1 audit recorded in `JARVIS_STEP_1_MEMORY_AUDIT_2026-11-24.md`.
 - This document is a design proposal, not proof that any schema/API/control exists.
 - No production source files changed; no tests executed; no APK built; no PGEM10 device test performed.
+
+
+## 9. OGAM repository compatibility review — 2026-11-24
+
+Read-only comparison against the implementation branch `feature/jarvis-step-2-storage-privacy`:
+
+- `package.json` and lockfile pin `@op-engineering/op-sqlite` to 15.2.5. Existing RAG/document stores open separate named SQLite files through `open({ name })` and use synchronous `executeSync`.
+- `src/services/documents/store.ts` has a local transaction helper using `BEGIN`, `COMMIT`, and `ROLLBACK`. It creates tables/indexes on first open; it does not expose a shared schema migration framework.
+- `src/services/rag/database.ts` performs additive ad-hoc migrations by inspecting `pragma_table_info` and applying `ALTER TABLE`; this is not a versioned migration runner.
+- `package.json` includes `react-native-keychain` 10.0.0, but dependency presence alone does not prove that a memory encryption key is currently generated, wrapped, stored or used.
+- `AndroidManifest.xml` currently sets `android:allowBackup="false"`. This is a useful baseline, but does not prove behavior for OEM device transfer, app reinstall, manual export or every Android backup path; validate on device.
+- Current project already uses app-local SQLite files `rag.db` and `documents.db`. Keep Jarvis memory in a separate `jarvis_memory.db`; do not add its records to the document index or RAG sync.
+- Existing code and config inspected do not establish SQLite JSON1 availability or the exact native SQLite compile options for the shipped Android binary.
+
+### Required adjustments before M1
+
+1. Do not include `CHECK(json_valid(value_json))` in the initial DDL until JSON1 is verified on the exact op-sqlite Android runtime. Parse and validate JSON in TypeScript first; add the DB CHECK only if runtime capability is demonstrated.
+2. During M1, add a dedicated migration metadata table and transactional versioned migration for this database. Do not retrofit a global migration framework or modify existing databases.
+3. Reuse the repository's established op-sqlite access pattern and transaction semantics, but put them in a dedicated memory database module. A failed migration must roll back and leave the old version intact.
+4. Add a small runtime capability probe/test for `sqlite_version()`, JSON1, foreign keys and transaction rollback on the actual native SQLite driver. A Jest mock is not sufficient evidence.
+5. Treat Keychain/Keystore encryption as a later security milestone. M1 stores no confirmed personal records yet and must not claim encryption. The manifest's backup-off setting should be preserved.
+6. Existing database code does not show a shared migration abstraction. Keep M1 migration code local to memory service until a demonstrated need exists.
+
+This review narrows the design to the OGAM codebase. It is still source-level evidence only: no native runtime probe, tests, APK build or device run was performed.
