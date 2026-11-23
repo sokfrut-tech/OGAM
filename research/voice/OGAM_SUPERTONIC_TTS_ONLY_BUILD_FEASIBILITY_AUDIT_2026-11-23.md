@@ -1,0 +1,134 @@
+# OGAM Supertonic TTS-only build feasibility audit
+Date: 2026-11-23
+Repository: sokfrut-tech/OGAM
+Research branch: docs/research-breeno-coloros-2026-11-22
+Upstream: soniqo/speech-core commit 59b9d7902ea62dbbbfb95e139e2bf0e8957f8753
+Target: OPPO Find X6 Pro PGEM10 / SM8550 / Android 16 / ColorOS 16.0.5
+Mode: pinned-source and build-graph audit. No code copied, no workflow created, no native build or device test performed.
+
+## Executive result
+A Supertonic-only integration is technically plausible, and ONNX Runtime is not inherently required by the LiteRT backend. However, the previously proposed "three-source minimal target" is not yet a proven self-contained link target. The C++ model class inherits TTSInterface, whose default synthesize_with_options implementation is out-of-line in tts_synthesis_options.cpp and pulls the post-processing implementation. A clean isolated build must resolve that interface/vtable dependency without accidentally linking the full model matrix.
+
+The upstream Android SDK's build script is also not an Android AAR installer: scripts/fetch_litert.sh downloads Google's Python wheel ai-edge-litert and extracts libLiteRt.so. Its default is 2.1.5. The Android C++ header set is vendored in speech-core/third_party/litert. Do not conflate this with the separate Maven AAR dependency used by Java/Kotlin clients.
+
+## 1. Pinned source facts
+Inspected upstream commit: 59b9d7902ea62dbbbfb95e139e2bf0e8957f8753.
+Inspected:
+- scripts/fetch_litert.sh
+- CMakeLists.txt
+- src/models/litert/litert_supertonic_tts.cpp
+- src/models/litert/supertonic_tokenizer.cpp
+- src/util/text_chunker.cpp
+- include/speech_core/models/litert_supertonic_tts.h
+- include/speech_core/models/litert_engine.h
+- include/speech_core/models/supertonic_tokenizer.h
+- include/speech_core/interfaces.h
+- include/speech_core/tts_synthesis_options.h
+- src/tts_synthesis_options.cpp
+- include/speech_core/util/json.h
+
+## 2. Runtime acquisition correction
+scripts/fetch_litert.sh:
+- Default version is ai-edge-litert 2.1.5.
+- Uses pip download --no-deps for the Python wheel.
+- Unzips the wheel and copies only libLiteRt.so / dylib / dll.
+- It does not verify a SHA-256, pin a wheel URL, or fetch a Maven AAR.
+- For Android it expects the extracted runtime under LITERT_DIR/<ANDROID_ABI>/libLiteRt.so in the upstream CMake configuration.
+- The script does not prove that 2.3.2 is compatible with the speech-core source snapshot; it only accepts a version string and attempts a wheel download.
+
+Google's current Android compatibility matrix identifies LiteRT 2.3.2 as latest, with minimum Android API 24 and NDK r26a. OGAM's audited minSdk 24 / NDK r27.1 / CMake 3.22.1 meet that documented baseline. This is a baseline compatibility fact, not a compiled compatibility result for this upstream source.
+
+## 3. ONNX decoupling — confirmed, with important qualification
+At upstream commit:
+- SPEECH_CORE_WITH_ONNX defaults OFF.
+- The ORT_DIR requirement, imported onnxruntime target, and ONNX model target are inside if(SPEECH_CORE_WITH_ONNX).
+- SPEECH_CORE_WITH_HF_DOWNLOAD defaults OFF; enabling it requires LiteRT and adds CURL.
+- The generic LiteRT target links speech_core + libLiteRt + utf8proc, not onnxruntime.
+- utf8proc fallback is pinned in upstream CMake to JuliaStrings/utf8proc v2.11.0.
+Therefore a normal speech-core LiteRT build can omit ONNX Runtime and libcurl.
+
+Qualification: speech_core_models_litert is an aggregate target. It compiles Silero VAD, Parakeet STT, VoxCPM2, Chatterbox, Supertonic, WeSpeaker, Pyannote, Omnilingual, Nemotron and Indic-Mio sources. Avoid using that aggregate target for a TTS-only product module.
+
+## 4. Supertonic class and source dependency map
+Direct model class:
+- speech_core::LiteRTSupertonicTts
+- Header: include/speech_core/models/litert_supertonic_tts.h
+- Implementation: src/models/litert/litert_supertonic_tts.cpp
+- Tokenizer: src/models/litert/supertonic_tokenizer.cpp
+- Text splitting helper: src/util/text_chunker.cpp
+- LiteRT C API helper/RAII wrappers: include/speech_core/models/litert_engine.h (inline implementation; no separate litert_engine.cpp in this pinned tree)
+- JSON file reader/parser: include/speech_core/util/json.h (header-only)
+- Unicode NFKD: utf8proc; upstream CMake uses v2.11.0 if no system package.
+- Android logging: android/log through the LiteRT engine header when __ANDROID__ is defined.
+- NDK C++ runtime and filesystem support.
+
+The model class emits mono Float32 at 44,100 Hz and exposes sentence/piece callbacks. This is compatible in sample representation with OGAM's JarvisTtsBackend, but the model callback is not autoregressive audio-token streaming.
+
+## 5. Newly discovered link-closure issue
+litert_supertonic_tts.h includes speech_core/interfaces.h and inherits TTSInterface.
+TTSInterface declares a non-inline virtual synthesize_with_options method.
+The implementation is in src/tts_synthesis_options.cpp; it validates options and implements buffered/postprocessed mode. That translation unit references OfflineSpectralDeEsser::process_mono via src/audio/offline_spectral_de_esser.cpp and its DSP dependencies.
+
+Consequences:
+- The earlier candidate list of three .cpp files is a source map, not a proven complete link target.
+- A standalone CMake harness must inspect the actual linker closure and vtable references.
+- Options to evaluate: compile the minimal required TTS interface/options support and its real postprocess dependencies; use the existing static speech_core target and verify link-time dead stripping; or propose a narrowly upstreamable interface split. Do not silently stub a virtual function or edit upstream class semantics merely to get a green link.
+- If using full speech_core, it compiles a broad set of orchestration sources even with ONNX disabled. This is still much smaller than importing the aggregate model target, but not a genuinely minimal TTS-only build.
+
+## 6. Cancellation race — confirmed source evidence
+At the start of LiteRTSupertonicTts::synthesize(), upstream executes cancelled_.store(false).
+cancel() only executes cancelled_.store(true).
+A cancel issued before synthesize enters can therefore be cleared by the method's initial store. The C++ class alone does not provide a durable pre-entry cancellation token.
+
+Required adapter contract:
+1. Assign a monotonically increasing request generation before dispatching work.
+2. Track requested/cancelled generation in the Kotlin/JNI adapter independently of the model's cancelled_ flag.
+3. Do not enter native synthesize for a stale generation.
+4. If cancellation races with native entry, use a serialized start handshake so cancel is re-applied after the native reset and before the first graph invocation where possible.
+5. Drop all callbacks whose generation is no longer active.
+6. Keep the native object alive until the worker has exited; destroy only after join/completion.
+7. Test cancel-before-submit, cancel-while-queued, cancel-at-entry, cancel-during-graph, cancel-between-pieces, and immediate next-request restart.
+
+Do not claim that calling native cancel() alone closes the race.
+
+## 7. Recommended isolated build experiment
+Create a separate, manual-only GitHub Actions workflow in the research branch after the harness source is reviewed:
+- checkout the exact pinned speech-core commit (not its moving main);
+- install pinned Android NDK r27.1.12297006 and CMake 3.22.1;
+- pin utf8proc v2.11.0 to an immutable commit and verify its source archive hash;
+- fetch the exact ai-edge-litert wheel versions 2.1.5 and 2.3.2 for Linux CPython, extract arm64-v8a libLiteRt.so and record SHA-256;
+- configure a dedicated arm64-v8a Android CMake project with ONNX=OFF, HF_DOWNLOAD=OFF and only the Supertonic sources plus the actual interface/link closure;
+- build a small shared JNI smoke library, inspect its dynamic dependencies and exported/undefined symbols;
+- fail if libonnxruntime.so, libcurl, or unintended speech model objects appear in the link/package;
+- upload CMake configure/build logs, runtime hashes, dependency report and native library artifact;
+- never build or deploy the production APK in this workflow.
+
+Before writing the workflow, verify that both wheel versions actually exist for the selected runner's Python tag/platform and determine whether the Android ABI runtime is present in the wheel. Do not invent hashes. If 2.3.2 is missing or the runtime packaging layout changes, report that as a real gate rather than falling back silently.
+
+## 8. Current evidence status
+| Gate | Status |
+|---|---|
+| Pinned upstream C++ source inspected | PASS |
+| Supertonic API / Float32 callback contract | PASS |
+| ONNX optionality in upstream CMake | PASS |
+| Aggregate LiteRT target contains unrelated models | PASS |
+| Wheel-vs-AAR distinction | PASS |
+| utf8proc v2.11.0 pin identified | PASS |
+| Minimal source list complete | NOT PROVEN |
+| Standalone arm64 CMake configure | NOT RUN |
+| LiteRT 2.1.5/2.3.2 wheel existence and ABI layout | NOT VERIFIED |
+| Runtime SHA-256 recorded | NOT DONE |
+| Native compile/link | NOT RUN |
+| ONNX absence in final shared library | NOT VERIFIED |
+| Cancellation race fixed/tested | NOT DONE |
+| APK / PGEM10 test | NOT DONE |
+| Production OGAM source changed | NO |
+
+## 9. Decision
+Continue with an isolated build harness, not production integration. Do not import the Soniqo Android wrapper or aggregate speech_core_models_litert target. Do not select 2.3.2 until the exact wheel/runtime layout is verified and the pinned speech-core source compiles against it. Preserve Supertonic as a benchmark candidate only; its OpenRAIL-M model terms remain a separate product-license gate.
+
+## Sources
+- Pinned speech-core source: https://github.com/soniqo/speech-core/tree/59b9d7902ea62dbbbfb95e139e2bf0e8957f8753
+- LiteRT fetch script: https://github.com/soniqo/speech-core/blob/59b9d7902ea62dbbbfb95e139e2bf0e8957f8753/scripts/fetch_litert.sh
+- Google LiteRT Android compatibility matrix: https://developers.google.com/edge/litert/android
+- Google LiteRT Android Maven integration: https://developers.google.com/edge/litert/android/development
