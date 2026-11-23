@@ -24,7 +24,7 @@ type DbRow = {
   schema_version: number;
 };
 
-function validateProposal(input: NewMemoryProposal): {
+export function validateProposal(input: NewMemoryProposal): {
   subject: string;
   predicate: string;
   valueJson: string;
