@@ -9,7 +9,7 @@
  */
 import { useEffect, useState } from 'react';
 import { modelResidencyManager } from '../../services/modelResidency';
-import type { Resident, ResidentType } from '@offgrid/models';
+import type { Resident, ResidentType } from '../../utils/modelResidencyPolicy';
 
 /** The manager sheet's modality rows. Defined HERE (the lower-level projection) rather than in
  *  ModelsManagerSheet so the hook doesn't import the component — that was a dependency cycle

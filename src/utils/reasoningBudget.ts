@@ -45,3 +45,15 @@ export function openRouterReasoningPayload(
   }
   return { reasoning: { enabled: true } };
 }
+
+/**
+ * Remote-vision gateway payload carries `reasoning_budget_tokens` when thinking is enabled
+ * with an explicit positive token cap.
+ */
+export function reasoningBudgetPayload(
+  enabled: boolean,
+  budget: number = REASONING_BUDGET_AUTO,
+): { reasoning_budget_tokens?: number } {
+  if (!enabled || !Number.isFinite(budget) || budget <= REASONING_BUDGET_AUTO) return {};
+  return { reasoning_budget_tokens: Math.floor(budget) };
+}

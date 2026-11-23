@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { useAppStore } from '../stores/appStore';
 import { useWhisperStore } from '../stores/whisperStore';
-import type { MobileBackend } from '@offgrid/models';
+import type { MobileBackend } from '../utils/mobileRuntimePolicy';
 import logger from '../utils/logger';
 import { hardwareService } from './hardware';
 import { embeddingService } from './rag/embedding';

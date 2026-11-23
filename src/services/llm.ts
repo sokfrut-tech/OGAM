@@ -23,7 +23,7 @@ import { generateWithToolsImpl } from './llmToolGeneration';
 import type { ToolCall } from './tools/types';
 import type { MultimodalSupport, LLMPerformanceSettings, LLMPerformanceStats } from './llmTypes';
 import logger from '../utils/logger';
-import { stateCacheBudgetMb, MOBILE_BACKEND_ROWS, type MobileBackend } from '@offgrid/models';
+import { stateCacheBudgetMb, MOBILE_BACKEND_ROWS, type MobileBackend } from '../utils/mobileRuntimePolicy';
 import { splitGgufPartNames } from '../utils/ggufSplitFiles';
 import { saveKvSession, loadKvSession } from './kvSessionStore';
 import { readModelFileType } from './modelHeader';

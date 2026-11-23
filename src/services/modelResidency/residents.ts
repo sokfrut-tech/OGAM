@@ -6,7 +6,7 @@
  * `stripUnload` projection the manager uses; moving them here changes no values and
  * no behavior — the manager imports them back unchanged.
  */
-import type { Resident, ResidentType } from '@offgrid/models';
+import type { Resident, ResidentType } from '../../utils/modelResidencyPolicy';
 
 export type UnloadFn = () => Promise<void>;
 

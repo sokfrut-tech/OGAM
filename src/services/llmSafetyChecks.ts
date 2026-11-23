@@ -1,4 +1,4 @@
-import { isLoadableOnDevice } from '@offgrid/models';
+import { isLoadableOnDevice } from '../utils/modelFitBudget';
 import { isDraftModelFile, isImatrixFile, isMtpHeadFile } from '../utils/modelCompanionFiles';
 import { splitGgufPartNames } from '../utils/ggufSplitFiles';
 import { LlamaContext } from 'llama.rn';

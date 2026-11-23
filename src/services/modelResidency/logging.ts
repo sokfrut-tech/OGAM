@@ -6,7 +6,7 @@
  * text the inline `logger.log('[MEM-SM] …')` calls produced; the manager still owns
  * WHEN a line is logged (call site + order unchanged), these only build the WHAT.
  */
-import type { Resident, ResidentType } from '@offgrid/models';
+import type { Resident, ResidentType } from '../../utils/modelResidencyPolicy';
 
 interface FitSpec {
   key: string;

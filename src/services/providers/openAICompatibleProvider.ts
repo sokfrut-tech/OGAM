@@ -6,8 +6,7 @@
  */
 
 import { Message } from '../../types';
-import { reasoningBudgetPayload } from '@offgrid/models';
-import { openRouterReasoningPayload, REASONING_BUDGET_AUTO } from '../../utils/reasoningBudget';
+import { openRouterReasoningPayload, reasoningBudgetPayload, REASONING_BUDGET_AUTO } from '../../utils/reasoningBudget';
 import type {
   LLMProvider,
   ProviderType,

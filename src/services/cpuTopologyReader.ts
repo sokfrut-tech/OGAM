@@ -1,5 +1,5 @@
 import RNFS from 'react-native-fs';
-import { androidInferenceThreads } from '@offgrid/models';
+import { androidInferenceThreads } from '../utils/mobileRuntimePolicy';
 
 /**
  * The I/O half of "which cores are worth running inference on": read the kernel's per-core topology

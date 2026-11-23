@@ -4,7 +4,7 @@
  */
 
 import { Platform } from 'react-native';
-import { mobileUseMmap } from '@offgrid/models';
+import { mobileUseMmap } from '../../utils/mobileRuntimePolicy';
 import { DownloadedModel, ONNXImageModel } from '../../types';
 import { readModelFileType, readModelHeader } from '../modelHeader';
 import { buildModelParams } from '../llmHelpers';
