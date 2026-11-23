@@ -68,3 +68,5 @@ microWakeWord remains the first Russian «Джарвис» candidate. Alkove is 
 - [Android streaming speech stack and Russian model candidates (2026-11-23)](OGAM_ANDROID_STREAMING_SPEECH_STACK_AND_RUSSIAN_MODELS_2026-11-23.md) — Soniqo Speech Android/speech-core audit, Parakeet-EOU Russian streaming ASR candidate, Nemotron, Supertonic-3, Qwen3-TTS Android, Russian Piper voices/sherpa-onnx licensing, Voicute KWS and PGEM10 benchmark plan.
 
 - [Android VoiceInteraction session lifecycle audit](../android/OGAM_VOICE_INTERACTION_SESSION_LIFECYCLE_AUDIT_2026-11-23.md) — traces the Android system assistant → private bridge → one-shot launch token → MainActivity handoff; documents API-level limits, missing lifecycle instrumentation and TTS implementation status.
+
+- [Russian TTS Android source comparison (2026-11-23)](OGAM_RUSSIAN_TTS_ANDROID_SOURCE_COMPARISON_2026-11-23.md) — source-level comparison of Qwen3-TTS Android, Supertonic-3/Soniqo, CosyVoice3, VoxCPM2 and Indic-Mio; clarifies batch vs sentence-chunked output, JNI cancellation, Android API gaps, model/weight licensing and the TTS-only adapter recommendation.
