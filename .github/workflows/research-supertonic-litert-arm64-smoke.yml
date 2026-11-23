@@ -1,0 +1,81 @@
+name: Research Supertonic LiteRT ARM64 Smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-arm64:
+    name: Verify LiteRT 2.3.2 AAR hashes, race test, and isolated ARM64 JNI link
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout research branch
+        uses: actions/checkout@v4
+
+      - name: Build and run standalone generation-cancellation C++ race test
+        run: |
+          cmake -S research/voice/supertonic-smoke -B build-race -DBUILD_HOST_RACE_TEST=ON
+          cmake --build build-race --parallel
+          ./build-race/supertonic_cancel_race_test
+
+      - name: Download official Google Maven LiteRT 2.3.2 AAR and verify hashes
+        run: |
+          mkdir -p out/litert out/notices
+          curl -sSfL https://dl.google.com/dl/android/maven2/com/google/ai/edge/litert/litert/2.3.2/litert-2.3.2.aar -o out/litert/litert-2.3.2.aar
+          echo "4d1f26b47f89e501940cbfb6e165faf3e600a7213af02e9816d39a49614bf702  out/litert/litert-2.3.2.aar" | sha256sum -c -
+          unzip -o out/litert/litert-2.3.2.aar jni/arm64-v8a/libLiteRt.so LICENSE THIRD_PARTY_NOTICE.txt AndroidManifest.xml -d out/litert
+          echo "6acacb3cb6b96b5a4f23b45d7bb8df2b305458ec894d62f646224b73d180dbd5  out/litert/jni/arm64-v8a/libLiteRt.so" | sha256sum -c -
+          echo "71c6915d04265772a0339bed47276942c678b45cc01534210ebe6984fd1aec65  out/litert/LICENSE" | sha256sum -c -
+          echo "db6e1ff4b61c11eb01c45f135928527a50a05282739054686793ec70f442f119  out/litert/THIRD_PARTY_NOTICE.txt" | sha256sum -c -
+          grep -q 'minSdkVersion="24"' out/litert/AndroidManifest.xml
+          cp out/litert/LICENSE out/litert/THIRD_PARTY_NOTICE.txt out/notices/
+
+      - name: Clone pinned speech-core and utf8proc, apply cancellation patch
+        run: |
+          git init deps/speech-core
+          git -C deps/speech-core remote add origin https://github.com/soniqo/speech-core.git
+          git -C deps/speech-core fetch --depth 1 origin 59b9d7902ea62dbbbfb95e139e2bf0e8957f8753
+          git -C deps/speech-core checkout FETCH_HEAD
+          git -C deps/speech-core apply --check "$PWD/research/voice/supertonic-smoke/patches/supertonic-generation-cancel.patch"
+          git -C deps/speech-core apply "$PWD/research/voice/supertonic-smoke/patches/supertonic-generation-cancel.patch"
+
+          git init deps/utf8proc
+          git -C deps/utf8proc remote add origin https://github.com/JuliaStrings/utf8proc.git
+          git -C deps/utf8proc fetch --depth 1 origin d7bf128df773c2a1a7242eb80e51e91a769fc985
+          git -C deps/utf8proc checkout FETCH_HEAD
+
+      - name: Cross-compile isolated Supertonic ARM64 smoke library (Android API 24)
+        run: |
+          NDK_ROOT="${ANDROID_NDK_LATEST_HOME:-${ANDROID_NDK_HOME}}"
+          test -n "$NDK_ROOT"
+          cmake -S research/voice/supertonic-smoke -B build-arm64 \
+            -DCMAKE_TOOLCHAIN_FILE="$NDK_ROOT/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-24 \
+            -DSPEECH_CORE_DIR="$PWD/deps/speech-core" \
+            -DUTF8PROC_DIR="$PWD/deps/utf8proc" \
+            -DLITERT_LIB_PATH="$PWD/out/litert/jni/arm64-v8a/libLiteRt.so"
+          cmake --build build-arm64 --parallel
+
+      - name: Verify ELF architecture and reject ONNX Runtime or libcurl links
+        run: |
+          mkdir -p out/elf
+          file build-arm64/libjarvis_supertonic_smoke.so | tee out/elf/file.txt
+          readelf -h build-arm64/libjarvis_supertonic_smoke.so | tee out/elf/header.txt
+          readelf -d build-arm64/libjarvis_supertonic_smoke.so | tee out/elf/dynamic.txt
+          grep -q 'AArch64' out/elf/header.txt
+          if grep -iE 'onnxruntime|libcurl' out/elf/dynamic.txt; then
+            echo "ERROR: Unexpected ORT or libcurl dependency leaked into smoke binary"
+            exit 1
+          fi
+
+      - name: Upload notices and ELF inspection artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supertonic-litert232-arm64-smoke-evidence
+          path: |
+            out/notices/
+            out/elf/
+          retention-days: 14

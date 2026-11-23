@@ -1,0 +1,160 @@
+diff --git a/include/speech_core/models/litert_supertonic_tts.h b/include/speech_core/models/litert_supertonic_tts.h
+index a085a2c..fc32ea2 100644
+--- a/include/speech_core/models/litert_supertonic_tts.h
++++ b/include/speech_core/models/litert_supertonic_tts.h
+@@ -69,6 +69,18 @@ public:
+     int output_sample_rate() const override { return 44100; }
+     void cancel() override;
+ 
++    /// Capture a monotonic cancellation epoch prior to enqueueing or entering synthesis.
++    /// Pair with synthesize_with_epoch() so pre-entry cancel() calls are never overwritten.
++    uint64_t begin_synthesis_epoch() const noexcept {
++        return cancel_epoch_.load(std::memory_order_acquire);
++    }
++
++    /// Run synthesis bound to an explicit epoch captured via begin_synthesis_epoch().
++    void synthesize_with_epoch(uint64_t expected_epoch,
++                               const std::string& text,
++                               const std::string& language,
++                               TTSChunkCallback on_chunk);
++
+     /// Select the voice (e.g. "F1", "M3"). Default "F1" (or the first loaded
+     /// style when F1 is absent); an empty id restores that default. Throws
+     /// std::invalid_argument if unknown.
+@@ -138,7 +150,7 @@ private:
+     // text_encoder → vector_estimator × N → vocoder on a prepared piece → trimmed 44.1 kHz PCM.
+     // piece_index decorrelates the latent noise between the pieces of one utterance.
+     std::vector<float> synth_prepared(const Prepared& prepared, size_t piece_index,
+-                                      const LatentBucket& bucket);
++                                      const LatentBucket& bucket, uint64_t expected_epoch);
+     // Smallest loadable bucket holding `frames` (loads it on first use; falls back on failure).
+     const LatentBucket& bucket_for(int frames);
+     void load_bucket(LatentBucket& bucket);
+@@ -180,7 +192,11 @@ private:
+     uint32_t          seed_            = 0;     // 0 ⇒ fresh seed per call
+     uint32_t          seed_used_       = 0;
+     float             chunk_silence_s_ = 0.3f;
+-    std::atomic<bool> cancelled_{false};
++    bool is_cancelled(uint64_t expected_epoch) const noexcept {
++        return cancel_epoch_.load(std::memory_order_acquire) != expected_epoch;
++    }
++
++    std::atomic<uint64_t> cancel_epoch_{0};
+ };
+ 
+ }  // namespace speech_core
+diff --git a/src/models/litert/litert_supertonic_tts.cpp b/src/models/litert/litert_supertonic_tts.cpp
+index eafd63c..d719f9b 100644
+--- a/src/models/litert/litert_supertonic_tts.cpp
++++ b/src/models/litert/litert_supertonic_tts.cpp
+@@ -304,7 +304,7 @@ const LiteRTSupertonicTts::LatentBucket& LiteRTSupertonicTts::bucket_for(int fra
+     }
+ }
+ 
+-void LiteRTSupertonicTts::cancel() { cancelled_.store(true); }
++void LiteRTSupertonicTts::cancel() { cancel_epoch_.fetch_add(1, std::memory_order_acq_rel); }
+ 
+ void LiteRTSupertonicTts::set_voice(const std::string& voice_id) {
+     if (voice_id.empty()) {
+@@ -333,7 +333,14 @@ const LiteRTSupertonicTts::VoiceStyle& LiteRTSupertonicTts::current_voice() cons
+ void LiteRTSupertonicTts::synthesize(const std::string& text,
+                                      const std::string& language,
+                                      TTSChunkCallback on_chunk) {
+-    cancelled_.store(false);
++    synthesize_with_epoch(begin_synthesis_epoch(), text, language, std::move(on_chunk));
++}
++
++void LiteRTSupertonicTts::synthesize_with_epoch(uint64_t expected_epoch,
++                                                const std::string& text,
++                                                const std::string& language,
++                                                TTSChunkCallback on_chunk) {
++    if (is_cancelled(expected_epoch)) return;
+     seed_used_ = seed_;
+     if (seed_used_ == 0) {
+         std::random_device rd;
+@@ -362,7 +369,7 @@ void LiteRTSupertonicTts::synthesize(const std::string& text,
+     const int L_max = latent_buckets().back();
+     const int max_frames = static_cast<int>(L_max * kWindowStretchMax);
+     auto measure = [&](const std::string& t, bool continuation) -> int {
+-        if (cancelled_.load()) return 0;  // "fits"; the loop below exits before synthesizing
++        if (is_cancelled(expected_epoch)) return 0;  // "fits"; the loop below exits before synthesizing
+         auto it = prepared.find(key(t, continuation));
+         if (it == prepared.end())
+             it = prepared.emplace(key(t, continuation), prepare_chunk(t, language, continuation)).first;
+@@ -374,12 +381,12 @@ void LiteRTSupertonicTts::synthesize(const std::string& text,
+ 
+     size_t piece_index = 0;
+     for (size_t ci = 0; ci < chunks.size(); ++ci) {
+-        if (cancelled_.load()) return;
++        if (is_cancelled(expected_epoch)) return;
+         prepared.clear();
+         const std::vector<SupertonicPiece> pieces =
+             SupertonicTokenizer::fit_to_window(chunks[ci], measure, max_frames);
+         for (size_t pi = 0; pi < pieces.size(); ++pi) {
+-            if (cancelled_.load()) return;
++            if (is_cancelled(expected_epoch)) return;
+             const SupertonicPiece& piece = pieces[pi];
+             auto it = prepared.find(key(piece.text, piece.continuation));
+             const Prepared p = it != prepared.end()
+@@ -391,8 +398,8 @@ void LiteRTSupertonicTts::synthesize(const std::string& text,
+                  ci + 1, chunks.size(), pi + 1, pieces.size(), p.latent_frames, bucket.frames,
+                  p.latent_frames > bucket.frames ? " (tempo-fit)" : "",
+                  piece.continuation ? " (continues)" : "", piece.pause_before ? " (pause)" : "");
+-            std::vector<float> pcm = synth_prepared(p, piece_index++, bucket);
+-            if (cancelled_.load()) return;
++            std::vector<float> pcm = synth_prepared(p, piece_index++, bucket, expected_epoch);
++            if (is_cancelled(expected_epoch)) return;
+ 
+             // A forced split lands mid-sentence, but every piece carries the model's own utterance
+             // padding — ~400 ms of trailing and ~250–380 ms of leading silence — so the raw seam is
+@@ -410,9 +417,11 @@ void LiteRTSupertonicTts::synthesize(const std::string& text,
+             // landed on a sentence boundary — never inside a sentence the window forced apart.
+             const bool pause = (pi == 0) ? (ci > 0) : piece.pause_before;
+             if (pause && silence > 0) {
++                if (is_cancelled(expected_epoch)) return;
+                 std::vector<float> sil(static_cast<size_t>(silence), 0.0f);
+                 on_chunk(sil.data(), sil.size(), false);
+             }
++            if (is_cancelled(expected_epoch)) return;
+             on_chunk(pcm.data(), pcm.size(), is_final);
+         }
+     }
+@@ -467,8 +476,9 @@ LiteRTSupertonicTts::Prepared LiteRTSupertonicTts::prepare_chunk(const std::stri
+ }
+ 
+ std::vector<float> LiteRTSupertonicTts::synth_prepared(const Prepared& p, size_t piece_index,
+-                                                       const LatentBucket& bucket) {
+-    if (!(p.duration > 0.0f)) return {};
++                                                       const LatentBucket& bucket,
++                                                       uint64_t expected_epoch) {
++    if (!(p.duration > 0.0f) || is_cancelled(expected_epoch)) return {};
+ 
+     LiteRtEnvironment env = LiteRTEngine::get().env();
+     const VoiceStyle& voice = current_voice();
+@@ -483,6 +493,8 @@ std::vector<float> LiteRTSupertonicTts::synth_prepared(const Prepared& p, size_t
+     LiteRtHostBuffer in_mask(env, t_mask, p.tok.mask.size() * sizeof(float), p.tok.mask.data());
+     LiteRtHostBuffer in_ttl (env, t_ttl,  voice.style_ttl.size() * sizeof(float), voice.style_ttl.data());
+ 
++    if (is_cancelled(expected_epoch)) return {};
++
+     // --- 2) text_encoder → text_emb[1,256,T] --- (roles: text_ids, style_ttl, text_mask)
+     std::vector<float> text_emb(static_cast<size_t>(256) * kTextT);
+     {
+@@ -536,7 +548,7 @@ std::vector<float> LiteRTSupertonicTts::synth_prepared(const Prepared& p, size_t
+     // --- 3) vector_estimator × total_step (flow-matching ODE; xt fed forward) ---
+     const float total_step_f = static_cast<float>(total_step_);
+     for (int step = 0; step < total_step_; ++step) {
+-        if (cancelled_.load()) return {};
++        if (is_cancelled(expected_epoch)) return {};
+         const float cur_step_f = static_cast<float>(step);
+ 
+         LiteRtHostBuffer in_noisy(env, t_lat,  xt.size() * sizeof(float), xt.data());
+@@ -557,6 +569,8 @@ std::vector<float> LiteRTSupertonicTts::synth_prepared(const Prepared& p, size_t
+         out.read(xt.data(), xt.size() * sizeof(float));
+     }
+ 
++    if (is_cancelled(expected_epoch)) return {};
++
+     // --- 4) vocoder (latent[1,144,L]) → wav[1, 3072*L] ---
+     std::vector<float> wav(static_cast<size_t>(chunk_size) * L);
+     {

@@ -20,17 +20,19 @@ Parent handoff: research/PROJECT_STATE_RECOVERY_HANDOFF_2026-11-23.md
 | Exact AAR / .so hashes and ELF audit | **CLOSED** (`OGAM_LITERT_232_BINARY_PROVENANCE_AND_ABI_AUDIT_2026-11-23.md`: AAR `4d1f26b4...`, `.so` `6acacb3c...`, `EM_AARCH64`, NDK-only `DT_NEEDED`, 21/21 Supertonic C symbols present in `2.1.5` & `2.3.2`) |
 | Exact notice-file bytes | **CLOSED** (`LICENSE` `13,575` B `71c6915d...`, `THIRD_PARTY_NOTICE.txt` `1,960,672` B `db6e1ff4...`) |
 | Speech-core interface link closure | **CLOSED** (`TTSInterface::synthesize_with_options` pulls `offline_spectral_de_esser.cpp` + `ooura_fft_engine.cpp` + `fft4g.cpp`; `utf8proc v2.11.0` = `d7bf128df773c2a1a7242eb80e51e91a769fc985`) |
-| Native compile/link | NOT RUN (still needed to confirm `third_party/litert` header/struct ABI vs `2.3.2`) |
-| Cancellation race fix/tests | NOT DONE |
+| Native compile/link | PREPARED IN HARNESS (`research/voice/supertonic-smoke/CMakeLists.txt` + `.github/workflows/research-supertonic-litert-arm64-smoke.yml`, `workflow_dispatch` only); NDK execution pending |
+| Cancellation race fix/tests | **PATCH VERIFIED (`git apply --check` passed on `59b9d790`)** + C++ harness (`supertonic_cancel_gate.h`, `supertonic_cancel_race_test.cpp`) committed; host C++ run pending |
 | OPPO PGEM10 device test | NOT RUN |
+
+## GitHub Actions observation (2026-11-23)
+- Repository workflow runs stopped auto-triggering after `2026-11-22T21:38:57Z` (`#45073271250`, after rapid PR `#2` doc commits accumulated 720 CI runs against `ci.yml` without `paths-ignore`). Keep research-only commits tagged `[skip ci]` and verify Actions account quota/triggers before relying on automatic CI checks.
 
 ## Next safe sequence
 1. ~~Download exact Google Maven AAR, verify hashes, notices, and AArch64 ELF `.dynamic` / `.dynsym` symbols~~ → **DONE** in `research/voice/OGAM_LITERT_232_BINARY_PROVENANCE_AND_ABI_AUDIT_2026-11-23.md`.
-2. Build an isolated CPU-only arm64 JNI smoke library against `soniqo/speech-core@59b9d790`, pinned `utf8proc` (`d7bf128df773c2a1a7242eb80e51e91a769fc985`), the full Ooura de-esser closure, and `libLiteRt.so` `2.3.2`; fail if ONNX Runtime or `libcurl` links.
-3. Add generation-based cancellation and start-handshake race tests before considering a Kotlin/JNI adapter.
-4. Preserve extracted `LICENSE` + `THIRD_PARTY_NOTICE.txt` alongside any bundled binary artifact.
-5. Only after CPU proof on `PGEM10`, consider a separate Qualcomm NPU feasibility track for `SM8550` / HTP v73.
-6. Keep all changes in the research branch and PR #2 Draft. Do not merge or modify production app code.
+2. ~~Author verified cancellation-epoch patch (`git apply --check` on `59b9d790`), isolated CMake/JNI smoke harness, C++ race stress test, and manual-only workflow~~ → **DONE** in `research/voice/supertonic-smoke/` + `.github/workflows/research-supertonic-litert-arm64-smoke.yml`.
+3. Trigger `workflow_dispatch` on `Research Supertonic LiteRT ARM64 Smoke` once GitHub Actions runners are active (confirm host `supertonic_cancel_race_test` + NDK arm64 build + `readelf` zero ORT/curl + notice artifact).
+4. Only after CPU proof on `PGEM10`, consider a separate Qualcomm NPU feasibility track for `SM8550` / HTP v73.
+5. Keep all changes in the research branch and PR #2 Draft. Do not merge or modify production app code.
 
 ## Repository state after this addendum
 The research branch head and main branch must be checked from GitHub before any subsequent writes; this addendum is not a production implementation or device validation.
