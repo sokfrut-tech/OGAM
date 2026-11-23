@@ -211,3 +211,40 @@ Not verified:
 - QNN/HTP execution of any speech model.
 
 No code, model weights, APK or dependency was added to OGAM in this research pass.
+
+
+## 9. Russian Piper voices — additional TTS option and licensing gate
+
+New references:
+- sherpa-onnx Android TTS APK catalogue: https://k2-fsa.github.io/sherpa/onnx/tts/apk.html
+- Russian Piper voice sample/model page: https://k2-fsa.github.io/sherpa/onnx/tts/all/Russian/vits-piper-ru_RU-ruslan-medium.html
+- Piper voice repository: https://huggingface.co/rhasspy/piper-voices
+- Piper current licensing explanation: https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/LICENSING.md
+- Android Kotlin wrapper: https://github.com/piper-tts-apps/piper-kotlin
+
+### Runtime choices
+
+1. `sherpa-onnx` is Apache-2.0 and publishes Android arm64 TTS engine APKs for Russian VITS Piper voices: Denis, Dmitri, Irina and Ruslan. Its own documentation explicitly warns that the framework license does not replace each voice's model/data license. This is the preferred first runtime to benchmark if we need to avoid linking GPL Piper core.
+2. `piper-kotlin` offers a convenient Kotlin/JNI API and chunked PCM playback, but it bundles `piper1-gpl` (GPL-3.0-or-later). Linking/distributing it can impose GPL obligations on the combined app. Do not add it to OGAM without an explicit project-license decision.
+3. Piper's current runtime repository `OHF-Voice/piper1-gpl` is GPL-3.0-or-later; the older `rhasspy/piper` repository was MIT but archived. Do not confuse the older engine license with the maintained GPL fork.
+
+### Russian model voice license findings
+
+- Russian voice catalogue has four established medium voices: `denis`, `dmitri`, `irina`, `ruslan`; typical ONNX size is ~63 MB, 22.05 kHz.
+- Each voice requires its own `MODEL_CARD`. The repo-level MIT tag does not grant all model weights under MIT.
+- Ruslan's model card names the Ruslan corpus under CC BY-NC-SA 4.0 and says it was fine-tuned from U.S. English Lessac medium. Do not redistribute or use commercially without resolving both the dataset and base-model chain.
+- Irina's card lists RHVoice and says the dataset license is Unknown; do not treat it as clear for redistribution.
+- Denis and Dmitri cards list CC0 voice-dataset recordings but also state they were fine-tuned from U.S. English Lessac medium. Piper's own licensing guidance says the full fine-tuning chain matters; the Lessac base dataset is research-only. Commercial/redistribution rights remain unresolved until the model chain is checked and the relevant rights holder grants permission.
+- Always package the exact voice MODEL_CARD and preserve provenance; the ONNX JSON config does not contain the licensing history.
+
+### Russian text normalization limitation
+
+An independent Russian speech benchmark project reports common Piper front-end problems with spaced thousands, dates, time strings, ordinal suffixes and homographs/stress. These are not acoustic model failures alone: Jarvis must normalize numbers, dates, times, units, abbreviations and names before TTS. Its proposed regex/num2words patch is only a baseline; production needs grammatical case/ordinal agreement and domain dictionaries. Treat these as third-party benchmark observations, not OGAM test results.
+
+### Updated TTS benchmark tiers
+
+- Tier 1 (fast/light reference): sherpa-onnx + Russian Piper Denis/Dmitri/Irina/Ruslan, subject to exact model-card/license review and text normalization. Compare male/female voice samples and p50/p95 synthesis RTF on PGEM10.
+- Tier 2 (multilingual expressiveness): Supertonic-3 Russian (OpenRAIL-M model license; ~832 MB Android peak reported by Soniqo).
+- Tier 3 (voice design/clone): Qwen3-TTS 0.6B Q4 Android port (CPU, custom voice), subject to model artifact provenance and device memory/thermal testing.
+
+No Piper voice or runtime was downloaded or added to OGAM.
