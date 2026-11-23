@@ -74,3 +74,5 @@ microWakeWord remains the first Russian «Джарвис» candidate. Alkove is 
 - [Supertonic TTS-only Android adapter implementation brief (2026-11-23)](OGAM_SUPERTONIC_TTS_ONLY_ANDROID_ADAPTER_IMPLEMENTATION_BRIEF_2026-11-23.md) — source-confirmed design for adding streaming callback to the standalone Soniqo TTS handle, JNI lifecycle/cancellation, OGAM PCM contract, LiteRT/NDK/minSdk blockers and required tests.
 
 - [Supertonic cancellation-entry race errata (2026-11-23)](OGAM_SUPERTONIC_CANCELLATION_ENTRY_RACE_ERRATA_2026-11-23.md) — pinned-source proof that a pre-entry cancel can be cleared by synthesize(); requires native start handshake or request-generation cancellation before enabling native-cancel capability.
+
+- [LiteRT Android runtime compatibility for Supertonic / OGAM (2026-11-23)](OGAM_LITERT_ANDROID_RUNTIME_COMPATIBILITY_FOR_SUPERTONIC_2026-11-23.md) — Google docs confirm LiteRT 2.3.2 supports API 24 and NDK r26a+; OGAM's API 24 / NDK r27.1 / CMake 3.22.1 meet baseline. Soniqo's minSdk 26 / NDK r29 / CMake 4.1.2 are wrapper build choices, not inherent LiteRT requirements; 2.3.2 source compatibility remains to be built and verified.
