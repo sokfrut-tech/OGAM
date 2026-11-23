@@ -5,6 +5,8 @@ Status: public source research and design notes; no new TTS/KWS model is integra
 
 ## Current research documents
 
+- [Russian streaming ASR provenance audit](OGAM_RUSSIAN_STREAMING_ASR_MODEL_PROVENANCE_AUDIT_2026-11-23.md) — corrects the Parakeet-EOU language/license discrepancy; prioritizes Nemotron 3.5 LiteRT for Android streaming tests, keeps Parakeet TDT v3 as a Russian quality/batch reference, and tracks Nemotron Labs Unified ASR pending Android export.
+
 - [Wake-word and Android background-microphone audit](OGAM_WAKEWORD_AND_BACKGROUND_MICROPHONE_RESEARCH_2026-11-22.md) — openWakeWord, AndroidWakeWord, Sherpa-ONNX, Android 12–16 background/microphone restrictions, Russian phrase and license checks.
 - [Russian Android TTS backend audit](OGAM_RUSSIAN_TTS_ANDROID_BACKEND_AUDIT_2026-11-22.md) — RuVoice TTS source/license audit, Qwen3-TTS Android Kotlin/JNI, native streaming callback already exists in JNI C++ but is not exposed by Kotlin QwenEngine, Sherpa-ONNX callback path, microphone ownership and a public Android AEC experiment route (unverified on PGEM10).
 - [Earlier Chinese/Indian on-device speech scan](../china-india/CHINESE_INDIAN_ON_DEVICE_SPEECH_SCAN_2026-11-22.md) — Qwen3-ASR/ASR and LiteRT routes, Qwen3-TTS LiteRT and Indian/Indic speech model scan.
