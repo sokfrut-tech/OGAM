@@ -5,6 +5,8 @@ Status: public source research and design notes; no new TTS/KWS model is integra
 
 ## Current research documents
 
+- [Qwen3-ASR LiteRT SM8550 and streaming audit](OGAM_QWEN3_ASR_LITERT_SM8550_AND_STREAMING_AUDIT_2026-11-23.md) — exact Snapdragon 8 Gen 2 AOT export found; distinguishes the 960 MB CPU/GPU LiteRT-LM bundle from the ~1.9 GB SM8550 standalone NPU graph and documents 5 s sliding-window latency limits.
+
 - [Nemotron LiteRT streaming integration audit](OGAM_NEMOTRON_LITERT_STREAMING_INTEGRATION_AUDIT_2026-11-23.md) — validates caller-fed 16 kHz PCM streaming API and Russian prompt selection; identifies the current LiteRT engine's hardcoded CPU accelerator and Goodnotes AOT model-pack mismatch.
 
 - [SM8550-specific Nemotron LiteRT follow-up](OGAM_RUSSIAN_STREAMING_ASR_MODEL_PROVENANCE_AUDIT_2026-11-23.md#7-oppo-specific-litert-export-discovered-goodnotes-sm8550-aot) — identifies Goodnotes FP16/W8A16 Nemotron exports with a Qualcomm SM8550 AOT encoder, runtime/version gates, and license-notice caveats.
