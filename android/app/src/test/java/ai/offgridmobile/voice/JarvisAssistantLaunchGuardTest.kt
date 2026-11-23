@@ -8,25 +8,28 @@ import org.junit.Test
 class JarvisAssistantLaunchGuardTest {
   @Test
   fun acceptsTheTokenMintedByThePrivateBridgeExactlyOnce() {
-    val token = JarvisAssistantLaunchGuard.issue()
-    assertTrue(JarvisAssistantLaunchGuard.consume(token))
-    assertFalse(JarvisAssistantLaunchGuard.consume(token))
+    val issuedAt = 10_000L
+    val token = JarvisAssistantLaunchGuard.issue(issuedAt)
+    assertTrue(JarvisAssistantLaunchGuard.consume(token, issuedAt + 1L))
+    assertFalse(JarvisAssistantLaunchGuard.consume(token, issuedAt + 2L))
   }
 
   @Test
   fun rejectsMissingAndForgedTokens() {
-    JarvisAssistantLaunchGuard.issue()
-    assertFalse(JarvisAssistantLaunchGuard.consume(null))
-    assertFalse(JarvisAssistantLaunchGuard.consume("attacker-controlled"))
+    val issuedAt = 20_000L
+    JarvisAssistantLaunchGuard.issue(issuedAt)
+    assertFalse(JarvisAssistantLaunchGuard.consume(null, issuedAt + 1L))
+    assertFalse(JarvisAssistantLaunchGuard.consume("attacker-controlled", issuedAt + 2L))
   }
 
   @Test
   fun aNewLaunchInvalidatesThePreviousPendingToken() {
-    val oldToken = JarvisAssistantLaunchGuard.issue()
-    val newToken = JarvisAssistantLaunchGuard.issue()
+    val issuedAt = 30_000L
+    val oldToken = JarvisAssistantLaunchGuard.issue(issuedAt)
+    val newToken = JarvisAssistantLaunchGuard.issue(issuedAt + 1L)
     assertNotNull(newToken)
-    assertFalse(JarvisAssistantLaunchGuard.consume(oldToken))
-    assertTrue(JarvisAssistantLaunchGuard.consume(newToken))
+    assertFalse(JarvisAssistantLaunchGuard.consume(oldToken, issuedAt + 2L))
+    assertTrue(JarvisAssistantLaunchGuard.consume(newToken, issuedAt + 3L))
   }
 
   @Test
