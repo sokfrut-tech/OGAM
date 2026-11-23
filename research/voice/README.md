@@ -5,6 +5,8 @@ Status: public source research and design notes; no new TTS/KWS model is integra
 
 ## Current research documents
 
+- [Nemotron LiteRT streaming integration audit](OGAM_NEMOTRON_LITERT_STREAMING_INTEGRATION_AUDIT_2026-11-23.md) — validates caller-fed 16 kHz PCM streaming API and Russian prompt selection; identifies the current LiteRT engine's hardcoded CPU accelerator and Goodnotes AOT model-pack mismatch.
+
 - [SM8550-specific Nemotron LiteRT follow-up](OGAM_RUSSIAN_STREAMING_ASR_MODEL_PROVENANCE_AUDIT_2026-11-23.md#7-oppo-specific-litert-export-discovered-goodnotes-sm8550-aot) — identifies Goodnotes FP16/W8A16 Nemotron exports with a Qualcomm SM8550 AOT encoder, runtime/version gates, and license-notice caveats.
 
 - [Russian streaming ASR provenance audit](OGAM_RUSSIAN_STREAMING_ASR_MODEL_PROVENANCE_AUDIT_2026-11-23.md) — corrects the Parakeet-EOU language/license discrepancy; prioritizes Nemotron 3.5 LiteRT for Android streaming tests, keeps Parakeet TDT v3 as a Russian quality/batch reference, and tracks Nemotron Labs Unified ASR pending Android export.
