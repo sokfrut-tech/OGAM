@@ -33,6 +33,9 @@ Status: public source research and design notes; no new TTS/KWS model is integra
 
 - [Alkove and Voicute Android KWS comparative audit](OGAM_ALKOVE_VOICUTE_ANDROID_KWS_AUDIT_2026-11-22.md) — Alkove caller-supplied PCM API, seven-language Spot/Lex limit, manual-IPA caveat, Focus/Cue/AEC reference, Voicute Android ONNX sliding-window engine and seven-language model limit.
 
+
+- [Existing OGAM TTS/PCM and microphone contract audit](OGAM_EXISTING_TTS_PCM_AND_MICROPHONE_CONTRACT_AUDIT_2026-11-23.md) — source-level confirmation of the model-only TTS boundary, single Jarvis AudioTrack/AudioFocus owner, shared AudioRecorderService capture, and the missing monotonic AEC reference-timestamp path.
+
 ## Decisions / no-go boundaries
 
 1. Keep the physical microphone owner unique: OGAM AudioRecorderService. KWS/ASR/Whisper must share/subcribe to it or coordinate through one native capture service; never start a competing recorder.
