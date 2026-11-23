@@ -9,7 +9,7 @@ index a085a2c..fc32ea2 100644
 +    /// Capture a monotonic cancellation epoch prior to enqueueing or entering synthesis.
 +    /// Pair with synthesize_with_epoch() so pre-entry cancel() calls are never overwritten.
 +    uint64_t begin_synthesis_epoch() const noexcept {
-+        return cancel_epoch_.load(std::memory_order_acquire);
++        return cancel_epoch_.load(std::memory_order_seq_cst);
 +    }
 +
 +    /// Run synthesis bound to an explicit epoch captured via begin_synthesis_epoch().
@@ -36,7 +36,7 @@ index a085a2c..fc32ea2 100644
      float             chunk_silence_s_ = 0.3f;
 -    std::atomic<bool> cancelled_{false};
 +    bool is_cancelled(uint64_t expected_epoch) const noexcept {
-+        return cancel_epoch_.load(std::memory_order_acquire) != expected_epoch;
++        return cancel_epoch_.load(std::memory_order_seq_cst) != expected_epoch;
 +    }
 +
 +    std::atomic<uint64_t> cancel_epoch_{0};
@@ -52,7 +52,7 @@ index eafd63c..d719f9b 100644
  }
  
 -void LiteRTSupertonicTts::cancel() { cancelled_.store(true); }
-+void LiteRTSupertonicTts::cancel() { cancel_epoch_.fetch_add(1, std::memory_order_acq_rel); }
++void LiteRTSupertonicTts::cancel() { cancel_epoch_.fetch_add(1, std::memory_order_seq_cst); }
  
  void LiteRTSupertonicTts::set_voice(const std::string& voice_id) {
      if (voice_id.empty()) {

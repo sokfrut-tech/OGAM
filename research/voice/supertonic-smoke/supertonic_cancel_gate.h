@@ -21,14 +21,14 @@ public:
   /** Begin a new request and capture its unique monotonic generation token (>= 1). */
   uint64_t begin_request() noexcept {
     const uint64_t next_gen = next_generation_.fetch_add(1, std::memory_order_acq_rel) + 1;
-    active_generation_.store(next_gen, std::memory_order_release);
+    active_generation_.store(next_gen, std::memory_order_seq_cst);
     return next_gen;
   }
 
   /** Return true if `generation` is no longer the live non-cancelled request. */
   bool is_cancelled(uint64_t generation) const noexcept {
     if (generation == 0) return true;
-    return active_generation_.load(std::memory_order_acquire) != generation;
+    return active_generation_.load(std::memory_order_seq_cst) != generation;
   }
 
   /** Cancel a specific generation cleanly without clobbering a newer request. */
@@ -38,13 +38,13 @@ public:
     active_generation_.compare_exchange_strong(
         expected,
         0,
-        std::memory_order_acq_rel,
-        std::memory_order_acquire);
+        std::memory_order_seq_cst,
+        std::memory_order_seq_cst);
   }
 
   /** Cancel whichever generation is currently active. */
   void cancel_all() noexcept {
-    active_generation_.store(0, std::memory_order_release);
+    active_generation_.store(0, std::memory_order_seq_cst);
   }
 
   /** Mark request complete if it is still the active generation. */

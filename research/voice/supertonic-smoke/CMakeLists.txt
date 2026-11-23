@@ -73,3 +73,8 @@ target_link_libraries(jarvis_supertonic_smoke PRIVATE
   litert
   ${ANDROID_LOG_LIB}
 )
+
+# Align ELF PT_LOAD segments to 16 KB pages (0x4000) for Android 15+/16 device compatibility.
+target_link_options(jarvis_supertonic_smoke PRIVATE
+  -Wl,-z,max-page-size=16384
+)

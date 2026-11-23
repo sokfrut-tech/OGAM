@@ -20,7 +20,7 @@ Downloaded via HTTPS `GET` (`HTTP 200`) from `https://dl.google.com/dl/android/m
 | `jni/armeabi-v7a/libLiteRt.so` | `3,653,808` | `e16cc9d21b3cff9dc614b12e040d5984ea35afb634940dbbe9baf6b6db432c93` | 32-bit ARM library inside AAR |
 | `jni/x86_64/libLiteRt.so` | `7,784,496` | `0167cf5f2b61e0e866e9a27ab794bea161652f129bdd51dad3a7cae8173dd540` | Emulator x86_64 library inside AAR |
 | `LICENSE` | `13,575` | `71c6915d04265772a0339bed47276942c678b45cc01534210ebe6984fd1aec65` | Apache License, Version 2.0 (January 2004) |
-| `THIRD_PARTY_NOTICE.txt` | `1,960,672` | `db6e1ff4b61c11eb01c45f135928527a50a05282739054686793ec70f442f119` | Bundled third-party attribution notices (`1.96 MB`) |
+| `THIRD_PARTY_NOTICE.txt` | `1,960,672` | `db6e1ff4b16c11eb01c45f135928527a50a05282739054686793ec70f442f119` | Bundled third-party attribution notices (`1.96 MB`) |
 
 *(Note: `classes.jar` (`25,390`), `R.txt` (`15,419`), `proguard.txt` (`214`), `res/` (`0`) omitted from SHA list.)*
 

@@ -28,7 +28,7 @@ jobs:
           unzip -o out/litert/litert-2.3.2.aar jni/arm64-v8a/libLiteRt.so LICENSE THIRD_PARTY_NOTICE.txt AndroidManifest.xml -d out/litert
           echo "6acacb3cb6b96b5a4f23b45d7bb8df2b305458ec894d62f646224b73d180dbd5  out/litert/jni/arm64-v8a/libLiteRt.so" | sha256sum -c -
           echo "71c6915d04265772a0339bed47276942c678b45cc01534210ebe6984fd1aec65  out/litert/LICENSE" | sha256sum -c -
-          echo "db6e1ff4b61c11eb01c45f135928527a50a05282739054686793ec70f442f119  out/litert/THIRD_PARTY_NOTICE.txt" | sha256sum -c -
+          echo "db6e1ff4b16c11eb01c45f135928527a50a05282739054686793ec70f442f119  out/litert/THIRD_PARTY_NOTICE.txt" | sha256sum -c -
           grep -q 'minSdkVersion="24"' out/litert/AndroidManifest.xml
           cp out/litert/LICENSE out/litert/THIRD_PARTY_NOTICE.txt out/notices/
 

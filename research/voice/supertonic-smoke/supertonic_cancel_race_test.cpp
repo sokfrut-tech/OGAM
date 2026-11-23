@@ -26,41 +26,80 @@ void test_pre_entry_cancellation_never_emits_or_starts() {
 
 void test_concurrent_entry_barrier_stress() {
   SupertonicCancelGate gate;
-  std::atomic<int> leaked_chunks{0};
+  std::atomic<int> leaked_after_cancel_done{0};
+  std::atomic<int> leaked_after_join{0};
+  std::atomic<int> missed_epoch_cancels{0};
 
   for (int iter = 0; iter < 2000; ++iter) {
     const uint64_t gen = gate.begin_request();
+    std::atomic<uint64_t> cancel_epoch{0};
     std::atomic<bool> start_flag{false};
+    std::atomic<bool> cancel_done{false};
+    std::atomic<bool> entered_synthesis{false};
+    std::atomic<uint64_t> captured_out{0};
+    std::atomic<bool> cancel_done_observed{false};
+    std::atomic<bool> in_post_join{false};
+
+    auto cb = gate.wrap_callback(gen, [&](const float*, size_t, bool) {
+      if (in_post_join.load(std::memory_order_acquire)) {
+        leaked_after_join.fetch_add(1, std::memory_order_relaxed);
+      } else if (cancel_done_observed.load(std::memory_order_acquire)) {
+        leaked_after_cancel_done.fetch_add(1, std::memory_order_relaxed);
+      }
+    });
 
     std::thread synth_worker([&]() {
       while (!start_flag.load(std::memory_order_acquire)) {}
-      std::atomic<uint64_t> engine_epoch{0};
-      const uint64_t captured_epoch = engine_epoch.load(std::memory_order_acquire);
+      const uint64_t captured_epoch = cancel_epoch.load(std::memory_order_seq_cst);
       if (gate.is_cancelled(gen)) return;
+      entered_synthesis.store(true, std::memory_order_release);
+      captured_out.store(captured_epoch, std::memory_order_release);
 
-      auto cb = gate.wrap_callback(gen, [&](const float*, size_t, bool) {
-        if (gate.is_cancelled(gen)) leaked_chunks.fetch_add(1, std::memory_order_relaxed);
-      });
       const float pcm[4] = {0.1f, -0.1f, 0.2f, -0.2f};
       for (int step = 0; step < 8; ++step) {
-        if (gate.is_cancelled(gen) || engine_epoch.load(std::memory_order_acquire) != captured_epoch) {
+        if (gate.is_cancelled(gen) ||
+            cancel_epoch.load(std::memory_order_seq_cst) != captured_epoch) {
           return;
         }
-        if (!cb(pcm, 4, step == 7)) return;
+        const bool already_cancelled = cancel_done.load(std::memory_order_acquire);
+        cancel_done_observed.store(already_cancelled, std::memory_order_relaxed);
+        const bool emitted = cb(pcm, 4, step == 7);
+        if (already_cancelled) {
+          if (emitted) {
+            leaked_after_cancel_done.fetch_add(1, std::memory_order_relaxed);
+          }
+          return;
+        }
+        if (!emitted) return;
       }
     });
 
     std::thread barge_in_thread([&]() {
       while (!start_flag.load(std::memory_order_acquire)) {}
       gate.cancel(gen);
+      cancel_epoch.fetch_add(1, std::memory_order_seq_cst);
+      cancel_done.store(true, std::memory_order_release);
     });
 
     start_flag.store(true, std::memory_order_release);
     synth_worker.join();
     barge_in_thread.join();
+
+    if (entered_synthesis.load(std::memory_order_acquire) &&
+        cancel_epoch.load(std::memory_order_seq_cst) == captured_out.load(std::memory_order_acquire)) {
+      missed_epoch_cancels.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    in_post_join.store(true, std::memory_order_release);
+    const float post_pcm[4] = {0.1f, -0.1f, 0.2f, -0.2f};
+    if (cb(post_pcm, 4, true)) {
+      leaked_after_join.fetch_add(1, std::memory_order_relaxed);
+    }
   }
 
-  assert(leaked_chunks.load() == 0);
+  assert(leaked_after_cancel_done.load() == 0);
+  assert(leaked_after_join.load() == 0);
+  assert(missed_epoch_cancels.load() == 0);
 }
 
 void test_newer_generation_cannot_be_cancelled_by_stale_token() {
