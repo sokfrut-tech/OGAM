@@ -101,6 +101,52 @@ Use the same fixed Russian corpus and identical audio files. Measure WER/CER, ex
 - Do not ship an artifact until its exact model revision, SHA-256, model license, conversion provenance and redistribution terms are documented.
 - No model weights or user recordings were downloaded/uploaded in this research pass.
 
+## 7. OPPO-specific LiteRT export discovered: Goodnotes SM8550 AOT
+
+Two Goodnotes exports provide a much more direct match for the target phone than the earlier generic Soniqo Android package:
+
+### FP16 export
+- Repository: https://huggingface.co/GoodnotesIT/nemotron-3.5-asr-streaming-multilingual-0.6b-litert-fp16
+- Immutable artifact revision: `03351ad96f2789192d558b7005764e58bc06f766`
+- Includes portable FP16 graphs with FP32 I/O and AOT encoder candidates for Qualcomm SM8450, **SM8550**, SM8650, SM8750 and SM8850, plus selected MediaTek/Samsung targets.
+- Only the encoder is SoC-specific; decoder and joint remain shared portable graphs.
+- Model card identifies exporter/compiler `2.3.0.dev20260913` and Android compatibility interpreter LiteRT `2.1.6`.
+- Portable graphs reportedly execute representative typed inputs in LiteRT 2.1.6 CPU interpreter. The AOT graph is explicitly a compiler candidate, not physical-device proof.
+- Keep portable CPU fallback. Do not activate the SM8550 AOT encoder until exact runtime/compiler and phone validation pass.
+
+### W8A16 export
+- Repository: https://huggingface.co/GoodnotesIT/nemotron-3.5-asr-streaming-multilingual-0.6b-litert-w8a16
+- Immutable artifact revision: `335ab352fd760333c289a7d8264c2604ae399758`
+- Also includes an SM8550-specific AOT encoder and portable W8A16/FP16 head.
+- Same LiteRT exporter/compiler `2.3.0.dev20260913` and Android compatibility interpreter `2.1.6`.
+- Google Play AI pack is the documented exact-SoC delivery mechanism in the model card. OGAM does not currently have that distribution plumbing.
+
+### Which export should be tested first?
+1. **FP16 AOT + portable fallback** is the clean first functional smoke test: fewer quantization-specific variables and explicit SM8550 target.
+2. **W8A16 AOT + portable fallback** is the second candidate for memory/latency comparison.
+3. **Dynamic INT8** export is a separate CPU/XNNPACK path; its reported host WER figures are on English test fixtures, not Russian or Android. It is not evidence of better Russian quality or SM8550 NPU performance.
+
+These are three graphs (encoder/decoder/joint) plus stateful streaming/cache plumbing, not a single drop-in TFLite interpreter call. A production adapter must preserve streaming cache tensors, audio feature/STFT state across chunk boundaries, language prompt ID, RNNT greedy decode and end-of-utterance behavior. Never split audio into independent chunks without carrying required frontend and encoder caches.
+
+## 8. Runtime and device gates for OPPO Find X6 Pro
+
+- Google AI Edge LiteRT Qualcomm AI Engine Direct docs explicitly list SM8550 (Snapdragon 8 Gen 2) as supported and document Android SDK API 34+ setup; the phone is Android 16, so OS API level is not the obvious blocker.
+- Google documents QNN delegate dependencies and initialization for Android. The model's AOT compiler version, delegate, QNN runtime, HTP V73 skeleton/stub, and device vendor firmware must still be version-matched.
+- Public LiteRT issue #9451 reported a SIGBUS on SM8550 with a 2.3.0 nightly JIT path, while stable 2.1.5 worked in that report. This is not proof that the Goodnotes AOT export fails, but it is a warning against mixing nightly compiler output with unrelated runtime binaries.
+- A separate 2026 LiteRT NPU integration guide reports a physical Samsung Galaxy S23 (also SM8550/HTP v73) validation matrix. That is encouraging platform evidence, but not proof for OPPO ColorOS firmware or this ASR graph.
+- First OGAM smoke test should log: device SoC/ABI/API, LiteRT runtime version, QNN/QAIRT versions, delegate initialization result, selected encoder path (AOT or portable), all tensor shapes/dtypes, first chunk latency, steady-state RTF, transcript, fallback reason, peak RSS, CPU/NPU utilization and temperature. Never silently claim NPU execution merely because a delegate was requested.
+
+### Legal metadata correction
+- The current NVIDIA base model card labels the checkpoint `openmdw-1.1` and its terms section points to OpenMDW-1.1.
+- Goodnotes converted model cards label derivatives as “NVIDIA Open Model License”. These names may be used inconsistently by exporters; another public conversion audit explicitly distinguishes OpenMDW-1.1 from the separate NVIDIA Open Model License.
+- Before redistributing any converted weights, preserve both the exact pinned upstream license/notice and the derivative's bundled LICENSE/NOTICE, and have legal review resolve the mismatch. For internal evaluation, download only after the same terms are reviewed. Do not assume the MIT/Apache license of any wrapper covers the weights.
+
+## 9. Updated recommendation
+
+The next practical target is no longer a generic Nemotron export. It is **Goodnotes FP16 LiteRT export revision `03351ad96f2789192d558b7005764e58bc06f766`, specifically the Qualcomm/SM8550 AOT encoder plus shared portable decoder/joint and fallback**. Do not download weights or implement the adapter until OGAM's Android build environment can pin a compatible LiteRT/QNN runtime and the model license/notice package is reconciled.
+
+The first benchmark remains the same fixed Russian corpus as Qwen3-ASR/Whisper, with exact names/numbers, far-field speech, background noise and thermal soak. The model card's CPU fixture WER is not a Russian benchmark and must not be quoted as such.
+
 ## Source links
 
 - NVIDIA Parakeet EOU: https://huggingface.co/nvidia/parakeet_realtime_eou_120m-v1
