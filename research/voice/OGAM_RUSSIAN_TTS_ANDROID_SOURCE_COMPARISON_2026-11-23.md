@@ -102,4 +102,4 @@ Required shared Russian corpus: short commands, conversational sentences, names/
 - https://huggingface.co/Supertone/supertonic-3
 - https://huggingface.co/FunAudioLLM/Fun-CosyVoice3-0.5B-2512
 - https://huggingface.co/openbmb/VoxCPM2
-- https://github.com/meshокlv/ru-speech-bench
+- https://github.com/meshoklv/ru-speech-bench
