@@ -12,26 +12,25 @@ Parent handoff: research/PROJECT_STATE_RECOVERY_HANDOFF_2026-11-23.md
 - No checksum was guessed; no mirror/wheel was substituted.
 - No OGAM app source, Gradle dependency, native CMake target, APK or workflow was changed/created.
 
-## Evidence state
+## Evidence state (updated after direct Google Maven download & ELF/ABI inspection)
 | Gate | State |
 |---|---|
-| Version/publication and Android baseline | CONFIRMED |
-| AAR path and arm64 member path | CONFIRMED from official Google codelab |
-| Exact AAR / .so hashes and ELF audit | OPEN |
-| Exact notice-file bytes | OPEN |
-| Speech-core interface link closure | OPEN |
-| Native compile/link | NOT RUN |
+| Version/publication and Android baseline | CONFIRMED (`litert:2.3.2`, manifest `minSdkVersion="24"`) |
+| AAR path and arm64 member path | CONFIRMED (`jni/arm64-v8a/libLiteRt.so`, `5,629,696` bytes) |
+| Exact AAR / .so hashes and ELF audit | **CLOSED** (`OGAM_LITERT_232_BINARY_PROVENANCE_AND_ABI_AUDIT_2026-11-23.md`: AAR `4d1f26b4...`, `.so` `6acacb3c...`, `EM_AARCH64`, NDK-only `DT_NEEDED`, 21/21 Supertonic C symbols present in `2.1.5` & `2.3.2`) |
+| Exact notice-file bytes | **CLOSED** (`LICENSE` `13,575` B `71c6915d...`, `THIRD_PARTY_NOTICE.txt` `1,960,672` B `db6e1ff4...`) |
+| Speech-core interface link closure | **CLOSED** (`TTSInterface::synthesize_with_options` pulls `offline_spectral_de_esser.cpp` + `ooura_fft_engine.cpp` + `fft4g.cpp`; `utf8proc v2.11.0` = `d7bf128df773c2a1a7242eb80e51e91a769fc985`) |
+| Native compile/link | NOT RUN (still needed to confirm `third_party/litert` header/struct ABI vs `2.3.2`) |
 | Cancellation race fix/tests | NOT DONE |
 | OPPO PGEM10 device test | NOT RUN |
 
 ## Next safe sequence
-1. In a manual-only CI job, download the exact AAR from Google Maven and calculate hashes from bytes.
-2. Verify ZIP entries, preserve LICENSE and THIRD_PARTY_NOTICE.txt, inspect AArch64 ELF and dynamic symbols.
-3. Finish the real TTSInterface/vtable link closure review; do not stub virtual behavior.
-4. Build an isolated CPU-only arm64 JNI smoke library against the pinned speech-core commit. Fail if ONNX Runtime or libcurl is linked.
-5. Add generation-based cancellation and race tests before considering a Kotlin/JNI adapter.
-6. Only after CPU proof, consider a separate Qualcomm NPU feasibility track for SM8550/HTP v73.
-7. Keep all changes in the research branch and PR #2 Draft. Do not merge or modify production app code.
+1. ~~Download exact Google Maven AAR, verify hashes, notices, and AArch64 ELF `.dynamic` / `.dynsym` symbols~~ → **DONE** in `research/voice/OGAM_LITERT_232_BINARY_PROVENANCE_AND_ABI_AUDIT_2026-11-23.md`.
+2. Build an isolated CPU-only arm64 JNI smoke library against `soniqo/speech-core@59b9d790`, pinned `utf8proc` (`d7bf128df773c2a1a7242eb80e51e91a769fc985`), the full Ooura de-esser closure, and `libLiteRt.so` `2.3.2`; fail if ONNX Runtime or `libcurl` links.
+3. Add generation-based cancellation and start-handshake race tests before considering a Kotlin/JNI adapter.
+4. Preserve extracted `LICENSE` + `THIRD_PARTY_NOTICE.txt` alongside any bundled binary artifact.
+5. Only after CPU proof on `PGEM10`, consider a separate Qualcomm NPU feasibility track for `SM8550` / HTP v73.
+6. Keep all changes in the research branch and PR #2 Draft. Do not merge or modify production app code.
 
 ## Repository state after this addendum
 The research branch head and main branch must be checked from GitHub before any subsequent writes; this addendum is not a production implementation or device validation.
