@@ -161,3 +161,9 @@ Do not claim a source was studied if only a link was found. Do not call a candid
 - Cancellation entry race confirmed: `synthesize()` resets `cancelled_` to false at entry, so pre-entry cancellation can be lost. Adapter needs generation IDs, queued-request suppression, serialized start/cancel handshake, stale-callback dropping, worker lifetime protection and explicit race tests.
 - Google docs list LiteRT 2.3.2 as current and API 24 / NDK r26a baseline. OGAM API24 / NDK r27.1 / CMake3.22.1 meets the documented baseline, but pinned upstream source compatibility has not been compiled.
 - Status: source audit complete; no workflow, harness, native build, runtime hash, APK or PGEM10 test yet. No production source changed. Next: verify wheel artifact availability/layout and utf8proc immutable pin/hash, then create a manual-only isolated arm64 build workflow in this research branch. Do not deploy or merge.
+
+### Android LiteRT acquisition correction
+- Follow-up pinned-source inspection of `soniqo/speech-android/setup.sh` shows Android uses Google Maven AAR `com.google.ai.edge.litert:litert:2.1.5`, extracting `jni/<ABI>/libLiteRt.so` to `LITERT_DIR/<ABI>/`. The PyPI wheel script in speech-core is for host-platform runtime acquisition and must not be used as the Android cross-build runtime.
+- Published coordinate `com.google.ai.edge.litert:litert:2.3.2` is listed in Google Maven (26 Oct 2026); exact AAR payload/hash/C API compatibility still needs direct verification. Preserve AAR LICENSE and THIRD_PARTY_NOTICE.txt when extracting.
+- Soniqo wrapper's NDK r29 / CMake 4.1.2 / minSdk 26 are wrapper pins. Google docs' 2.3.2 baseline is API 24 / NDK r26a; OGAM's API24 / NDK r27.1 / CMake3.22.1 meets that baseline, but no compile evidence exists.
+- Corrected audit: `research/voice/OGAM_SUPERTONIC_TTS_ONLY_BUILD_FEASIBILITY_AUDIT_2026-11-23.md`, section 10.
