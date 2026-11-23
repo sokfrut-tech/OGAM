@@ -134,3 +134,12 @@ Do not claim a source was studied if only a link was found. Do not call a candid
 ## Repository write-safety note (2026-11-23)
 - During this session, two GitHub content updates unexpectedly landed on main despite the requested docs branch. The accidental Supertonic adapter brief and recovery-handoff file were removed from main in cleanup commits `ee6041929c37cc99e359ba7ae0753fe4219c7055` and `ea6d81e9941139ecef5b3a49be888ee0c5215c9b`.
 - Verified afterward: main tree contains none of the Supertonic/LiteRT research files; the research branch and PR #2 contain the intended documents. Main history has the temporary add/remove commits, but the research artifacts are absent from the current main tree. For future writes, immediately compare branch head, main head and PR head after every operation; if a write lands on main, restore the affected file and verify the tree before continuing.
+
+
+## Supertonic LiteRT / ONNX build-graph update (2026-11-23)
+- New source audit: `research/voice/OGAM_SUPERTONIC_LITERT_BUILD_GRAPH_AND_ORT_DECOUPLING_AUDIT_2026-11-23.md`.
+- Pinned Soniqo `speech-core` CMake confirms `SPEECH_CORE_WITH_ONNX` defaults OFF and `ORT_DIR` is required only when ONNX is enabled. `SPEECH_CORE_WITH_LITERT` is independent and the aggregate LiteRT target links `speech_core`, `libLiteRt` and utf8proc, not ONNX Runtime.
+- Correction to earlier broad wording: the Soniqo Android SDK wrapper (not the Supertonic LiteRT model itself) unconditionally requires `ORT_DIR` and forces `SPEECH_CORE_WITH_ONNX=ON`. Do not copy that wrapper CMake wholesale into OGAM.
+- Direct OGAM integration can avoid ORT by building speech-core with ONNX OFF / LiteRT ON. The upstream aggregate LiteRT library still compiles many unrelated model wrappers; a minimal Supertonic-only target remains to be built and link-verified.
+- Soniqo `speech-core/scripts/fetch_litert.sh` defaults to LiteRT 2.1.5. Google lists LiteRT 2.3.2 as latest and it is present in Maven version listings, but the AAR/runtime has not been downloaded or hashed and the pinned Soniqo source has not been compiled against 2.3.2.
+- No OGAM application code/build configuration changed; no native build, APK or OPPO device test performed. PR #2 remains Draft/unmerged.
