@@ -70,3 +70,5 @@ microWakeWord remains the first Russian «Джарвис» candidate. Alkove is 
 - [Android VoiceInteraction session lifecycle audit](../android/OGAM_VOICE_INTERACTION_SESSION_LIFECYCLE_AUDIT_2026-11-23.md) — traces the Android system assistant → private bridge → one-shot launch token → MainActivity handoff; documents API-level limits, missing lifecycle instrumentation and TTS implementation status.
 
 - [Russian TTS Android source comparison (2026-11-23)](OGAM_RUSSIAN_TTS_ANDROID_SOURCE_COMPARISON_2026-11-23.md) — source-level comparison of Qwen3-TTS Android, Supertonic-3/Soniqo, CosyVoice3, VoxCPM2 and Indic-Mio; clarifies batch vs sentence-chunked output, JNI cancellation, Android API gaps, model/weight licensing and the TTS-only adapter recommendation.
+
+- [Supertonic TTS-only Android adapter implementation brief (2026-11-23)](OGAM_SUPERTONIC_TTS_ONLY_ANDROID_ADAPTER_IMPLEMENTATION_BRIEF_2026-11-23.md) — source-confirmed design for adding streaming callback to the standalone Soniqo TTS handle, JNI lifecycle/cancellation, OGAM PCM contract, LiteRT/NDK/minSdk blockers and required tests.
