@@ -132,3 +132,18 @@ Continue with an isolated build harness, not production integration. Do not impo
 - LiteRT fetch script: https://github.com/soniqo/speech-core/blob/59b9d7902ea62dbbbfb95e139e2bf0e8957f8753/scripts/fetch_litert.sh
 - Google LiteRT Android compatibility matrix: https://developers.google.com/edge/litert/android
 - Google LiteRT Android Maven integration: https://developers.google.com/edge/litert/android/development
+
+## 10. Android runtime acquisition correction — pinned speech-android setup.sh
+A follow-up inspection of the same pinned `soniqo/speech-android` commit `66059f2a5bb9a91f6c7b5cabe59f4e74e72ddded` changes the Android acquisition path described above:
+
+- `speech-android/setup.sh` downloads the Android Google Maven AAR:
+  `com.google.ai.edge.litert:litert:2.1.5`
+  from `https://dl.google.com/dl/android/maven2/com/google/ai/edge/litert/litert/2.1.5/litert-2.1.5.aar`.
+- It extracts `jni/<ABI>/libLiteRt.so` and places it under `litert/<ABI>/`, which matches the Android CMake expectation `LITERT_DIR/<ANDROID_ABI>/libLiteRt.so`.
+- In contrast, `speech-core/scripts/fetch_litert.sh` is the host-platform PyPI wheel route; it is not the Android AAR acquisition route. Do not use a Linux-host wheel's shared library for an Android arm64 cross-build.
+- `speech-android/sdk/src/main/cpp/CMakeLists.txt` also forces `SPEECH_CORE_WITH_ONNX=ON` and requires ORT_DIR, so the published wrapper's complete build still imports ONNX. Its optional LiteRT check is based on the extracted Android ABI AAR runtime.
+- The pinned Android setup currently pins LiteRT AAR 2.1.5, NDK r29.0.14206865, CMake 4.1.2 and minSdk 26. These are Soniqo wrapper choices, not necessarily requirements of the direct OGAM integration.
+
+Google's Android compatibility table currently lists LiteRT 2.3.2 with min API 24 and NDK r26a. Maven repository version listings also show `com.google.ai.edge.litert:litert:2.3.2` released 26 Oct 2026. This confirms the coordinate/version is published; it does NOT yet confirm the AAR's exact JNI payload, SHA-256, exported C API compatibility with this speech-core commit, or model runtime behavior. The CI harness must download the AAR directly, verify the ZIP structure, calculate SHA-256, extract arm64-v8a/libLiteRt.so, preserve LICENSE and THIRD_PARTY_NOTICE.txt, then compile/link.
+
+This correction supersedes any interpretation that the PyPI wheel is the Android runtime source. Keep both acquisition methods separate in all future scripts and evidence.
