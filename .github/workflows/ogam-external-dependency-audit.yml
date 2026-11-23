@@ -83,6 +83,12 @@ jobs:
         run: node --experimental-strip-types --test scripts/__tests__/image-parameter-core.node.test.mjs
       - name: Verify OGAM-owned model quant and card reasoning rules
         run: node --experimental-strip-types --test scripts/__tests__/model-capability-rules.node.test.mjs
+      - name: Verify OGAM-owned video generation intent rules
+        run: node --experimental-strip-types --test scripts/__tests__/video-intent.node.test.mjs
+      - name: Verify OGAM-owned mmproj model identity matching
+        run: node --experimental-strip-types --test scripts/__tests__/mmproj-matcher.node.test.mjs
+      - name: Verify OGAM-owned GGUF model naming and credibility rules
+        run: node --experimental-strip-types --test scripts/__tests__/model-naming-core.node.test.mjs
       - name: Generate complete source/config inventory
         run: node scripts/audit-offgrid-imports.mjs --output=ogam-import-audit.json
       - name: Upload audit evidence

@@ -4,7 +4,7 @@ import { View, Text } from 'react-native';
 import { TouchableOpacity } from './Touchable';
 import Icon from 'react-native-vector-icons/Feather';
 import { useThemedStyles, useTheme } from '../theme';
-import { isOffGridHfRepo, isRawModelName, modelDisplayName } from '@offgrid/models';
+import { isOffGridHfRepo, isRawModelName, modelDisplayName } from '../utils/modelNamingCore';
 import { QUANTIZATION_INFO, CREDIBILITY_LABELS } from '../constants';
 import { ModelFile, DownloadedModel, ModelCredibility } from '../types';
 import { needsVisionRepair } from '../utils/visionRepair';

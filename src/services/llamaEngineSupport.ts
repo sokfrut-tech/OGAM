@@ -1,4 +1,5 @@
-import { baseModelKey, type ModelEntry } from '@offgrid/models';
+import type { ModelEntry } from '@offgrid/models';
+import { baseModelKey } from '../utils/modelNamingCore';
 import { runningLlamaBuild } from './enginePacks/running';
 
 /** The llama.cpp build this app's engine runs (an Android engine pack's, else llama.rn's bundled one),

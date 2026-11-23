@@ -15,7 +15,7 @@ import { createStyles } from './styles';
 import { presentProgress } from '../../utils/progressPresentation';
 import { SPACING } from '../../constants';
 import { isMMProjFile } from '../../services/mmproj';
-import { isRawModelName, modelDisplayName, splitGgufModelName } from '@offgrid/models';
+import { isRawModelName, modelDisplayName, splitGgufModelName } from '../../utils/modelNamingCore';
 
 /** The name a person knows a download by: the model's own name, else what the shared resolver
  *  reads from its file ("K2 Horizon 3.7B", never `K2-Horizon-4B-Q4_K_M`). Stripping the extension

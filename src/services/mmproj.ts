@@ -13,7 +13,7 @@
  * initMultimodal fail, so a non-belonging projector is refused (never "closest"/"only one").
  * The identity rule and the download-time choice are shared with the desktop (@offgrid/models).
  */
-import { modelIdentityStem, projectorsFor } from '@offgrid/models';
+import { modelIdentityStem, projectorsFor } from '../utils/mmprojMatcher';
 
 /** Is this filename a multimodal projector (mmproj) rather than a model weights file? */
 export function isMMProjFile(fileName: string): boolean {

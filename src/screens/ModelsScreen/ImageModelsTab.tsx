@@ -4,7 +4,7 @@ import { TouchableOpacity } from '../../components/Touchable';
 import { LoadingDots } from '../../components/LoadingDots';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
-import { determineCredibility } from '@offgrid/models';
+import { determineCredibility } from '../../utils/modelNamingCore';
 import { ModelCard } from '../../components';
 import { GROUPED_CARD_ROW, ListGroup } from '../../components/ListGroup';
 import { SearchField } from '../../components/SearchField';

@@ -3,8 +3,8 @@ import { activeModelService } from './activeModelService';
 import { DownloadedModel } from '../types';
 import logger from '../utils/logger';
 
-/** The video-request rule is shared with Desktop (@offgrid/models). */
-export { isVideoRequest } from '@offgrid/models';
+/** Video-request intent detection owned by OGAM. */
+export { isVideoRequest } from '../utils/videoIntent';
 
 type Intent = 'image' | 'text';
 

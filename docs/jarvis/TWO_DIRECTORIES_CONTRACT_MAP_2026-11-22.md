@@ -3,7 +3,7 @@
 This document resolves the core blocker in `sokfrut-tech/OGAM` PR #1 (`feature/jarvis-step-2-storage-privacy`): **what lived inside the two external/private directories (`pro/` and `../shared/packages/*`), what open-source MIT source already exists in OGAM's own git history, what must be ported vs kept gated/dropped, and exact consumer-pinned TypeScript contracts.**
 
 Evidence base:
-- Automated audit JSONs (`ogam-import-audit.json` baseline `1,976` files / `1,354` refs → post-Slice 3A–3D `1,983` files / `1,339` refs → post-`@offgrid/speech` `1,987` files / `1,335` refs → post-`@offgrid/sync` Half A `1,996` files / `1,320` refs → post-`@offgrid/rag` `2,008` files / `1,283` refs).
+- Automated audit JSONs (`ogam-import-audit.json` baseline `1,976` files / `1,354` refs → post-Slice 3A–3D `1,983` files / `1,339` refs → post-`@offgrid/speech` `1,987` files / `1,335` refs → post-`@offgrid/sync` Half A `1,996` files / `1,320` refs → post-`@offgrid/rag` `2,008` files / `1,283` refs → post-Slice 6 `2,015` files / `1,264` refs → post-Slice 7 `2,021` files / `1,259` refs).
 - Full AST/regex symbol parse of all **240** importing `src/` and `__tests__/` files on PR #1.
 - `package.json`, `package-lock.json`, `metro.config.js`, `jest.config.js`, `tsconfig.json`, `.dependency-cruiser.js`, and `docs/SYNC_INTEGRATION_PLAN.md`.
 - Local git history of `sokfrut-tech/OGAM` (`LICENSE`: **MIT License**).
@@ -12,19 +12,19 @@ Evidence base:
 
 ---
 
-## 1. Measured Audit Delta After Slice 6 (`@offgrid/models` `74 → 57` `src/`, 2026-11-23)
+## 1. Measured Audit Delta After Slice 7 (`@offgrid/models` `57 → 51` `src/`, 2026-11-23)
 
-| Metric | Baseline (`b7c06988`) | After Slice 5 (`@offgrid/rag`) | After Slice 6 (`@offgrid/models` M3/M4/M7a) | Total Change |
+| Metric | Baseline (`b7c06988`) | After Slice 6 (`@offgrid/models` M3/M4/M7a) | After Slice 7 (`@offgrid/models` M4/Video/Naming) | Total Change |
 |---|---:|---:|---:|---|
-| Files scanned | 1,976 | 2,008 | **2,015** | `+39` (`+3` OGAM TS modules + `4` Node test suites since Slice 5) |
+| Files scanned | 1,976 | 2,015 | **2,021** | `+45` (`+3` OGAM TS modules + `3` Node test suites since Slice 6) |
 | `localFileDependencies` (`package.json`) | 8 | 2 | **2** | **`-6`** (`design`, `notes`, `notes-editor`, `writing`, `speech`, `rag` removed) |
-| Total external refs | 1,354 | 1,283 | **1,264** | **`-90`** |
-| `packageImports` | 457 | 396 | **377** | **`-80`** |
+| Total external refs | 1,354 | 1,264 | **1,259** | **`-95`** |
+| `packageImports` | 457 | 377 | **371** | **`-86`** |
 | `sharedWorkspacePaths` | 73 | 63 | **63** | **`-10`** |
 | `@offgrid/design` imports | 2 | 0 | **0** | **100% eliminated** (`src/theme/designTokens.ts`) |
 | `@offgrid/speech` imports | 9 | 1 | **1** *(0 `src/`, 1 test fixture)* | **100% eliminated from `src/`, `package.json`, `metro.config.js`** |
 | `@offgrid/rag` (`+ /documents`) imports (`src/` / `__tests__/`) | 19 / 4 | 0 / 0 | **0 / 0** | **100% eliminated** (`remoteComputerSearch.ts` + `ragDocumentsCore.ts`, `package.json`, `metro.config.js`) |
-| `@offgrid/models` imports (`src/` / total) | 87 / 118 | 74 / 107 | **57 / 88** | **Slice 6 `-17 src/` (`-2` M3 media, `-7` M7a Boost, `-4` M3c image params, `-4` M4 capabilities; `-2` tests: `33 → 31`)** |
+| `@offgrid/models` imports (`src/` / total) | 87 / 118 | 57 / 88 | **51 / 82** | **Slice 7 `-6 src/` across `50` remaining files (`+3` modules cleared `6` callers completely, `4` callers still keep non-naming symbols)** |
 | `@offgrid/sync` imports (`src/` / total) | 44 / 148 | 29 / 133 | **29 / 133** | **`-15` source imports across `14` files (Half A 100% DONE; Half B Personal Mesh only left)** |
 | `@offgrid/notes`, `@offgrid/notes-editor`, `@offgrid/writing` | 0 / 0 / 0 | 0 / 0 / 0 | **0 / 0 / 0** | Removed from `package.json`, `metro.config.js`, `jest.config.js` |
 | Remaining `localFileDependencies` | — | 2 | **2** (`@offgrid/models`, `@offgrid/sync`) | Remaining migration targets mapped below |
@@ -71,7 +71,7 @@ All packages below carry `"license": "AGPL-3.0-only"` in `package-lock.json`. Co
 | **`@offgrid/automation`** | Not in `package.json` | Used internally by `@offgrid/sync` | `0 → 0` | `0` | Added in `8741abb5` (Metro-only) | **TRANSITIVE OF `@offgrid/sync`** (keep Metro alias until `@offgrid/sync` Half B is migrated/removed) |
 | **`@offgrid/speech`** | **Removed (this PR)** | *(cleared from `package.json` & `metro.config.js`; `package-lock.json` left untouched per `340c80e2`)* | `8 → 0` | `0` *(+1 synthetic fixture in audit test)* | `aaf68870:src/services/speechEndpoint.ts` (`94f8f714^`); `9fc50207` / `a6cd8033` Qwen3-ASR language map | **DONE (100% eliminated)**: `wavTrimPlan.ts`, `speechEndpoint.ts`, `voiceTurnSettings.ts`, `transcriptionLanguages.ts`, `voiceSessionMachine.ts` |
 | **`@offgrid/rag`** (`+ /documents`) | **Removed (this PR)** | *(cleared from `package.json` & `metro.config.js`; `package-lock.json` left untouched)* | `19 → 0` | `4 → 0` | `6ba7d5cb:src/services/rag/{chunking,retrieval,vectorMath}.ts` (`5c12cc2f^`) | **DONE (100% eliminated)**: `src/utils/remoteComputerSearch.ts` + `src/utils/ragDocumentsCore.ts` (`8/8` Node tests pass) |
-| **`@offgrid/models`** | Remains (`file:../shared/packages/models`) | `minisearch ^7.2.0` (dev) | `87 → 57` | `31` *(incl. scripts)* | Partial (`ggufSplitFiles`, `modelCompanionFiles`, `formatFileSize`, `toolResultBudget`, `reasoningBudget`, `toolLoopBudget`, `mediaStyles`, `boostPromo`, `imageParameterCore`, `modelCapabilityRules`) | **KEEP & PORT REMAINING SLICES** (`M2` remote-vision `reasoningBudgetPayload` + remaining `M3` video/SD + `M4..M7` Guide) |
+| **`@offgrid/models`** | Remains (`file:../shared/packages/models`) | `minisearch ^7.2.0` (dev) | `87 → 51` | `31` *(incl. scripts)* | Partial (`ggufSplitFiles`, `modelCompanionFiles`, `formatFileSize`, `toolResultBudget`, `reasoningBudget`, `toolLoopBudget`, `mediaStyles`, `boostPromo`, `imageParameterCore`, `modelCapabilityRules`, `videoIntent`, `mmprojMatcher`, `modelNamingCore`) | **KEEP & PORT REMAINING SLICES** (`M2` remote-vision `reasoningBudgetPayload` + `M4..M7` device picks / MoE plan / Guide) |
 | **`@offgrid/sync`** (`+ /rn, /rn-discovery, /portable`) | Remains (`file:../shared/packages/sync`) | `@noble/hashes 1.8.0`, `@offgrid/automation`, `@offgrid/models`, `bonjour-service`, `js-sha512`, `tweetnacl` | `44 → 29` | `104` | `25276231^:src/utils/messageContent.ts` + `src/components/MarkdownText.tsx`; `docs/SYNC_INTEGRATION_PLAN.md` (`c06b2211`) | **HALF A 100% DONE** (`14` `src/` files cleared via `messageContent.ts`, `chatMarkdown.ts`, `chatThreadCore.ts`, `chatQueue.ts`, `chatStreamHelpers.ts`, `chatSyncPrimitives.ts`); **HALF B (Personal Mesh) REMAINS** |
 
 ---
@@ -158,3 +158,14 @@ Zero TCP/NaCl/mDNS dependency; migrated into OGAM-owned self-contained modules a
 3. ~~Port `@offgrid/rag/documents` + `@offgrid/rag` starting from MIT commit `6ba7d5cb:src/services/rag/*`~~ → **DONE (`3 → 2` `localFileDependencies`, `0` `@offgrid/rag` imports in `src/`, `__tests__/`, or build config).**
 4. Finish `@offgrid/models` slices (`M2` remote-vision `reasoningBudgetPayload` → `M3` → `M4` → `M5` → `M6` → `M7`) with strict parity against Jest specs → removes `@offgrid/models` (`2 → 1`).
 5. Port or scope `@offgrid/sync` **Half B** (Personal Mesh) + `@offgrid/automation` → reaches **`0` `localFileDependencies` and clean standalone Android/Jest/TSC builds without `../shared` or `pro/`**.
+
+---
+
+## 5. Slice 7, PR #2 Supertonic Smoke & CI Diagnosis (`2026-11-23`)
+
+- **Slice 7 audit (`OGAM_PR1`):** `2,021` files scanned, `1,259` refs (`packageImports: 371`, `localFileDependencies: 2`, `@offgrid/models`: `57 → 51` `src/` hits across `50` files, `31` `test` hits, `82` total; `0` `build-config`).
+- **Extracted modules (`src/utils/`):** `videoIntent.ts` (`isVideoRequest`), `mmprojMatcher.ts` (`modelIdentityStem`, `projectorsFor`), `modelNamingCore.ts` (`isOffGridHfRepo`, `determineCredibility`, `splitGgufModelName`, `isRawModelName`, `modelDisplayName`, `parseMoeParams`, `baseModelKey`).
+- **Migrated `src/` callers (`10` total, `6` cleared to `0` `@offgrid/models` imports):** `intentClassifier.ts`, `mmproj.ts`, `ModelCard.tsx`, `DownloadManagerScreen/items.tsx`, `ImageModelsTab.tsx`, `ImagePicksRow.tsx`; plus `DevicePicksRow.tsx`, `TextModelsTab.tsx`, `useDownloadedSpeedBadges.ts`, `llamaEngineSupport.ts` (these `4` keep non-naming `@offgrid/models` symbols for M4 follow-up).
+- **Verified locally:** All **36** suites (`157/157` tests, `0` failed, `0` skipped) in `.github/workflows/ogam-external-dependency-audit.yml` pass after wiring `video-intent.node.test.mjs`, `mmproj-matcher.node.test.mjs`, and `model-naming-core.node.test.mjs`. TypeScript `tsc`, RN Jest, Gradle after `4772d58d`, APK build, and `PGEM10` device runtime are not executed here.
+- **PR #2 (`4449f9da`, `docs/research-breeno-coloros-2026-11-22`):** Clean-applying `supertonic-generation-cancel.patch` on `soniqo/speech-core@59b9d7902ea62dbbbfb95e139e2bf0e8957f8753`, 7-file `arm64-v8a` JNI/CMake smoke harness + host race test, and manual `workflow_dispatch` `.github/workflows/research-supertonic-litert-arm64-smoke.yml` (`yaml.safe_load` valid; NDK/C++ compilation pending CI runner execution).
+- **GitHub Actions auto-trigger halt:** `sokfrut-tech/OGAM` reached `720` runs ending at `#45073271250` (`2026-11-22T21:38:57Z`), after which `github-actions` stopped spawning check-suites on new PR pushes.
