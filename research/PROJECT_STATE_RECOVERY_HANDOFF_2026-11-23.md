@@ -167,3 +167,11 @@ Do not claim a source was studied if only a link was found. Do not call a candid
 - Published coordinate `com.google.ai.edge.litert:litert:2.3.2` is listed in Google Maven (26 Oct 2026); exact AAR payload/hash/C API compatibility still needs direct verification. Preserve AAR LICENSE and THIRD_PARTY_NOTICE.txt when extracting.
 - Soniqo wrapper's NDK r29 / CMake 4.1.2 / minSdk 26 are wrapper pins. Google docs' 2.3.2 baseline is API 24 / NDK r26a; OGAM's API24 / NDK r27.1 / CMake3.22.1 meets that baseline, but no compile evidence exists.
 - Corrected audit: `research/voice/OGAM_SUPERTONIC_TTS_ONLY_BUILD_FEASIBILITY_AUDIT_2026-11-23.md`, section 10.
+
+### LiteRT 2.3.2 artifact / NPU findings — follow-up 23 Nov
+- Google Maven lists `com.google.ai.edge.litert:litert:2.3.2`; Google compatibility table says API24 / NDK r26a. External current implementation evidence corroborates AAR contains `jni/arm64-v8a/libLiteRt.so`; exact AAR and .so hashes were NOT directly captured in this run.
+- Keep `litert-gpu:2.3.2` separate; CPU-only TTS harness does not need GPU accelerator library.
+- Preserve Google's AAR `LICENSE` and `THIRD_PARTY_NOTICE.txt` unchanged when redistributing extracted runtime. Their existence/obligations are externally corroborated, but exact files still need direct capture.
+- Qualcomm NPU is a separate track: LiteRT 2.3.2 Qualcomm runtime AAR + QAIRT 2.50.0.260828; SM8550 maps to HTP v73 in current reference. Do not reuse QAIRT 2.47 bundles or imply that libLiteRt alone enables NPU. CPU-only harness first; NPU only after matching packages/hashes and PGEM10 proof.
+- Updated detailed audit section 11–13 in `research/voice/OGAM_SUPERTONIC_TTS_ONLY_BUILD_FEASIBILITY_AUDIT_2026-11-23.md`.
+- Direct AAR download/extraction was attempted but unavailable in this execution environment; no checksum or ELF inspection is claimed.
