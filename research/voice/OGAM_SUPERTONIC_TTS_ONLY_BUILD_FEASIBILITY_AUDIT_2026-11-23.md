@@ -147,3 +147,46 @@ A follow-up inspection of the same pinned `soniqo/speech-android` commit `66059f
 Google's Android compatibility table currently lists LiteRT 2.3.2 with min API 24 and NDK r26a. Maven repository version listings also show `com.google.ai.edge.litert:litert:2.3.2` released 26 Oct 2026. This confirms the coordinate/version is published; it does NOT yet confirm the AAR's exact JNI payload, SHA-256, exported C API compatibility with this speech-core commit, or model runtime behavior. The CI harness must download the AAR directly, verify the ZIP structure, calculate SHA-256, extract arm64-v8a/libLiteRt.so, preserve LICENSE and THIRD_PARTY_NOTICE.txt, then compile/link.
 
 This correction supersedes any interpretation that the PyPI wheel is the Android runtime source. Keep both acquisition methods separate in all future scripts and evidence.
+
+## 11. LiteRT 2.3.2 Android AAR contents and redistribution obligations — external corroboration
+Research date: 2026-11-23.
+
+Independent current package documentation for `google-ai-edge/flutter_litert` describes its Android runtime as extracted from the official Google Maven AARs:
+- `com.google.ai.edge.litert:litert:2.3.2` supplies `jni/arm64-v8a/libLiteRt.so` (and corresponding CPU runtime for other supported ABIs).
+- `com.google.ai.edge.litert:litert-gpu:2.3.2` separately supplies `libLiteRtClGlAccelerator.so`; this is not required for a CPU-only Supertonic build.
+- The plugin's changelog says the 2.3.2 `litert` and `litert-gpu` AARs each carry `LICENSE` and `THIRD_PARTY_NOTICE.txt`; it preserves these notices unchanged because some bundled third-party licenses require reproducing copyright notices in binary redistributions.
+- This is strong external corroboration of artifact structure and notice obligations, but it is not a direct inspection of the downloaded AAR in this audit. No AAR bytes, exact AAR SHA-256, extracted .so SHA-256, ELF metadata, or notice-file bytes have yet been independently captured. Keep those gates OPEN.
+
+Relevant sources:
+- Google Maven artifact/version listing: `com.google.ai.edge.litert:litert:2.3.2`, dated 26 Oct 2026.
+- Google LiteRT Android compatibility table: 2.3.2 latest; API 24; NDK r26a.
+- google-ai-edge/flutter_litert changelog and README: describes official AAR extraction, ABI set and license/notice handling.
+- Google's C++ codelab explicitly demonstrates downloading the Android AAR and extracting `jni/arm64-v8a/libLiteRt.so`.
+
+## 12. Qualcomm NPU is a separate dependency and validation track
+A current implementation reference for LiteRT 2.3.2's Qualcomm NPU path identifies:
+- Android API 31+ and arm64-v8a as NPU-path requirements.
+- A matching `com.google.ai.edge.litert:litert-npu-runtime-qualcomm:2.3.2` AAR supplying `libLiteRtCompilerPlugin_Qualcomm.so` and `libLiteRtDispatch_Qualcomm.so`.
+- QAIRT 2.50.0.260828 libraries for the target HTP generation.
+- Snapdragon 8 Gen 2 / SM8550 corresponds to HTP v73 in the cited device matrix.
+- The LiteRT 2.3.2 NPU integration requires the matching 2.3.2 plugin and QAIRT 2.50.0.260828; old 2.47.0 bundles from earlier LiteRT releases must not be reused.
+- The reference project documents `useLegacyPackaging = true` for its Qualcomm NPU setup because the runtime scans real filesystem library paths. This is a requirement of that NPU distribution path, not a general CPU-only TTS requirement.
+- It reports a Galaxy S23 regression in two image segmentation models on LiteRT 2.3.2. This is not evidence of a Supertonic regression, but it reinforces the need for model/device-specific validation.
+
+Decision for OGAM:
+1. First isolate and validate CPU-only Supertonic with just `litert:2.3.2`; do not add GPU or Qualcomm NPU packages to the first build.
+2. Only after CPU build and acoustic baseline, open a separate SM8550/v73 NPU feasibility track. Pin exact Qualcomm AAR and QAIRT files, hashes, licenses/notices, ABI, packaging behavior and runtime version together.
+3. Never claim that LiteRT 2.3.2 automatically activates Snapdragon NPU. A C++ build linking `libLiteRt.so` is not proof of NPU dispatch. NPU requires matching vendor plugin/dispatch runtime and QAIRT, explicit accelerator selection, supported ops and physical-device proof.
+4. Supertonic's actual execution backend (CPU/GPU/NPU) must be measured from runtime logs and device telemetry. No accelerator selection is made in this research phase.
+
+## 13. Evidence status update
+| Gate | Status |
+|---|---|
+| LiteRT 2.3.2 Google Maven publication | CORROBORATED |
+| arm64-v8a libLiteRt.so inside 2.3.2 AAR | EXTERNALLY CORROBORATED; NOT DIRECTLY EXTRACTED |
+| Separate GPU AAR | CORROBORATED; not needed for CPU-only harness |
+| LICENSE and THIRD_PARTY_NOTICE.txt obligations | EXTERNALLY CORROBORATED; exact bytes not captured |
+| AAR SHA-256 | NOT CAPTURED |
+| arm64 .so SHA-256 / ELF audit | NOT CAPTURED |
+| Qualcomm NPU matching runtime + QAIRT pin | SOURCE-LEVEL REFERENCE FOUND; not tested |
+| Supertonic on SM8550 NPU | NOT TESTED |
