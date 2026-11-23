@@ -134,3 +134,20 @@ Not approved as a drop-in dependency: Soniqo's full speech-android SDK or curren
 Not yet approved for device use: Goodnotes SM8550 AOT encoder. It is a promising exact-SoC artifact, but the inspected SDK loader currently hardcodes CPU and its model pack is a different export contract.
 
 No OGAM code, dependencies or model weights were changed in this audit.
+## 9. Official LiteRT Qualcomm deployment path and version gate
+
+Google's current LiteRT Android guidance recommends the CompiledModel API for new integrations. The Qualcomm integration has two pieces: a compiler plugin that lowers LiteRT graphs to QNN graphs and a dispatch API that executes them on device. The documented Android AOT path packages the complete AI Pack as a Gradle asset pack and includes the matching QNN runtime libraries; this is not equivalent to placing an AOT encoder.tflite into files/ and asking the CPU loader to open it.
+
+Official sources:
+- https://developers.google.com/edge/litert/android
+- https://developers.google.com/edge/litert/android/compiled_model
+- https://developers.googleblog.com/unlocking-peak-performance-on-qualcomm-npu-with-litert/
+- https://chromium.googlesource.com/external/github.com/google-ai-edge/LiteRT/+/HEAD/litert/vendors/qualcomm/README.md
+- https://chromium.googlesource.com/external/github.com/google-ai-edge/LiteRT/+/065f5eb58d11811024d057e80081890a5a20469c/litert/vendors/qualcomm/doc/HTP_INSTRUCTIONS.md
+
+Google's Android documentation lists LiteRT 2.3.2 as the latest CompiledModel release at this audit date; LiteRT 2.1.6 is listed as legacy. Goodnotes' export card identifies exporter/compiler 2.3.0.dev20260913 and Android compatibility interpreter 2.1.6. This is an explicit version compatibility gate: do not assume that a QNN AOT artifact produced by a development compiler is compatible with an unrelated runtime version. Require the exporter to state and test the exact runtime + QNN library set, or rebuild/pin the artifact with a matched stable toolchain.
+
+Google also states that NPU acceleration is available in standalone LiteRT, while LiteRT in Google Play services currently exposes CPU/GPU and NPU support there is still forthcoming. Thus the Goodnotes Google Play AI-pack packaging statement should be treated as its own distribution mechanism, not as proof that the standalone Qualcomm NPU runtime is already integrated into OGAM.
+
+Implementation implication: OGAM should create a dedicated Android NPU backend behind the same StreamingAsrBackend interface, but should not blindly upgrade the current LiteRT C API loader or simply toggle hardwareAcceleration. The backend needs (a) matched LiteRT CompiledModel/QNN dispatch/compiler/runtime, (b) model-pack manifest + AOT asset delivery, (c) verified actual accelerator assignment, (d) portable CPU fallback, and (e) instrumentation tests on the target device. The current Soniqo CPU path remains a reference for streaming math and cache handling, not a working NPU integration.
+
