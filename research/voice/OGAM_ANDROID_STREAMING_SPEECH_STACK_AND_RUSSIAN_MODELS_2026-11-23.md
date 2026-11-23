@@ -7,7 +7,7 @@ Status: public source audit and integration assessment. No source code or model 
 
 A new candidate deserves priority over the previous "Qwen batch ASR only" baseline:
 
-**Soniqo Speech Android + speech-core** provides an Android Kotlin/JNI package and a 120M Parakeet-EOU streaming ASR path. The project README reports 153 MB model download, 232 MB peak memory, 25 European languages; the upstream NVIDIA Parakeet-TDT v3 language list explicitly includes Russian. The Android SDK uses Parakeet-EOU as its low-memory default and exposes partial transcription / streaming APIs. This is a strong benchmark candidate for Russian live ASR, not yet an OGAM integration decision.
+**Soniqo Speech Android + speech-core** provides a real Android Kotlin/JNI speech SDK, but the first Russian-ASR candidate requires a provenance correction: its Parakeet-EOU 120M export claims 25 European languages while its declared NVIDIA base model is officially English-only. Do not treat this EOU export as Russian-capable until the exporter supplies reproducible evidence of multilingual fine-tuning and model/license provenance. The better documented streaming Russian candidate in this SDK is Nemotron 3.5 ASR 0.6B LiteRT; its device memory and SM8550 behavior remain unverified.
 
 A separate TTS candidate also improved materially:
 - **Supertonic-3** explicitly supports Russian among 31 languages. The Soniqo Android package lists a ~380 MB LiteRT bundle and 832 MB peak memory. This is plausible for an on-demand high-quality Russian voice, but its model license is OpenRAIL-M (not a permissive Apache/MIT model license), and the original Supertonic repository announced it would be archived in July 2026. Legal/maintenance review and device benchmarks are mandatory.
@@ -35,32 +35,42 @@ Repositories:
 The core is C++17 and separates the voice orchestration from concrete model backends. It has a state machine for Idle, Listening, Transcribing, Thinking and Speaking; turn detection; queued speech; cancellation; and interruption events. It exposes C API / JNI-friendly interfaces. The Android repository is a Kotlin SDK/JNI wrapper around that core, not merely a demo UI.
 
 The Android README says:
-- default Parakeet-EOU 120M: 153 MB download, 232 MB peak memory, 25 languages;
-- optional Parakeet TDT v3: 891 MB download, ~1.1–1.3 GB peak memory, 25 European languages;
-- optional Nemotron-3.5 multilingual streaming: ~721 MB LiteRT INT8, 100+ languages, peak memory not yet measured;
+- default Parakeet-EOU 120M: 153 MB export; Soniqo claims 232 MB peak and 25 languages, but this conflicts with the official English-only NVIDIA base model and is quarantined pending provenance evidence;
+- optional Parakeet TDT v3: ~891 MB download, ~1.1–1.3 GB peak memory per Soniqo README; official NVIDIA model supports 25 European languages including Russian, but it is a larger quality/batch reference, not the low-memory streaming default;
+- optional Nemotron-3.5 multilingual streaming: Soniqo LiteRT INT8 model card lists ~687 MB bundle (README says ~721 MB); official NVIDIA model card lists 40 locales, with Russian in the transcription-ready tier; Android peak memory is not measured;
 - default Kokoro TTS: 330 MB download / 640 MB peak, but only 8 languages and no Russian;
 - optional Supertonic-3: ~380 MB / 832 MB peak, 31 languages;
 - Silero VAD v5: 2 MB / <10 MB peak;
 - DeepFilterNet3: 8.2 MiB model, CPU streaming enhancement; README reports 40 ms model delay plus resampling latency.
 
-The default Android SDK path is intentionally low-memory: Parakeet-EOU + short-turn Kokoro. The demo app can choose the larger Parakeet TDT path. It accepts 16 kHz mono Float32 PCM through `pipeline.pushAudio(samples)`; the app remains responsible for microphone capture and feeding samples. This is important for OGAM: we can preserve one physical mic owner and bridge the existing recorder into the SDK rather than adding another AudioRecord.
+The default Android SDK path is intentionally low-memory: Parakeet-EOU + short-turn Kokoro. However, the EOU model's Russian claim is not currently substantiated because its declared upstream NVIDIA base is English-only. The demo app can choose larger Parakeet TDT or Nemotron paths. The SDK accepts 16 kHz mono Float32 PCM through `pipeline.pushAudio(samples)`; the app remains responsible for microphone capture and feeding samples. This is important for OGAM: preserve one physical mic owner and bridge the existing recorder rather than adding another AudioRecord.
 
-### Russian ASR candidate: Parakeet-EOU 120M
+### Parakeet-EOU 120M: quarantine for Russian pending provenance
 
-- The official NVIDIA `parakeet-tdt-0.6b-v3` model card explicitly lists Russian among 25 languages and is CC-BY-4.0.
-- Soniqo's Android README states Parakeet-EOU 120M is the small streaming model from the same 25-language family, with live partials and explicit end-of-utterance support.
-- The SDK's README describes ~340 ms partial update cadence in its separate dictation guide and reports 232 MB peak RSS for the 120M Android model. These are vendor-reported measurements, not PGEM10 measurements.
-- The Android API supports `StreamingTranscriber.beginStream()`, chunked `pushAudio()`, and `endStream()`; it emits partials and final text. Parakeet autodetects language and does not accept a forced-language prompt.
-- This could provide a more responsive live Russian transcript than OGAM's current Qwen whole-WAV path. Compare accuracy, punctuation, names, technical terms, noise, far-field speech and memory against Qwen3-ASR 0.6B and Whisper on the exact same Russian test set.
+- Official NVIDIA model card: `nvidia/parakeet_realtime_eou_120m-v1` says **English only**, 120M FastConformer-RNNT, 16 kHz mono, EOU token, NVIDIA Open Model License.
+- Soniqo's derived export `soniqo/Parakeet-EOU-120M-ONNX-INT8` claims 25 European languages and labels itself CC-BY-4.0, but its own model card says it was exported from the English-only NVIDIA base. The card does not document multilingual fine-tuning, a language-specific training dataset, a training recipe, or evidence that the Russian tokenizer/acoustic model was changed.
+- This is a material model-card / provenance / license discrepancy. The 25-language claim and CC-BY-4.0 tag are not accepted as proof. Do not download, bundle, benchmark as Russian ASR, or redistribute this export until the maintainer supplies a verifiable multilingual checkpoint lineage, Russian evaluation set/results, exact revision and governing license.
+- The vendor's 232 MB Android memory and 320 ms streaming claims are not independent OGAM measurements; the model card also reports a separate ~420 MB macOS arm64 peak RSS. Do not compare these numbers as if they were measured on the same platform.
 
-Important caveat: Parakeet-EOU is not a wake-word detector. Its ASR transcript can be used as a second-stage confirmation after a small KWS model, but running a 120M ASR continuously as the primary wake-word engine is not recommended without measured CPU/battery cost.
+### Russian ASR candidate: Nemotron-3.5 streaming 0.6B (first streaming benchmark)
 
-### Russian ASR candidate: Nemotron-3.5 streaming 0.6B
+- NVIDIA's official model card documents 40 language-locales; Russian `ru-RU` is in the **transcription-ready** tier. The model is 600M parameters, cache-aware FastConformer-RNNT, native streaming, punctuation/capitalization, and configurable chunk/context sizes (80–1120 ms).
+- Soniqo publishes an Android LiteRT export with a ~687 MB bundle, 16 kHz mono input, 320 ms chunk + 240 ms lookahead, and three graphs (encoder/decoder/joint). The export says channelwise INT8 encoder requires an Android NNAPI or XNNPACK delegate; plain desktop LiteRT CPU interpreter cannot allocate this graph. The SDK handles streaming/cache/greedy decode.
+- Soniqo README's ~721 MB estimate differs from the export card's ~687 MB. Keep both as source-reported values and verify exact file sizes/checksums before use.
+- License metadata is inconsistent: the NVIDIA upstream HF card currently shows OpenMDW 1.1, while Soniqo's converted export card says NVIDIA Open Model License. Treat redistribution as blocked until the exact pinned artifact's governing terms and conversion rights are resolved.
+- No Android peak RSS is published in the README; no OPPO SM8550 / ColorOS 16 compatibility or battery/thermal test has been performed. This is the best documented streaming Russian candidate in the inspected Android SDK, not yet a selected OGAM dependency.
 
-- NVIDIA's model card lists Russian `ru-RU` and a broad multilingual set.
-- Soniqo Android exposes a LiteRT backend and language-prompted streaming API; the model bundle is ~721 MB INT8 in its README.
-- Peak memory is explicitly not yet measured in the Android README. Do not treat it as a low-memory choice or assume 100+ languages guarantees better Russian quality.
-- Use only as a second benchmark tier after Parakeet-EOU. It may provide language selection / multilingual flexibility but has a substantially larger bundle.
+### Russian ASR candidate: Parakeet TDT v3 0.6B (quality / batch reference)
+
+- Official NVIDIA model card lists 25 European languages including Russian and CC-BY-4.0.
+- It is a 600M FastConformer-TDT model designed for high-throughput transcription. Do not infer that it has the same cache-aware streaming/EOU behavior as Parakeet-EOU or Nemotron 3.5.
+- Soniqo's Android package lists an ONNX export around 891 MB and ~1.1–1.3 GB peak memory. Use it as a quality/batch reference if device resources permit; do not make it the first always-on voice path.
+
+### Newer candidate: Nemotron Labs Unified ASR 0.6B
+
+- NVIDIA model card announced/released 2026-10-27; it combines offline and cache-aware streaming inference, supports 25 European languages including Russian, punctuation/capitalization, and configurable latency down to 160 ms.
+- It is governed by the OpenMDW License Agreement v1.1. It may be a better unified benchmark target than separate Parakeet batch + Nemotron 3.5 streaming models.
+- No verified Android LiteRT/ONNX export or OGAM-compatible mobile runtime was found in this pass. Keep it in research queue; do not claim it is mobile-ready.
 
 ### TTS candidates in the Soniqo stack
 
@@ -143,7 +153,7 @@ Recommended order:
 1. Keep a tiny always-on KWS subsystem separate from full ASR.
 2. Obtain a legally redistributable Russian "Джарвис" model or train one with local/licensed data and hard negatives; do not use a cloud service until privacy and model license are verified.
 3. Feed the KWS model from OGAM's existing single mic owner, 16 kHz mono PCM; never open a second AudioRecord.
-4. After KWS trigger, wake the larger streaming Russian ASR (Parakeet-EOU first benchmark, Qwen3-ASR / Whisper as baselines).
+4. After KWS trigger, wake the larger streaming Russian ASR (Nemotron 3.5 LiteRT first benchmark; Qwen3-ASR / Whisper as baselines; keep Parakeet-EOU quarantined pending provenance).
 5. Use VAD and ASR to validate the invocation and phrase, then pass a bounded transcript to the conversation engine.
 6. During TTS playback, remain half-duplex until a timestamp-aligned AEC path is validated on device.
 
@@ -170,9 +180,10 @@ Measure per candidate:
 Benchmark matrix:
 A. Current OGAM Qwen3-ASR 0.6B batch WAV.
 B. Whisper current supported mobile runtime.
-C. Parakeet-EOU 120M streaming.
-D. Parakeet TDT v3 0.6B (quality reference, high-memory).
-E. Nemotron-3.5 0.6B LiteRT (secondary multilingual streaming candidate).
+C. Nemotron-3.5 0.6B LiteRT streaming.
+D. Parakeet TDT v3 0.6B (quality/batch reference, high-memory).
+E. Nemotron Labs Unified ASR 0.6B (only after a verified Android export/runtime exists).
+F. Parakeet-EOU 120M only if the multilingual fine-tuning and license discrepancy is resolved.
 F. TTS: existing Piper candidate(s), Supertonic-3, Qwen3-TTS 0.6B Q4.
 G. VAD: current RMS endpoint vs Silero VAD v5, then Smart Turn for turn completion.
 H. AEC: none/half-duplex baseline vs timestamp-aligned LocalVQE AEC; do not expose barge-in before it passes.
@@ -199,13 +210,16 @@ Source-verified:
 
 Official model-card verified:
 - Parakeet TDT v3 supports Russian among 25 languages (CC-BY-4.0);
+- NVIDIA Nemotron 3.5 lists Russian `ru-RU` in its transcription-ready tier; Soniqo has a LiteRT Android export, but export license metadata needs reconciliation;
+- NVIDIA Nemotron Labs Unified ASR supports Russian and streaming, but an Android export was not verified;
 - Supertonic-3 supports Russian among 31 languages, model license OpenRAIL-M;
-- Nemotron-3.5 ASR lists Russian `ru-RU`.
+- Parakeet-EOU 120M upstream NVIDIA base is English-only; Soniqo's 25-language derivative claim is unverified and quarantined.
 
 Not verified:
 - any of these models on OPPO Find X6 Pro / SM8550;
 - real acoustic AEC/barge-in on a phone;
-- Russian Parakeet-EOU WER/latency on PGEM10;
+- Russian Nemotron 3.5 WER/latency, peak RSS, delegate behavior and thermal profile on PGEM10;
+- Russian Parakeet-EOU WER/latency unless the multilingual provenance discrepancy is resolved;
 - Supertonic/Qwen TTS voice quality on PGEM10;
 - any Russian KWS detector quality;
 - QNN/HTP execution of any speech model.
@@ -248,3 +262,14 @@ An independent Russian speech benchmark project reports common Piper front-end p
 - Tier 3 (voice design/clone): Qwen3-TTS 0.6B Q4 Android port (CPU, custom voice), subject to model artifact provenance and device memory/thermal testing.
 
 No Piper voice or runtime was downloaded or added to OGAM.
+
+
+## 9. Model provenance correction — 2026-11-23
+
+A deeper model-card comparison supersedes the earlier Parakeet-EOU Russian recommendation. Full evidence and exact source links are recorded in [OGAM_RUSSIAN_STREAMING_ASR_MODEL_PROVENANCE_AUDIT_2026-11-23.md](OGAM_RUSSIAN_STREAMING_ASR_MODEL_PROVENANCE_AUDIT_2026-11-23.md).
+
+Key correction:
+- NVIDIA's official Parakeet-Realtime-EOU-120M card is English-only.
+- Soniqo's derivative card says 25 European languages but identifies the English-only NVIDIA model as its base and does not document the claimed multilingual fine-tuning. The card also changes the license label from NVIDIA Open Model License to CC-BY-4.0 without explaining the basis.
+- Therefore Parakeet-EOU is **not approved as a Russian model candidate** until lineage, Russian validation and license are independently established.
+- Move Nemotron 3.5 LiteRT to first Android streaming benchmark priority; retain Parakeet TDT v3 as a larger Russian batch/quality reference; add Nemotron Labs Unified ASR as a promising newer model pending Android export/runtime work.
