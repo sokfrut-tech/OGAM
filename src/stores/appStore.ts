@@ -1,4 +1,4 @@
-import type { ImageParameterStore } from '@offgrid/models';
+import type { ImageParameterStore } from '../utils/imageParameterCore';
 import type { ModalityName, ProcessorPlace } from '../types';
 import { videoModelDisplayName } from '../utils/modelHelpers';
 import type {
@@ -16,7 +16,7 @@ import {
   DEFAULT_SILENCE_AFTER_SPEECH_MS,
   DEFAULT_SPEAKER_DRAIN_MS,
 } from '../utils/voiceTurnSettings';
-import { MOBILE_MTP_DRAFT_TOKENS } from '@offgrid/models';
+import { MOBILE_MTP_DRAFT_TOKENS } from '../utils/modelCapabilityRules';
 import { DEFAULT_MAX_TOOL_CALLS } from '../utils/toolLoopBudget';
 import { REASONING_BUDGET_AUTO } from '../utils/reasoningBudget';
 import { APP_CONFIG } from '../constants';

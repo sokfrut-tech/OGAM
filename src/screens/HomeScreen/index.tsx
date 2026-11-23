@@ -54,7 +54,7 @@ import { useActiveRemoteModelLabels } from '../../hooks/useActiveRemoteModelLabe
 import { openSupportEmail } from '../../utils/supportEmail';
 import { SCROLL_DEPTH_PROPS } from '../../constants/scrollDepth';
 import { useGetPro } from '../../hooks/useGetPro';
-import { boostPromoVisible } from '@offgrid/models';
+import { boostPromoVisible } from '../../utils/boostPromo';
 import { boostPromo } from '../../services/analytics/analytics';
 import { useOpenBoost } from '../../hooks/useOpenBoost';
 

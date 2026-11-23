@@ -12,22 +12,22 @@ Evidence base:
 
 ---
 
-## 1. Measured Audit Delta After Slice 5 (`@offgrid/rag` 100% Eliminated, 2026-11-22)
+## 1. Measured Audit Delta After Slice 6 (`@offgrid/models` `74 → 57` `src/`, 2026-11-23)
 
-| Metric | Baseline (`b7c06988`) | After `@offgrid/speech` | After `@offgrid/sync` Half A | After Slice 5 (`@offgrid/rag`) | Total Change |
-|---|---:|---:|---:|---:|---|
-| Files scanned | 1,976 | 1,987 | 1,996 | **2,008** | `+32` (`+2` OGAM TS modules + `2` Node test suites in Slice 5, after M2/M3) |
-| `localFileDependencies` (`package.json`) | 8 | 3 | 3 | **2** | **`-6`** (`design`, `notes`, `notes-editor`, `writing`, `speech`, `rag` removed) |
-| Total external refs | 1,354 | 1,335 | 1,320 | **1,283** | **`-71`** |
-| `packageImports` | 457 | 447 | 432 | **396** | **`-61`** |
-| `sharedWorkspacePaths` | 73 | 64 | 64 | **63** | **`-10`** |
-| `@offgrid/design` imports | 2 | 0 | 0 | **0** | **100% eliminated** (`src/theme/designTokens.ts`) |
-| `@offgrid/speech` imports | 9 | 1 | 1 *(0 `src/`, 1 test fixture)* | **1** *(0 `src/`, 1 test fixture)* | **100% eliminated from `src/`, `package.json`, `metro.config.js`** |
-| `@offgrid/rag` (`+ /documents`) imports (`src/` / `__tests__/`) | 19 / 4 | 19 / 4 | 19 / 4 | **0 / 0** | **100% eliminated** (`remoteComputerSearch.ts` + `ragDocumentsCore.ts`, `package.json`, `metro.config.js`) |
-| `@offgrid/models` imports (`src/` / total) | 87 / 118 | 87 / 118 | 87 / 118 | **74 / 107** | **M1 + M2 partial + M3 style catalog landed** |
-| `@offgrid/sync` imports (`src/` / total) | 44 / 148 | 44 / 148 | 29 / 133 | **29 / 133** | **`-15` source imports across `14` files (Half A 100% DONE; Half B Personal Mesh only left)** |
-| `@offgrid/notes`, `@offgrid/notes-editor`, `@offgrid/writing` | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 | **0 / 0 / 0** | Removed from `package.json`, `metro.config.js`, `jest.config.js` |
-| Remaining `localFileDependencies` | — | 3 | 3 | **2** (`@offgrid/models`, `@offgrid/sync`) | Remaining migration targets mapped below |
+| Metric | Baseline (`b7c06988`) | After Slice 5 (`@offgrid/rag`) | After Slice 6 (`@offgrid/models` M3/M4/M7a) | Total Change |
+|---|---:|---:|---:|---|
+| Files scanned | 1,976 | 2,008 | **2,015** | `+39` (`+3` OGAM TS modules + `4` Node test suites since Slice 5) |
+| `localFileDependencies` (`package.json`) | 8 | 2 | **2** | **`-6`** (`design`, `notes`, `notes-editor`, `writing`, `speech`, `rag` removed) |
+| Total external refs | 1,354 | 1,283 | **1,264** | **`-90`** |
+| `packageImports` | 457 | 396 | **377** | **`-80`** |
+| `sharedWorkspacePaths` | 73 | 63 | **63** | **`-10`** |
+| `@offgrid/design` imports | 2 | 0 | **0** | **100% eliminated** (`src/theme/designTokens.ts`) |
+| `@offgrid/speech` imports | 9 | 1 | **1** *(0 `src/`, 1 test fixture)* | **100% eliminated from `src/`, `package.json`, `metro.config.js`** |
+| `@offgrid/rag` (`+ /documents`) imports (`src/` / `__tests__/`) | 19 / 4 | 0 / 0 | **0 / 0** | **100% eliminated** (`remoteComputerSearch.ts` + `ragDocumentsCore.ts`, `package.json`, `metro.config.js`) |
+| `@offgrid/models` imports (`src/` / total) | 87 / 118 | 74 / 107 | **57 / 88** | **Slice 6 `-17 src/` (`-2` M3 media, `-7` M7a Boost, `-4` M3c image params, `-4` M4 capabilities; `-2` tests: `33 → 31`)** |
+| `@offgrid/sync` imports (`src/` / total) | 44 / 148 | 29 / 133 | **29 / 133** | **`-15` source imports across `14` files (Half A 100% DONE; Half B Personal Mesh only left)** |
+| `@offgrid/notes`, `@offgrid/notes-editor`, `@offgrid/writing` | 0 / 0 / 0 | 0 / 0 / 0 | **0 / 0 / 0** | Removed from `package.json`, `metro.config.js`, `jest.config.js` |
+| Remaining `localFileDependencies` | — | 2 | **2** (`@offgrid/models`, `@offgrid/sync`) | Remaining migration targets mapped below |
 
 ---
 
@@ -71,7 +71,7 @@ All packages below carry `"license": "AGPL-3.0-only"` in `package-lock.json`. Co
 | **`@offgrid/automation`** | Not in `package.json` | Used internally by `@offgrid/sync` | `0 → 0` | `0` | Added in `8741abb5` (Metro-only) | **TRANSITIVE OF `@offgrid/sync`** (keep Metro alias until `@offgrid/sync` Half B is migrated/removed) |
 | **`@offgrid/speech`** | **Removed (this PR)** | *(cleared from `package.json` & `metro.config.js`; `package-lock.json` left untouched per `340c80e2`)* | `8 → 0` | `0` *(+1 synthetic fixture in audit test)* | `aaf68870:src/services/speechEndpoint.ts` (`94f8f714^`); `9fc50207` / `a6cd8033` Qwen3-ASR language map | **DONE (100% eliminated)**: `wavTrimPlan.ts`, `speechEndpoint.ts`, `voiceTurnSettings.ts`, `transcriptionLanguages.ts`, `voiceSessionMachine.ts` |
 | **`@offgrid/rag`** (`+ /documents`) | **Removed (this PR)** | *(cleared from `package.json` & `metro.config.js`; `package-lock.json` left untouched)* | `19 → 0` | `4 → 0` | `6ba7d5cb:src/services/rag/{chunking,retrieval,vectorMath}.ts` (`5c12cc2f^`) | **DONE (100% eliminated)**: `src/utils/remoteComputerSearch.ts` + `src/utils/ragDocumentsCore.ts` (`8/8` Node tests pass) |
-| **`@offgrid/models`** | Remains (`file:../shared/packages/models`) | `minisearch ^7.2.0` (dev) | `87 → 74` | `33` *(incl. scripts)* | Partial (`ggufSplitFiles`, `modelCompanionFiles`, `formatFileSize`, `toolResultBudget`, `reasoningBudget`, `toolLoopBudget`, `mediaStyles`) | **KEEP & PORT REMAINING SLICES** (`M2` remote-vision `reasoningBudgetPayload` + `M3..M7`) |
+| **`@offgrid/models`** | Remains (`file:../shared/packages/models`) | `minisearch ^7.2.0` (dev) | `87 → 57` | `31` *(incl. scripts)* | Partial (`ggufSplitFiles`, `modelCompanionFiles`, `formatFileSize`, `toolResultBudget`, `reasoningBudget`, `toolLoopBudget`, `mediaStyles`, `boostPromo`, `imageParameterCore`, `modelCapabilityRules`) | **KEEP & PORT REMAINING SLICES** (`M2` remote-vision `reasoningBudgetPayload` + remaining `M3` video/SD + `M4..M7` Guide) |
 | **`@offgrid/sync`** (`+ /rn, /rn-discovery, /portable`) | Remains (`file:../shared/packages/sync`) | `@noble/hashes 1.8.0`, `@offgrid/automation`, `@offgrid/models`, `bonjour-service`, `js-sha512`, `tweetnacl` | `44 → 29` | `104` | `25276231^:src/utils/messageContent.ts` + `src/components/MarkdownText.tsx`; `docs/SYNC_INTEGRATION_PLAN.md` (`c06b2211`) | **HALF A 100% DONE** (`14` `src/` files cleared via `messageContent.ts`, `chatMarkdown.ts`, `chatThreadCore.ts`, `chatQueue.ts`, `chatStreamHelpers.ts`, `chatSyncPrimitives.ts`); **HALF B (Personal Mesh) REMAINS** |
 
 ---
@@ -128,7 +128,7 @@ All packages below carry `"license": "AGPL-3.0-only"` in `package-lock.json`. Co
 - Standalone suites: `tool-result-budget.node.test.mjs`, `reasoning-budget.node.test.mjs`, and `tool-loop-budget.node.test.mjs`. All passed in [OGAM external dependency audit #45051550585](https://github.com/sokfrut-tech/OGAM/actions/runs/45051550585) on head `3d88e21792dcf2c764cebf98c6006f5339c9b127`.
 - This does **not** mean `@offgrid/models` has been removed: M3–M7 model imports and the RAG/sync workstreams remain. Keep package/workspace declarations until the final importer is migrated.
 
-| **M7: Guide & Boost Copy** | `BOOST_PROMO`, `BoostPromoSurface`, `boostPromoCopy`, `boostPromoLink`, `boostPromoVisible`, `GUIDE_FIRST_LOOK`, `GUIDE_STARTERS`, `GUIDE_LINKS`, `GUIDE_KB_VECTOR_MODEL`, `MOBILE_GUIDE_GROUPS`, `GUIDE_FLOWS`, `GUIDE_NOT_SUPPORTED`, `GuideAnswerBlock`, `GuideTopicFacts`, `guide*` helpers, `templateStoryboard` | `GuideScreen/*`, `BoostPromoCard.tsx`, `src/constants/index.ts`, `FeatureShowcase.tsx`, `ProTabScreen.tsx` | **LOW PRIORITY / JARVIS OVERRIDE.** Boost/Pro promos can simplify or hide cleanly in standalone Jarvis. |
+| **M7: Guide & Boost Copy** | ~~`BOOST_PROMO`, `BoostPromoSurface`, `boostPromoCopy`, `boostPromoLink`, `boostPromoVisible`~~ (**DONE via `src/utils/boostPromo.ts`**); Remaining Guide: `GUIDE_FIRST_LOOK`, `GUIDE_STARTERS`, `GUIDE_LINKS`, `GUIDE_KB_VECTOR_MODEL`, `MOBILE_GUIDE_GROUPS`, `GUIDE_FLOWS`, `GUIDE_NOT_SUPPORTED`, `GuideAnswerBlock`, `GuideTopicFacts`, `guide*` helpers, `templateStoryboard` | `GuideScreen/*` *(Boost callers `7 src/` + `1 test` migrated in Slice 6B)* | **PARTIAL DONE (`boostPromo.node.test.mjs`, `4/4`).** Only `GuideScreen/*` + `guideVector.ts` remain. |
 
 ---
 

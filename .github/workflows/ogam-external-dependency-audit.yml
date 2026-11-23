@@ -77,6 +77,12 @@ jobs:
         run: node --experimental-strip-types --test scripts/__tests__/remote-computer-search.node.test.mjs
       - name: Verify standalone document ingest, search, and citation engine
         run: node --experimental-strip-types --test scripts/__tests__/rag-documents-core.node.test.mjs
+      - name: Verify OGAM-owned Boost offer rules and copy
+        run: node --experimental-strip-types --test scripts/__tests__/boost-promo.node.test.mjs
+      - name: Verify OGAM-owned image parameter defaults and overrides
+        run: node --experimental-strip-types --test scripts/__tests__/image-parameter-core.node.test.mjs
+      - name: Verify OGAM-owned model quant and card reasoning rules
+        run: node --experimental-strip-types --test scripts/__tests__/model-capability-rules.node.test.mjs
       - name: Generate complete source/config inventory
         run: node scripts/audit-offgrid-imports.mjs --output=ogam-import-audit.json
       - name: Upload audit evidence

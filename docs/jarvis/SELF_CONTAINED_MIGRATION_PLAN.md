@@ -1056,4 +1056,13 @@ The detailed, license-aware voice study is now in `docs/jarvis/VOICE_STACK_RESEA
 - **Tests & CI:** Added `scripts/__tests__/remote-computer-search.node.test.mjs` (`4/4`) and `scripts/__tests__/rag-documents-core.node.test.mjs` (`4/4`), wired into `.github/workflows/ogam-external-dependency-audit.yml`.
 - **Verified locally (Node `v26.13.1`):** All **29** workflow Node test suites (**131/131** test cases: `13/13` plain + `118/118` `--experimental-strip-types`) pass with 0 failures and 0 skipped; `node scripts/audit-offgrid-imports.mjs` measured `2,008` files scanned, `1,283` total refs (`packageImports: 396`, `@offgrid/rag`: `0` in `src/`, `0` in `__tests__/`, `0` in `build-config`), `localFileDependencies: 2` (`@offgrid/models`, `@offgrid/sync`). Fixed `JarvisPcmStreamPlayerTest.FakeTrack.currentVolume` JVM signature clash (`setVolume(F)V`) discovered in `CI #45052196801` job `137300347889` (`:app:compileDebugKotlin` & `:app:processDebugManifest` passed). TypeScript `tsc`, full Jest, APK build, and OPPO Find X6 Pro runtime tests remain unexecuted here.
 
+### Slice 6 checkpoint — `@offgrid/models` M3/M4/M7a partial port (`74 → 57` `src/` imports, 2026-11-23)
+
+- **Self-contained modules & rewires:**
+  - Cleared 2 remaining M3 `mediaStyles` imports (`ChatMessage/index.tsx`, `restyleStore.ts`) → `src/constants/mediaStyles.ts`.
+  - Added `src/utils/boostPromo.ts` (7 `src/` files + `boostPromo.rendered.test.tsx`).
+  - Added `src/utils/imageParameterCore.ts` (4 `src/` files + `imageParameterPolicy.test.ts`).
+  - Added `src/utils/modelCapabilityRules.ts` (`MOBILE_MTP_DRAFT_TOKENS`, `prefersQ4_0`, `modelCardUrl`, `modelCardDeniesReasoning` across 5 `src/` files, clearing 4 `@offgrid/models` import statements).
+- **Tests & CI:** Added `scripts/__tests__/boost-promo.node.test.mjs`, `scripts/__tests__/image-parameter-core.node.test.mjs`, and `scripts/__tests__/model-capability-rules.node.test.mjs` (`12/12`), wired into `.github/workflows/ogam-external-dependency-audit.yml`.
+- **Audit delta:** `2,015` files scanned, `1,264` total refs (`packageImports: 377`, `@offgrid/models` `src/`: `74 → 57`, `test`: `33 → 31`, `total: 107 → 88`), `localFileDependencies: 2`. TypeScript `tsc`, full Jest, Gradle after `4772d58d`, APK assembly, and `PGEM10` device tests remain unexecuted here.
 

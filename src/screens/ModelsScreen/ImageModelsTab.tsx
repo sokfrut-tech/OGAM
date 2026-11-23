@@ -21,7 +21,7 @@ import { ImagePicksRow, imagePicks, imageFamilyName } from './ImagePicksRow';
 import { ImageFilterBar } from './ImageFilterBar';
 import { BackendFilter, ImageFilterDimension } from './types';
 import { formatBytes, getImageModelCompatibility, hfModelToDescriptor } from './utils';
-import { standardImageModelDefaults } from '@offgrid/models';
+import { standardImageModelDefaults } from '../../utils/imageParameterCore';
 import { sdCppCpuMinutesPerImage } from '../../services/sdCppPlacement';
 import { modelDownloadService } from '../../services/modelDownloadService';
 import { uniformDownloadId } from '../../services/modelDownloadService/uniformId';

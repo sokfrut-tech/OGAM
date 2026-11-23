@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { MediaStyleKind } from '@offgrid/models';
+import type { MediaStyleKind } from '../constants/mediaStyles';
 import { useChatStore } from './chatStore';
 import { shownMessages } from '../utils/chatThread';
 

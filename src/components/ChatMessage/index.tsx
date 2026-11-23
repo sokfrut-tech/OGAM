@@ -26,7 +26,7 @@ import { MessageOverlays } from './components/MessageOverlays';
 import { MarkdownText } from '../MarkdownText';
 import { formatTime, formatDuration, buildMessageData } from './utils';
 import { RestyleButton } from '../MediaStyles/RestyleButton';
-import { mediaStyle } from '@offgrid/models';
+import { mediaStyle } from '../../constants/mediaStyles';
 import { useChatStore } from '../../stores/chatStore';
 import { ThinkingBlock } from './components/ThinkingBlock';
 import {

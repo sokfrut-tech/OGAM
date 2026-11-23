@@ -683,3 +683,17 @@ Added source-only implementation on this branch:
 - MiniCPM-o 4.5: 9.37B / ~20 GB full-duplex multimodal; architecture reference only, not phone default.
 - Bharat-Tiny-LLM v3: 1.7B Hindi/Hinglish/English only; not Russian core.
 - Keep modules separable: vision model, local planner, ASR, TTS. No production model swap before target-device tests.
+
+---
+
+## Android CI verification & Slice 6 `@offgrid/models` standalone progress (`74 → 57` `src/`, 2026-11-23)
+
+- **Android Kotlin test verification (`CI #45054049053`, head `e9a0bb4f`):** After fixing the `JarvisPcmStreamPlayerTest.FakeTrack.currentVolume` JVM clash, both `android tests` and `ios tests` completed with **`SUCCESS`** (all 20 Kotlin tests executed cleanly prior to `4772d58d`, which subsequently injected monotonic time into `JarvisAssistantLaunchGuardTest.kt` to address a follow-up JVM `SystemClock.elapsedRealtime()` issue in CI `#45060169581`).
+- **PR `#2` LiteRT `2.3.2` binary provenance gate closed (`docs/research-breeno-coloros-2026-11-22`):** Downloaded `litert:2.3.2` (`7,640,090` B, SHA-256 `4d1f26b4...`, `jni/arm64-v8a/libLiteRt.so` `5,629,696` B, SHA-256 `6acacb3c...`) and baseline `litert:2.1.5` (`10,058,192` B) directly from Google Maven, verified `Apache-2.0` + `THIRD_PARTY_NOTICE.txt` (`1,960,672` B), confirmed AArch64 ELF `.dynamic` (NDK-only deps) and `21/21` Soniqo Supertonic C calls present in both `2.1.5` and `2.3.2`, pinned `utf8proc v2.11.0` (`d7bf128d`), and mapped full `TTSInterface::synthesize_with_options` Ooura de-esser link closure (`research/voice/OGAM_LITERT_232_BINARY_PROVENANCE_AND_ABI_AUDIT_2026-11-23.md`). Native arm64 compile/link, cancellation entry-race tests, and `PGEM10` runtime remain open.
+- **Slice 6 landed in PR `#1` (`@offgrid/models` `src/`: `74 → 57`, `test`: `33 → 31`, total refs: `1,283 → 1,264`):**
+  - **Slice 6A (`-2` `src/`):** Cleared remaining M3 `mediaStyle` / `MediaStyleKind` imports (`ChatMessage/index.tsx`, `restyleStore.ts`) → `src/constants/mediaStyles.ts`.
+  - **Slice 6B (`-7` `src/`, `-1` test):** Added `src/utils/boostPromo.ts` (`BOOST_PROMO`, `BoostPromoSurface`, `boostPromoVisible`, `boostPromoCopy`, `boostPromoLink`) and rewired `BoostPromoCard.tsx`, `constants/index.ts`, `useOpenBoost.ts`, `FeatureShowcase.tsx`, `HomeScreen/index.tsx`, `ProTabScreen.tsx`, `analytics.ts`, and `boostPromo.rendered.test.tsx`.
+  - **Slice 6C (`-4` `src/`, `-1` test):** Added `src/utils/imageParameterCore.ts` (`standardImageModelDefaults`, `effectiveImageParameter`, `resolveImageParameters`, `setImageParameterOverride`, `ImageParameterStore`) and rewired `imageParameterPolicy.ts`, `useImageGenerationSettings.ts`, `ImageModelsTab.tsx`, `appStore.ts`, and `imageParameterPolicy.test.ts`.
+  - **Slice 6D (`-4` `src/` statements across `5` files):** Added `src/utils/modelCapabilityRules.ts` (`MOBILE_MTP_DRAFT_TOKENS`, `prefersQ4_0`, `modelCardUrl`, `modelCardDeniesReasoning`) and rewired `SpeculativeDecodingToggle.tsx`, `appStore.ts`, `llmHelpers.ts` (MTP constant moved out while keeping M5 `MOBILE_BACKEND_ROWS`/`mobileUseMmap`), `modelCardReasoning.ts`, and `modelCatalogFiles.ts`.
+- **Tests & audit:** Added `boost-promo.node.test.mjs`, `image-parameter-core.node.test.mjs`, and `model-capability-rules.node.test.mjs` (`12/12` pass), wired into `.github/workflows/ogam-external-dependency-audit.yml`; all **33** workflow Node suites pass locally (strict verification limits still apply: full `tsc`, full RN Jest, Gradle after `4772d58d`, APK assembly, and `PGEM10` runtime are not claimed).
+

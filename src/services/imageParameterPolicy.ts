@@ -3,7 +3,7 @@ import {
   effectiveImageParameter,
   resolveImageParameters,
   type ImageParameterStore,
-} from '@offgrid/models';
+} from '../utils/imageParameterCore';
 import { defaultImageSteps, SWEET_SPOT_SIZE } from '../utils/imageGenAdvice';
 
 type ImageParameterModel = { id: string; name?: string; backend?: string };

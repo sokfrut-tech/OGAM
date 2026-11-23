@@ -165,7 +165,7 @@ export interface OnboardingSlide {
 // Core onboarding slides. Optional feature packages contribute additional slide data through the
 // onboarding.additionalSlides hook so Core keeps one renderer without advertising unavailable
 // features in free builds.
-import { boostPromoCopy } from '@offgrid/models';
+import { boostPromoCopy } from '../utils/boostPromo';
 
 export const ONBOARDING_SLIDES: readonly OnboardingSlide[] = [
   {
