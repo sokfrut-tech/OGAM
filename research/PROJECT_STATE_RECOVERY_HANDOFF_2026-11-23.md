@@ -126,3 +126,5 @@ Do not claim a source was studied if only a link was found. Do not call a candid
 - Breeno research index: https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/breeno/README.md
 - China/India model landscape: https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/models/CHINA_INDIA_MODEL_LANDSCAPE_2026-11-22.md
 - Voice research index: https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/voice/README.md
+
+- `OGAM_SUPERTONIC_CANCELLATION_ENTRY_RACE_ERRATA_2026-11-23.md` — pinned source confirms synthesize() resets cancelled_ to false on entry, so a cancellation just before native entry can be lost; requires a native start handshake or per-request generation token before claiming reliable native cancellation.
