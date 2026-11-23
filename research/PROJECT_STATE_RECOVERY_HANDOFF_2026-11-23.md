@@ -143,3 +143,11 @@ Do not claim a source was studied if only a link was found. Do not call a candid
 - Direct OGAM integration can avoid ORT by building speech-core with ONNX OFF / LiteRT ON. The upstream aggregate LiteRT library still compiles many unrelated model wrappers; a minimal Supertonic-only target remains to be built and link-verified.
 - Soniqo `speech-core/scripts/fetch_litert.sh` defaults to LiteRT 2.1.5. Google lists LiteRT 2.3.2 as latest and it is present in Maven version listings, but the AAR/runtime has not been downloaded or hashed and the pinned Soniqo source has not been compiled against 2.3.2.
 - No OGAM application code/build configuration changed; no native build, APK or OPPO device test performed. PR #2 remains Draft/unmerged.
+
+
+## Supertonic minimal C++ target update (2026-11-23)
+- New source map: `research/voice/OGAM_SUPERTONIC_MINIMAL_CPP_TTS_TARGET_SOURCE_MAP_2026-11-23.md`.
+- Instead of importing the Soniqo Kotlin SDK/C ABI wrapper, prototype can call `speech_core::LiteRTSupertonicTts` directly. Its `TTSChunkCallback` already emits mono Float32 chunks at 44.1 kHz, matching OGAM's TTS backend seam.
+- Candidate minimal source set: `litert_supertonic_tts.cpp`, `supertonic_tokenizer.cpp`, `text_chunker.cpp`; link LiteRT, utf8proc and Android log. This avoids the Soniqo C ABI option conversion/postprocess path and the broad aggregate LiteRT model target. This is a source-level candidate only; must prove with arm64 compile/link.
+- JNI design must copy/consume callback buffers synchronously, bound memory, use request generations/start handshake, and protect handle lifetime. Cancellation race at `synthesize()` entry remains unresolved and blocks claiming reliable cancel.
+- Next gate: standalone arm64 CMake harness against upstream default LiteRT 2.1.5, then compare 2.3.2 after exact runtime binary/hash pin. No OGAM app source or build config changed; no APK/device tests.
