@@ -52,4 +52,4 @@ The microWakeWord trainer is the first benchmark candidate for Russian «Джа�
 microWakeWord remains the first Russian «Джарвис» candidate. Alkove is worth an optional caller-supplied PCM experiment because it does not require a second mic, but Spot/Lex are only validated for fr/en/es/it/pt/ca/ro. Voicute is an Android ONNX/hard-negative reference, but its custom model catalogue does not include Russian. Neither replaces the Russian microWakeWord training path.
 
 
-- [Android streaming speech stack and Russian model candidates (2026-11-23)](OGAM_ANDROID_STREAMING_SPEECH_STACK_AND_RUSSIAN_MODELS_2026-11-23.md) — Soniqo Speech Android/speech-core audit, Parakeet-EOU Russian streaming ASR candidate, Nemotron, Supertonic-3 Russian TTS, Qwen3-TTS Android, Voicute KWS and PGEM10 benchmark plan.
+- [Android streaming speech stack and Russian model candidates (2026-11-23)](OGAM_ANDROID_STREAMING_SPEECH_STACK_AND_RUSSIAN_MODELS_2026-11-23.md) — Soniqo Speech Android/speech-core audit, Parakeet-EOU Russian streaming ASR candidate, Nemotron, Supertonic-3, Qwen3-TTS Android, Russian Piper voices/sherpa-onnx licensing, Voicute KWS and PGEM10 benchmark plan.
