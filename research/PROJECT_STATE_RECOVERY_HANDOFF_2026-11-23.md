@@ -128,3 +128,5 @@ Do not claim a source was studied if only a link was found. Do not call a candid
 - Voice research index: https://github.com/sokfrut-tech/OGAM/blob/docs/research-breeno-coloros-2026-11-22/research/voice/README.md
 
 - `OGAM_SUPERTONIC_CANCELLATION_ENTRY_RACE_ERRATA_2026-11-23.md` — pinned source confirms synthesize() resets cancelled_ to false on entry, so a cancellation just before native entry can be lost; requires a native start handshake or per-request generation token before claiming reliable native cancellation.
+
+- `OGAM_LITERT_ANDROID_RUNTIME_COMPATIBILITY_FOR_SUPERTONIC_2026-11-23.md` — official Google docs re-check: LiteRT 2.3.2 supports API 24 and NDK r26a+; OGAM's minSdk 24 / NDK r27.1 / CMake 3.22.1 meet the documented baseline. Soniqo's minSdk 26 / NDK r29 / CMake 4.1.2 are wrapper-specific build pins, avoidable by direct native integration. Soniqo currently bootstraps LiteRT 2.1.5; compatibility of its speech-core source with 2.3.2 remains unverified.
