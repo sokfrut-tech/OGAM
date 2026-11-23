@@ -66,6 +66,7 @@ Do not claim a source was studied if only a link was found. Do not call a candid
 - `OGAM_WAKEWORD_AND_BACKGROUND_MICROPHONE_RESEARCH_2026-11-22.md`
 - `OGAM_RUSSIAN_MICROWAKEWORD_ANDROID_AUDIT_2026-11-22.md`
 - `OGAM_ALKOVE_VOICUTE_ANDROID_KWS_AUDIT_2026-11-22.md`
+- `OGAM_VOICE_INTERACTION_SESSION_LIFECYCLE_AUDIT_2026-11-23.md` — Android VoiceInteraction service/session, non-exported bridge, one-use token and Android lifecycle gaps.
 - `OGAM_EXISTING_TTS_PCM_AND_MICROPHONE_CONTRACT_AUDIT_2026-11-23.md` — exact Kotlin/TypeScript source audit of TTS PCM contract, single playback and mic owners, and missing monotonic AEC timestamps.
 - `OGAM_RUSSIAN_TTS_ANDROID_BACKEND_AUDIT_2026-11-22.md`
 - `OGAM_QWEN3_TTS_ANDROID_INTEGRATION_PLAN_2026-11-22.md`
@@ -86,7 +87,7 @@ Do not claim a source was studied if only a link was found. Do not call a candid
 - URL: https://github.com/sokfrut-tech/OGAM/pull/2
 - Open, Draft, unmerged.
 - Branch: `docs/research-breeno-coloros-2026-11-22`.
-- Head checked during initial recovery: `f4dd7ea793a1b522db46fb19d25bbf4ec12ed71c`; after this handoff and the TTS/PCM audit were committed, the latest branch/PR #2 head is `8147fca287853df5c1b846241464edbbac8cb444`.
+- Head checked during initial recovery: `f4dd7ea793a1b522db46fb19d25bbf4ec12ed71c`; after subsequent recovery, TTS/PCM and VoiceInteraction lifecycle audits were committed, the latest branch/PR #2 head is `b24c49e1f7727f2f88e29feaf08b220c5c599bf2`.
 - Contains the Breeno/ColorOS research corpus and 22–23 Nov speech/model audits. Keep it Draft and do not merge without user approval.
 
 ## 5. Architecture constraints that must survive every candidate integration
