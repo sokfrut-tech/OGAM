@@ -69,6 +69,7 @@ Do not claim a source was studied if only a link was found. Do not call a candid
 - `OGAM_VOICE_INTERACTION_SESSION_LIFECYCLE_AUDIT_2026-11-23.md` — Android VoiceInteraction service/session, non-exported bridge, one-use token and Android lifecycle gaps.
 - `OGAM_EXISTING_TTS_PCM_AND_MICROPHONE_CONTRACT_AUDIT_2026-11-23.md` — exact Kotlin/TypeScript source audit of TTS PCM contract, single playback and mic owners, and missing monotonic AEC timestamps.
 - `OGAM_RUSSIAN_TTS_ANDROID_SOURCE_COMPARISON_2026-11-23.md` — exact source-level comparison of Supertonic-3/Soniqo, Qwen3-TTS Android, CosyVoice3, VoxCPM2 and Indic-Mio; confirms that the Soniqo TTS-only API is batch while the chunk callback sits on the heavier full pipeline, and recommends a narrow TTS-only JNI adapter for Supertonic as the first PGEM10 benchmark candidate.
+- `OGAM_SUPERTONIC_TTS_ONLY_ANDROID_ADAPTER_IMPLEMENTATION_BRIEF_2026-11-23.md` — new source-level finding: Soniqo already has a standalone cancellable TTS handle for Supertonic; only its streaming callback is missing there. Plan adds a TTS-only JNI streaming method, keeps STT/VAD out, maps PCM16 to OGAM Float32, and records LiteRT runtime, NDK/CMake and minSdk 24-vs-26 blockers plus lifecycle/test gates. No implementation code changed.
 - `OGAM_RUSSIAN_TTS_ANDROID_BACKEND_AUDIT_2026-11-22.md`
 - `OGAM_QWEN3_TTS_ANDROID_INTEGRATION_PLAN_2026-11-22.md`
 - `SONIQO_SUPERTONIC_LOCALVQE_ANDROID_AUDIT_2026-11-22.md`
