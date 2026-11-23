@@ -144,13 +144,15 @@ class JarvisMemoryRepository {
   }
 
   /** Call only from an explicit user-confirmation action; model output must never call this. */
-  async confirmProposal(id: string, userApprovedAt = Date.now()): Promise<boolean> {
+  async confirmProposal(id: string): Promise<boolean> {
     await jarvisMemoryDatabase.ensureReady();
+    const now = Date.now();
     const result = jarvisMemoryDatabase.getDatabase().executeSync(
       `UPDATE memory_records
        SET status = 'confirmed', user_approved_at = ?, updated_at = ?
-       WHERE id = ? AND status = 'proposed'`,
-      [userApprovedAt, Date.now(), id],
+       WHERE id = ? AND status = 'proposed'
+         AND (expires_at IS NULL OR expires_at > ?)`,
+      [now, now, id, now],
     );
     return result.rowsAffected === 1;
   }
@@ -175,31 +177,42 @@ class JarvisMemoryRepository {
     return rows[0] ? mapRow(rows[0]) : undefined;
   }
 
+  /**
+   * Every list is explicitly scoped. This prevents a future prompt/retrieval caller
+   * from accidentally mixing global, project and conversation memories.
+   */
   async list(filters: {
+    scope: MemoryRecord['scope'];
+    scopeId?: string;
     status?: MemoryRecord['status'];
-    scope?: MemoryRecord['scope'];
-    scopeId?: string | null;
-  } = {}): Promise<MemoryRecord[]> {
+  }): Promise<MemoryRecord[]> {
     await jarvisMemoryDatabase.ensureReady();
-    const where: string[] = [];
-    const params: unknown[] = [];
+
+    if (!MEMORY_SCOPES.includes(filters.scope)) throw new Error('Unsupported memory scope.');
+    const scopeId = filters.scopeId?.trim();
+    if (filters.scope === 'global' && scopeId) {
+      throw new Error('Global memory listing must not have a scope id.');
+    }
+    if (filters.scope !== 'global' && !scopeId) {
+      throw new Error('Project and conversation memory listing require a scope id.');
+    }
+
+    const where = ['scope = ?'];
+    const params: unknown[] = [filters.scope];
+    if (filters.scope === 'global') {
+      where.push('scope_id IS NULL');
+    } else {
+      where.push('scope_id = ?');
+      params.push(scopeId);
+    }
     if (filters.status) {
       where.push('status = ?');
       params.push(filters.status);
     }
-    if (filters.scope) {
-      where.push('scope = ?');
-      params.push(filters.scope);
-      if (filters.scope === 'global') {
-        where.push('scope_id IS NULL');
-      } else {
-        where.push('scope_id = ?');
-        params.push(filters.scopeId ?? null);
-      }
-    }
+
     const rows = (jarvisMemoryDatabase.getDatabase().executeSync(
       `SELECT ${COLUMNS} FROM memory_records
-       ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+       WHERE ${where.join(' AND ')}
        ORDER BY created_at DESC`,
       params as never[],
     ).rows ?? []) as unknown as DbRow[];
