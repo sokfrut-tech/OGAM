@@ -83,3 +83,8 @@ Capture the result screen or report any exact failure text. Do not enter real se
 ## Physical device update — USER REPORTED (2026-11-24)
 
 The user reports: “Скачал работает” after receiving the standalone M3+M4 probe APK. This confirms the APK was downloaded and is working/launching on the user's device at a basic level. It does **not yet** confirm every M3/M4 test screen or memory operation passed. Await the user's result from the in-app “Самотест”, “Память M3” and “Промпт M4” screens before marking physical-device acceptance complete.
+
+
+### Physical OPPO smoke test update — USER REPORTED (2026-11-24)
+
+The user reports that all checks shown in the probe are green and every tab responds to taps on the OPPO device. This confirms a successful basic physical-device launch, green self-test display and responsive tab navigation. The user has not yet separately described exercising each state-changing M3 operation (edit/undo, delete/undo, source deletion/export) or inspecting the actual scoped M4 prompt contents. Keep those deeper functional assertions pending unless the user confirms them. Do not overstate this smoke test as full end-to-end acceptance of every memory workflow.
