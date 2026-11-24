@@ -22,4 +22,6 @@ workflows:
     jobs:
       - jarvis-memory-m1
     when:
-      equal: [ci/jarvis-memory-m1-circleci-2026-11-24, << pipeline.git.branch >>]
+      or:
+        - equal: [ci/jarvis-memory-m1-circleci-2026-11-24, << pipeline.git.branch >>]
+        - equal: [feature/jarvis-step-1-memory-m1-2026-11-24, << pipeline.git.branch >>]
