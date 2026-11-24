@@ -1,0 +1,25 @@
+version: 2.1
+
+jobs:
+  jarvis-memory-m1:
+    docker:
+      - image: cimg/node:22.14
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Verify toolchain
+          command: |
+            node --version
+            npm --version
+            git --version
+      - run:
+          name: Run focused Jarvis M1 validation
+          command: bash .ci/run-jarvis-memory-m1.sh
+
+workflows:
+  jarvis-memory-m1-validation:
+    jobs:
+      - jarvis-memory-m1
+    when:
+      equal: [ci/jarvis-memory-m1-circleci-2026-11-24, << pipeline.git.branch >>]
