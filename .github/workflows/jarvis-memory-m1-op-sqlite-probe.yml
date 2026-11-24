@@ -65,7 +65,7 @@ jobs:
 
       - name: Build release APK for ARM64
         working-directory: validation/android-native-probe/android
-        run: gradle --no-daemon assembleRelease -PreactNativeArchitectures=arm64-v8a
+        run: gradle --no-daemon assembleRelease -PreactNativeArchitectures=arm64-v8a,x86_64
 
       - name: Verify APK and create checksum
         working-directory: validation/android-native-probe
@@ -74,9 +74,39 @@ jobs:
           test -s "$APK"
           unzip -l "$APK" | grep 'lib/arm64-v8a/' | tee /tmp/arm64-native-libraries.txt
           test -s /tmp/arm64-native-libraries.txt
+          unzip -l "$APK" | grep 'lib/x86_64/' | tee /tmp/x86-native-libraries.txt
+          test -s /tmp/x86-native-libraries.txt
           sha256sum "$APK" | tee android/app/build/outputs/apk/release/app-release.apk.sha256
           ls -lh "$APK"
 
+      - name: Launch APK in Android emulator and capture runtime diagnostics
+        id: emulator
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            mkdir -p validation/android-native-probe/runtime-diagnostics
+            APK=validation/android-native-probe/android/app/build/outputs/apk/release/app-release.apk
+            adb install -r "$APK"
+            adb shell am force-stop com.jarvism1probe
+            adb shell monkey -p com.jarvism1probe 1
+            sleep 25
+            adb shell pidof com.jarvism1probe > validation/android-native-probe/runtime-diagnostics/process-id.txt || true
+            adb shell dumpsys activity activities > validation/android-native-probe/runtime-diagnostics/activities.txt
+            adb logcat -d -v threadtime > validation/android-native-probe/runtime-diagnostics/logcat.txt
+            adb exec-out screencap -p > validation/android-native-probe/runtime-diagnostics/launch-screen.png || true
+            if ! grep -qE 'FATAL EXCEPTION|UnsatisfiedLinkError|ReactNativeJS.*(Error|error)|TurboModuleRegistry' validation/android-native-probe/runtime-diagnostics/logcat.txt; then
+              echo "No common fatal React Native/native crash signature found in emulator log."
+            else
+              echo "Potential startup crash signature found; see logcat artifact."
+              grep -nE -C 4 'FATAL EXCEPTION|UnsatisfiedLinkError|ReactNativeJS.*(Error|error)|TurboModuleRegistry' validation/android-native-probe/runtime-diagnostics/logcat.txt | tail -n 160
+              exit 1
+            fi
+            test -s validation/android-native-probe/runtime-diagnostics/process-id.txt
       - name: Upload probe APK, checksum and lockfile
         uses: actions/upload-artifact@v4
         with:
@@ -85,5 +115,6 @@ jobs:
             validation/android-native-probe/android/app/build/outputs/apk/release/app-release.apk
             validation/android-native-probe/android/app/build/outputs/apk/release/app-release.apk.sha256
             validation/android-native-probe/package-lock.json
+            validation/android-native-probe/runtime-diagnostics/
           if-no-files-found: error
           retention-days: 14
