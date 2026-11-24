@@ -118,6 +118,6 @@ jobs:
             validation/android-native-probe/android/app/build/outputs/apk/release/app-release.apk
             validation/android-native-probe/android/app/build/outputs/apk/release/app-release.apk.sha256
             validation/android-native-probe/package-lock.json
-            $GITHUB_WORKSPACE/validation/android-native-probe/runtime-diagnostics/
+            validation/android-native-probe/runtime-diagnostics/
           if-no-files-found: warn
           retention-days: 14
