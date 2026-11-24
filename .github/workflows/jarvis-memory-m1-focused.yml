@@ -1,0 +1,35 @@
+name: Jarvis Memory M1 Focused Validation
+
+on:
+  push:
+    branches:
+      - ci/jarvis-memory-m1-github-2026-11-24
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jarvis-memory-m1-focused-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout OGAM
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+      - name: Verify runtime
+        run: |
+          node --version
+          npm --version
+          git --version
+      - name: Run isolated M1 validation
+        run: bash .ci/run-jarvis-memory-m1.sh

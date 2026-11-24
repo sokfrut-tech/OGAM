@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run focused M1 tests from this checkout without installing the full React Native
-# workspace, whose private sibling ../shared packages are not part of this repo.
+# Focused M1 validation: deliberately avoids the full React Native workspace,
+# whose private sibling ../shared packages are not part of this repository.
 readonly ROOT_DIR="$(git rev-parse --show-toplevel)"
-readonly EXPECTED_M1_COMMIT="67c896cf21cab6f4d0c0ba9118e6013770165252"
+readonly EXPECTED_M1_COMMIT="a267478a8bf6b290e71b3d86992852b0b192a58f"
 readonly HARNESS_DIR="$(mktemp -d "${TMPDIR:-/tmp}/jarvis-memory-m1.XXXXXX")"
 trap 'rm -rf "$HARNESS_DIR"' EXIT
 
@@ -31,8 +31,7 @@ npm install --no-save --no-audit --no-fund --no-package-lock \
   jest@29.7.0 ts-jest@29.2.5 typescript@5.8.3 \
   @types/jest@29.5.13 @types/node@25.3.5
 
-# All focused database tests mock this native module; this stub only satisfies
-# module resolution and deliberately fails if a test reaches the real open().
+# Focused Jest tests mock this native module; this stub only satisfies resolution.
 mkdir -p node_modules/@op-engineering/op-sqlite
 cat > node_modules/@op-engineering/op-sqlite/package.json <<'JSON'
 {"name":"@op-engineering/op-sqlite","version":"0.0.0-ci-stub","main":"index.js","types":"index.d.ts"}
