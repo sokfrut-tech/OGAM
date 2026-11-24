@@ -91,4 +91,39 @@ describe('Jarvis memory M2 secret guard (MEM-014)', () => {
     });
     expect(benign.blocked).toBe(false);
   });
+
+  it('scans values at the depth boundary and fails closed beyond it', () => {
+    const token = 'ghp_1234567890abcdefghij1234567890abcdef';
+    let atBoundary: unknown = token;
+    for (let i = 0; i < 7; i += 1) atBoundary = { nested: atBoundary };
+    const boundary = assessSecretRisk({
+      subject: 'nested value',
+      predicate: 'note',
+      value: atBoundary,
+    });
+    expect(boundary.blocked).toBe(true);
+    expect(boundary.findings.some(f => f.category === 'api_token')).toBe(true);
+
+    let beyondBoundary: unknown = token;
+    for (let i = 0; i < 8; i += 1) beyondBoundary = { nested: beyondBoundary };
+    const beyond = assessSecretRisk({
+      subject: 'nested value',
+      predicate: 'note',
+      value: beyondBoundary,
+    });
+    expect(beyond.blocked).toBe(true);
+    expect(beyond.findings.some(f => f.category === 'inspection_limit')).toBe(true);
+    expect(JSON.stringify(beyond.findings)).not.toContain(token);
+  });
+
+  it('fails closed when the maximum number of inspected nodes is exceeded', () => {
+    const assessment = assessSecretRisk({
+      subject: 'large nested value',
+      predicate: 'note',
+      value: Array.from({ length: 10_001 }, () => 'ordinary text'),
+    });
+    expect(assessment.blocked).toBe(true);
+    expect(assessment.findings.some(f => f.category === 'inspection_limit')).toBe(true);
+  });
+
 });
