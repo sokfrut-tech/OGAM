@@ -2,6 +2,9 @@ name: Jarvis Memory M1 Android Native Probe
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feature/jarvis-step-1-memory-m1-2026-11-24
 
 permissions:
   contents: read
