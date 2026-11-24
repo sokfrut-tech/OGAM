@@ -93,3 +93,8 @@ The user reports that all checks shown in the probe are green and every tab resp
 ### Physical OPPO M3 edit/undo check — USER REPORTED (2026-11-24)
 
 The user confirms that changing a test memory entry and then using Undo worked in the M3 tab. This is a user-reported physical-device functional check for the edit/undo path. Delete/undo, source deletion/export, and detailed M4 scoped prompt content remain unconfirmed.
+
+
+### Physical OPPO M3 delete/undo check — USER REPORTED (2026-11-24)
+
+The user confirms that deleting a test memory entry and restoring it with Undo worked in the M3 tab. This is a user-reported physical-device functional check for the delete/undo path. Source deletion/export and detailed M4 scoped prompt content remain unconfirmed.
