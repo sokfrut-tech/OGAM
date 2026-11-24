@@ -302,7 +302,7 @@ export class JarvisMemoryManagementService {
     db.executeSync('SAVEPOINT jarvis_memory_update_checkpoint');
     try {
       const checkpoint = this.saveCheckpoint(db, 'update', existing);
-      const updated = await jarvisMemoryRepository.updateRecord(id, patch, expectedUpdatedAt);
+      const updated = jarvisMemoryRepository.updateRecordSync(id, patch, expectedUpdatedAt);
       db.executeSync('RELEASE SAVEPOINT jarvis_memory_update_checkpoint');
       return { record: updated, checkpoint };
     } catch (error) {
@@ -330,7 +330,7 @@ export class JarvisMemoryManagementService {
     db.executeSync('SAVEPOINT jarvis_memory_delete_checkpoint');
     try {
       const checkpoint = this.saveCheckpoint(db, 'delete', existing);
-      const deleted = await jarvisMemoryRepository.deleteRecord(id, reason);
+      const deleted = jarvisMemoryRepository.deleteRecordSync(id, reason);
       if (!deleted) {
         db.executeSync('ROLLBACK TO SAVEPOINT jarvis_memory_delete_checkpoint');
         db.executeSync('RELEASE SAVEPOINT jarvis_memory_delete_checkpoint');
