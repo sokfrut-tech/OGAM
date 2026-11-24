@@ -98,3 +98,8 @@ The user confirms that changing a test memory entry and then using Undo worked i
 ### Physical OPPO M3 delete/undo check — USER REPORTED (2026-11-24)
 
 The user confirms that deleting a test memory entry and restoring it with Undo worked in the M3 tab. This is a user-reported physical-device functional check for the delete/undo path. Source deletion/export and detailed M4 scoped prompt content remain unconfirmed.
+
+
+### Physical OPPO M4 scoped retrieval display — USER REPORTED (2026-11-24)
+
+The user confirms that the M4 prompt tab displays the retrieved memory together with its source and project/dialog scope. This is a user-reported physical-device check of the scoped retrieval display. It does not independently verify answer-quality behavior across multiple projects/dialogs, source deletion, export, or the remaining M5 security/resilience gates.
