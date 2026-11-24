@@ -91,24 +91,23 @@ jobs:
           emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot-save
           disable-animations: true
           script: |
-            mkdir -p validation/android-native-probe/runtime-diagnostics
-            APK=validation/android-native-probe/android/app/build/outputs/apk/release/app-release.apk
-            adb install -r "$APK"
+            mkdir -p "$GITHUB_WORKSPACE/validation/android-native-probe/runtime-diagnostics"
+            adb install -r "$GITHUB_WORKSPACE/validation/android-native-probe/android/app/build/outputs/apk/release/app-release.apk"
             adb shell am force-stop com.jarvism1probe
             adb shell monkey -p com.jarvism1probe 1
             sleep 25
-            adb shell pidof com.jarvism1probe > validation/android-native-probe/runtime-diagnostics/process-id.txt || true
-            adb shell dumpsys activity activities > validation/android-native-probe/runtime-diagnostics/activities.txt
-            adb logcat -d -v threadtime > validation/android-native-probe/runtime-diagnostics/logcat.txt
-            adb exec-out screencap -p > validation/android-native-probe/runtime-diagnostics/launch-screen.png || true
-            if ! grep -qE 'FATAL EXCEPTION|UnsatisfiedLinkError|ReactNativeJS.*(Error|error)|TurboModuleRegistry' validation/android-native-probe/runtime-diagnostics/logcat.txt; then
+            adb shell pidof com.jarvism1probe > $GITHUB_WORKSPACE/validation/android-native-probe/runtime-diagnostics/process-id.txt || true
+            adb shell dumpsys activity activities > $GITHUB_WORKSPACE/validation/android-native-probe/runtime-diagnostics/activities.txt
+            adb logcat -d -v threadtime > $GITHUB_WORKSPACE/validation/android-native-probe/runtime-diagnostics/logcat.txt
+            adb exec-out screencap -p > $GITHUB_WORKSPACE/validation/android-native-probe/runtime-diagnostics/launch-screen.png || true
+            if ! grep -qE 'FATAL EXCEPTION|UnsatisfiedLinkError|ReactNativeJS.*(Error|error)|TurboModuleRegistry' $GITHUB_WORKSPACE/validation/android-native-probe/runtime-diagnostics/logcat.txt; then
               echo "No common fatal React Native/native crash signature found in emulator log."
             else
               echo "Potential startup crash signature found; see logcat artifact."
-              grep -nE -C 4 'FATAL EXCEPTION|UnsatisfiedLinkError|ReactNativeJS.*(Error|error)|TurboModuleRegistry' validation/android-native-probe/runtime-diagnostics/logcat.txt | tail -n 160
+              grep -nE -C 4 'FATAL EXCEPTION|UnsatisfiedLinkError|ReactNativeJS.*(Error|error)|TurboModuleRegistry' $GITHUB_WORKSPACE/validation/android-native-probe/runtime-diagnostics/logcat.txt | tail -n 160
               exit 1
             fi
-            test -s validation/android-native-probe/runtime-diagnostics/process-id.txt
+            test -s $GITHUB_WORKSPACE/validation/android-native-probe/runtime-diagnostics/process-id.txt
 
       - name: Upload probe APK, checksum and lockfile
         if: always()
@@ -119,6 +118,6 @@ jobs:
             validation/android-native-probe/android/app/build/outputs/apk/release/app-release.apk
             validation/android-native-probe/android/app/build/outputs/apk/release/app-release.apk.sha256
             validation/android-native-probe/package-lock.json
-            validation/android-native-probe/runtime-diagnostics/
+            $GITHUB_WORKSPACE/validation/android-native-probe/runtime-diagnostics/
           if-no-files-found: warn
           retention-days: 14
