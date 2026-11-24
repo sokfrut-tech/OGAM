@@ -81,8 +81,9 @@ jobs:
 
       - name: Launch APK in Android emulator and capture runtime diagnostics
         id: emulator
-        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          ANDROID_I_WANT_MY_TCG: 'yes'
         with:
           api-level: 35
           arch: x86_64
@@ -108,7 +109,9 @@ jobs:
               exit 1
             fi
             test -s validation/android-native-probe/runtime-diagnostics/process-id.txt
+
       - name: Upload probe APK, checksum and lockfile
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Jarvis-M1-OPSQLite-Native-Probe-APK
@@ -117,5 +120,5 @@ jobs:
             validation/android-native-probe/android/app/build/outputs/apk/release/app-release.apk.sha256
             validation/android-native-probe/package-lock.json
             validation/android-native-probe/runtime-diagnostics/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
