@@ -174,46 +174,79 @@ function scanString(
   }
 }
 
+const MAX_SECRET_SCAN_DEPTH = 8;
+const MAX_SECRET_SCAN_NODES = 10_000;
+
 function scanValueRecursive(
   value: unknown,
   fieldPath: string,
   contextHint: string,
   findings: SecretRiskFinding[],
-  depth = 0,
 ): void {
-  if (depth > 8 || value == null) return;
-  if (typeof value === 'string') {
-    scanString(fieldPath, value, contextHint, findings);
-    return;
-  }
-  if (Array.isArray(value)) {
-    for (let i = 0; i < value.length; i += 1) {
-      scanValueRecursive(value[i], `${fieldPath}[${i}]`, contextHint, findings, depth + 1);
+  const pending: Array<{ value: unknown; fieldPath: string; contextHint: string; depth: number }> = [
+    { value, fieldPath, contextHint, depth: 0 },
+  ];
+  let visited = 0;
+  let limitExceeded = false;
+
+  while (pending.length > 0) {
+    const current = pending.pop()!;
+    if (current.value == null) continue;
+    visited += 1;
+    if (visited > MAX_SECRET_SCAN_NODES || current.depth > MAX_SECRET_SCAN_DEPTH) {
+      limitExceeded = true;
+      break;
     }
-    return;
-  }
-  if (typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>);
-    for (const [key, entryValue] of entries) {
-      const normalized = normalizeKey(key);
-      if (
-        (SECRET_KEY_NAMES.has(normalized) || SECRET_KEY_RE.test(key.trim())) &&
-        hasNonEmptySecretValue(entryValue)
-      ) {
-        findings.push({
-          category: 'secret_field_name',
-          field: `${fieldPath}.${key}`,
-          label: 'Sensitive credential field name',
+
+    if (typeof current.value === 'string') {
+      scanString(current.fieldPath, current.value, current.contextHint, findings);
+      continue;
+    }
+
+    if (Array.isArray(current.value)) {
+      for (let i = current.value.length - 1; i >= 0; i -= 1) {
+        pending.push({
+          value: current.value[i],
+          fieldPath: `${current.fieldPath}[${i}]`,
+          contextHint: current.contextHint,
+          depth: current.depth + 1,
         });
       }
-      scanValueRecursive(
-        entryValue,
-        `${fieldPath}.${key}`,
-        `${contextHint} ${key}`,
-        findings,
-        depth + 1,
-      );
+      continue;
     }
+
+    if (typeof current.value === 'object') {
+      const entries = Object.entries(current.value as Record<string, unknown>);
+      for (let i = entries.length - 1; i >= 0; i -= 1) {
+        const [key, entryValue] = entries[i];
+        const normalized = normalizeKey(key);
+        const childPath = `${current.fieldPath}.${key}`;
+        if (
+          (SECRET_KEY_NAMES.has(normalized) || SECRET_KEY_RE.test(key.trim())) &&
+          hasNonEmptySecretValue(entryValue)
+        ) {
+          findings.push({
+            category: 'secret_field_name',
+            field: childPath,
+            label: 'Sensitive credential field name',
+          });
+        }
+        pending.push({
+          value: entryValue,
+          fieldPath: childPath,
+          contextHint: `${current.contextHint} ${key}`,
+          depth: current.depth + 1,
+        });
+      }
+    }
+  }
+
+  if (limitExceeded) {
+    findings.push({
+      category: 'inspection_limit',
+      field: fieldPath,
+      label: 'Secret scan inspection limit exceeded',
+    });
   }
 }
 
