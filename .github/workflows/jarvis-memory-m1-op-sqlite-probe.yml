@@ -41,7 +41,12 @@ jobs:
       - name: Install Android SDK, NDK and CMake
         uses: android-actions/setup-android@v3
         with:
-          packages: platform-tools;platforms;android-36;build-tools;36.0.0;ndk;27.1.12297006;cmake;3.22.1
+          packages: |
+            platform-tools
+            platforms;android-36
+            build-tools;36.0.0
+            ndk;27.1.12297006
+            cmake;3.22.1
 
       - name: Install isolated public dependencies
         working-directory: validation/android-native-probe
