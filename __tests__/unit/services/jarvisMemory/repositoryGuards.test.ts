@@ -1,3 +1,4 @@
+// CI event probe only: this comment verifies that a branch update triggers the PR workflow.
 const mockExecuteSync = jest.fn();
 
 jest.mock('@op-engineering/op-sqlite', () => ({
