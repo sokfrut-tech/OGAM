@@ -51,3 +51,5 @@ describe('Jarvis memory database migration', () => {
     expect(statements).toContain('ROLLBACK');
   });
 });
+
+export {};

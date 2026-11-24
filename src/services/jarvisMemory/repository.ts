@@ -138,7 +138,7 @@ class JarvisMemoryRepository {
       ],
     );
 
-    const created = this.getById(id);
+    const created = await this.getById(id);
     if (!created) throw new Error('Jarvis memory proposal was not persisted.');
     return created;
   }
