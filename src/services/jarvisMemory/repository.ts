@@ -390,18 +390,25 @@ class JarvisMemoryRepository {
     };
   }
 
-  /** Updates an existing memory record using optimistic concurrency on updatedAt (MEM-011). */
-  async updateRecord(
+  /**
+   * Synchronous update for callers that already initialized the shared DB.
+   * Must not await while a caller-owned SAVEPOINT is open.
+   */
+  updateRecordSync(
     id: string,
     patch: MemoryUpdatePatch,
     expectedUpdatedAt: number,
-  ): Promise<MemoryRecord> {
-    await jarvisMemoryDatabase.ensureReady();
+  ): MemoryRecord {
     if (!Number.isSafeInteger(expectedUpdatedAt) || expectedUpdatedAt <= 0) {
       throw new Error('Expected updatedAt timestamp must be a valid epoch-millisecond integer.');
     }
 
-    const existing = await this.getById(id);
+    const db = jarvisMemoryDatabase.getDatabase();
+    const rows = (db.executeSync(
+      `SELECT ${COLUMNS} FROM memory_records WHERE id = ? LIMIT 1`,
+      [id],
+    ).rows ?? []) as unknown as DbRow[];
+    const existing = rows[0] ? mapRow(rows[0]) : undefined;
     if (!existing || existing.status === 'deleted') {
       throw new Error(`Jarvis memory record ${id} was not found.`);
     }
@@ -416,12 +423,11 @@ class JarvisMemoryRepository {
       expiresAt: patch.expiresAt !== undefined ? patch.expiresAt : existing.expiresAt,
       confidenceMilli: patch.confidenceMilli ?? existing.confidenceMilli,
     };
-
     const { subject, predicate, valueJson } = validateProposal(nextInput);
     assertNoSecretRisk({ subject, predicate, value: nextInput.value });
 
     const nextUpdatedAt = Math.max(Date.now(), expectedUpdatedAt + 1);
-    const result = jarvisMemoryDatabase.getDatabase().executeSync(
+    const result = db.executeSync(
       `UPDATE memory_records
        SET subject = ?, predicate = ?, value_json = ?, expires_at = ?, confidence_milli = ?, updated_at = ?
        WHERE id = ? AND updated_at = ? AND status <> 'deleted'`,
@@ -436,28 +442,37 @@ class JarvisMemoryRepository {
         expectedUpdatedAt,
       ],
     );
-
     if (result.rowsAffected !== 1) {
       throw new MemoryConcurrencyError(
         `Jarvis memory record ${id} was modified concurrently; reload before saving.`,
       );
     }
 
-    const updated = await this.getById(id);
-    if (!updated) throw new Error('Updated Jarvis memory record could not be loaded.');
-    return updated;
+    const updatedRows = (db.executeSync(
+      `SELECT ${COLUMNS} FROM memory_records WHERE id = ? LIMIT 1`,
+      [id],
+    ).rows ?? []) as unknown as DbRow[];
+    if (!updatedRows[0]) throw new Error('Updated Jarvis memory record could not be loaded.');
+    return mapRow(updatedRows[0]);
+  }
+
+  async updateRecord(
+    id: string,
+    patch: MemoryUpdatePatch,
+    expectedUpdatedAt: number,
+  ): Promise<MemoryRecord> {
+    await jarvisMemoryDatabase.ensureReady();
+    return this.updateRecordSync(id, patch, expectedUpdatedAt);
   }
 
   /**
-   * Deletes the active row transactionally and records a value-free deletion tombstone
-   * inside a SQLite SAVEPOINT (MEM-006).
+   * Synchronous delete for callers that already initialized the shared DB.
+   * Contains no await points and is safe inside a caller-owned SAVEPOINT.
    */
-  async deleteRecord(id: string, reason: MemoryDeletionReason = 'user_delete'): Promise<boolean> {
-    await jarvisMemoryDatabase.ensureReady();
+  deleteRecordSync(id: string, reason: MemoryDeletionReason = 'user_delete'): boolean {
     if (!MEMORY_DELETION_REASONS.includes(reason)) {
       throw new Error('Unsupported memory deletion reason.');
     }
-
     const db = jarvisMemoryDatabase.getDatabase();
     db.executeSync('SAVEPOINT jarvis_memory_delete');
     try {
@@ -466,7 +481,6 @@ class JarvisMemoryRepository {
         [id],
       ).rows ?? []) as unknown as Array<{ source_excerpt_hash?: string | null }>;
       const provenanceHash = existingRows[0]?.source_excerpt_hash ?? null;
-
       const deleted = db.executeSync('DELETE FROM memory_records WHERE id = ?', [id]);
       if (deleted.rowsAffected === 1) {
         db.executeSync(
@@ -476,7 +490,6 @@ class JarvisMemoryRepository {
           [id, Date.now(), reason, provenanceHash],
         );
       }
-
       db.executeSync('RELEASE SAVEPOINT jarvis_memory_delete');
       return deleted.rowsAffected === 1;
     } catch (error) {
@@ -488,6 +501,11 @@ class JarvisMemoryRepository {
       }
       throw error;
     }
+  }
+
+  async deleteRecord(id: string, reason: MemoryDeletionReason = 'user_delete'): Promise<boolean> {
+    await jarvisMemoryDatabase.ensureReady();
+    return this.deleteRecordSync(id, reason);
   }
 
   async listTombstones(limit = 100): Promise<MemoryDeletionTombstone[]> {
