@@ -1,4 +1,5 @@
 name: Jarvis Memory M1 Android Native Probe
+# Temporary acceptance workflow; remove after the device evidence is recorded.
 
 on:
   workflow_dispatch:
