@@ -286,6 +286,30 @@ const {
       false,
     );
 
+    // 4b. M5 fault injection: checkpoint failure must roll back the data mutation.
+    sqliteDb.exec(`
+      CREATE TRIGGER fail_undo_checkpoint_insert
+      BEFORE INSERT ON memory_undo_checkpoints
+      BEGIN SELECT RAISE(ABORT, 'injected checkpoint insert failure'); END;
+    `);
+    const beforeFailedUpdate = await jarvisMemoryRepository.getById(pAlpha.proposal.id);
+    await assert.rejects(() =>
+      jarvisMemoryManagementService.updateWithCheckpoint(
+        pAlpha.proposal.id,
+        { value: 'must not persist without undo' },
+        beforeFailedUpdate.updatedAt,
+      ),
+    );
+    assert.equal(
+      (await jarvisMemoryRepository.getById(pAlpha.proposal.id)).value,
+      'OP-SQLite 15.2.5 (PGEM10)',
+    );
+    await assert.rejects(() =>
+      jarvisMemoryManagementService.deleteWithCheckpoint(pAlpha.proposal.id, 'user_delete'),
+    );
+    assert.ok(await jarvisMemoryRepository.getById(pAlpha.proposal.id));
+    sqliteDb.exec('DROP TRIGGER fail_undo_checkpoint_insert');
+
     // 5. M3 Source Conversation Deletion (MEM-019)
     const convKeep = await jarvisMemoryConfirmationController.propose({
       kind: 'fact',
