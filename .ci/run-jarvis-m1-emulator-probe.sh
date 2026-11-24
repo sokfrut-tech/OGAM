@@ -1,23 +1,49 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+
 ROOT="$GITHUB_WORKSPACE/validation/android-native-probe"
 DIAG="$ROOT/runtime-diagnostics"
 APK="$ROOT/android/app/build/outputs/apk/release/app-release.apk"
+
 mkdir -p "$DIAG"
 test -s "$APK"
+
 adb install -r "$APK"
-adb shell am force-stop com.jarvism1probe
-adb shell monkey -p com.jarvism1probe 1
-sleep 25
+adb shell am force-stop com.jarvism1probe || true
+adb logcat -c || true
+adb shell am start -W -n com.jarvism1probe/.MainActivity | tee "$DIAG/am-start.txt"
+
+for _ in $(seq 1 20); do
+  adb logcat -d -v threadtime > "$DIAG/logcat.txt" || true
+  if grep -qE '\[JARVIS_M1_PROBE\] (PASS|FAIL)|FATAL EXCEPTION|UnsatisfiedLinkError|TurboModuleRegistry' "$DIAG/logcat.txt"; then
+    break
+  fi
+  sleep 3
+done
+
+sleep 3
+
 adb shell pidof com.jarvism1probe > "$DIAG/process-id.txt" || true
-adb shell dumpsys activity activities > "$DIAG/activities.txt"
-adb logcat -d -v threadtime > "$DIAG/logcat.txt"
+adb shell dumpsys activity activities > "$DIAG/activities.txt" || true
+adb logcat -d -v threadtime > "$DIAG/logcat.txt" || true
 adb exec-out screencap -p > "$DIAG/launch-screen.png" || true
-if grep -qE 'FATAL EXCEPTION|UnsatisfiedLinkError|ReactNativeJS.*(Error|error)|TurboModuleRegistry' "$DIAG/logcat.txt"; then
-  echo "Potential startup crash signature found; see logcat artifact."
-  grep -nE -C 4 'FATAL EXCEPTION|UnsatisfiedLinkError|ReactNativeJS.*(Error|error)|TurboModuleRegistry' "$DIAG/logcat.txt" | tail -n 160 || true
+grep -E '\[JARVIS_M1_PROBE\] (PASS|FAIL)' "$DIAG/logcat.txt" > "$DIAG/probe-result.txt" || true
+
+if grep -qE 'FATAL EXCEPTION|UnsatisfiedLinkError|TurboModuleRegistry|\[JARVIS_M1_PROBE\] FAIL' "$DIAG/logcat.txt"; then
+  echo "Detected Android probe startup or runtime failure in logcat:"
+  grep -nE -C 4 'FATAL EXCEPTION|UnsatisfiedLinkError|TurboModuleRegistry|\[JARVIS_M1_PROBE\] FAIL' "$DIAG/logcat.txt" | tail -n 160 || true
   exit 1
 fi
-echo "No common fatal React Native/native crash signature found in emulator log."
-test -s "$DIAG/process-id.txt"
-echo "App process is alive: $(cat "$DIAG/process-id.txt")"
+
+if ! test -s "$DIAG/process-id.txt"; then
+  echo "Probe process com.jarvism1probe is not running after launch."
+  exit 1
+fi
+
+if ! grep -q '\[JARVIS_M1_PROBE\] PASS ' "$DIAG/logcat.txt"; then
+  echo "Expected [JARVIS_M1_PROBE] PASS marker was not found in emulator logcat."
+  exit 1
+fi
+
+cat "$DIAG/probe-result.txt"
+echo "Emulator OP-SQLite M1 native probe PASSED (pid $(cat "$DIAG/process-id.txt"))."

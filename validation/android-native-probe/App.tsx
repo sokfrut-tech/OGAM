@@ -152,9 +152,13 @@ export default function App() {
     setReport(null);
     setError(null);
     try {
-      setReport(await runNativeProbe());
+      const nextReport = await runNativeProbe();
+      setReport(nextReport);
+      console.log('[JARVIS_M1_PROBE] PASS ' + JSON.stringify(nextReport));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.stack || cause.message : String(cause));
+      const message = cause instanceof Error ? cause.stack || cause.message : String(cause);
+      setError(message);
+      console.error('[JARVIS_M1_PROBE] FAIL ' + message);
     } finally {
       setBusy(false);
     }
