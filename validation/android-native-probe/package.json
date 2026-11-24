@@ -1,0 +1,32 @@
+{
+  "name": "jarvis-memory-m2-native-probe",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "android": "react-native run-android",
+    "start": "react-native start"
+  },
+  "dependencies": {
+    "@op-engineering/op-sqlite": "15.2.5",
+    "buffer": "6.0.3",
+    "react": "19.2.0",
+    "react-native": "0.83.1",
+    "react-native-get-random-values": "1.11.0"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "20.0.0",
+    "@react-native-community/cli-platform-android": "20.0.0",
+    "@react-native/babel-preset": "0.83.1",
+    "@react-native/metro-config": "0.83.1",
+    "@react-native/typescript-config": "0.83.1",
+    "@types/react": "19.2.0",
+    "@types/node": "25.3.5",
+    "typescript": "5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "op-sqlite": {
+    "fts5": true
+  }
+}

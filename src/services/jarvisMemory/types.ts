@@ -56,3 +56,73 @@ export interface NewMemoryProposal {
   expiresAt?: number | null;
   confidenceMilli?: number;
 }
+
+export const MEMORY_DELETION_REASONS = [
+  'user_delete',
+  'source_deleted',
+  'retention_expiry',
+  'account_reset',
+] as const;
+
+export type MemoryDeletionReason = (typeof MEMORY_DELETION_REASONS)[number];
+
+export interface MemoryDeletionTombstone {
+  memoryId: string;
+  deletedAt: number;
+  reason: MemoryDeletionReason;
+  provenanceHash: string | null;
+}
+
+export type SecretRiskCategory =
+  | 'private_key'
+  | 'api_token'
+  | 'jwt'
+  | 'auth_header_or_uri_secret'
+  | 'secret_field_name'
+  | 'payment_card'
+  | 'seed_phrase';
+
+export interface SecretRiskFinding {
+  category: SecretRiskCategory;
+  field: string;
+  /** Safe category description without raw secret material. */
+  label: string;
+}
+
+export interface SecretRiskAssessment {
+  blocked: boolean;
+  findings: SecretRiskFinding[];
+  warningMessage: string | null;
+}
+
+export type MemoryConflictReason =
+  | 'same_subject_predicate_different_value'
+  | 'duplicate_confirmed_value';
+
+export interface MemoryConflict {
+  existingRecord: MemoryRecord;
+  reason: MemoryConflictReason;
+}
+
+export interface MemoryProposalDraft {
+  proposal: MemoryRecord;
+  secretRisk: SecretRiskAssessment;
+  conflicts: MemoryConflict[];
+  requiresExplicitConfirmation: true;
+}
+
+export interface MemoryUpdatePatch {
+  subject?: string;
+  predicate?: string;
+  value?: unknown;
+  expiresAt?: number | null;
+  confidenceMilli?: number;
+}
+
+export interface MemoryListFilters {
+  scope: MemoryScope;
+  scopeId?: string;
+  status?: MemoryStatus;
+  excludeExpired?: boolean;
+  now?: number;
+}

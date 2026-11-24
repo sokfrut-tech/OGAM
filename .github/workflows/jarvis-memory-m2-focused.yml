@@ -1,0 +1,31 @@
+name: Jarvis Memory M2 Focused Validation
+
+on:
+  push:
+    branches:
+      - feature/jarvis-step-1-memory-m2-2026-11-24
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jarvis-m2-focused-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-validation:
+    name: Focused M1+M2 TypeScript, Jest and SQLite integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+
+      - name: Run isolated M2 TypeScript, Jest and real SQLite checks
+        run: bash .ci/run-jarvis-memory-m2.sh

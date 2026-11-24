@@ -1,7 +1,52 @@
 import { Buffer } from 'buffer';
 import { generateId } from '../../utils/generateId';
 import { jarvisMemoryDatabase } from './database';
-import { MEMORY_KINDS, MEMORY_SCOPES, type MemoryRecord, type NewMemoryProposal } from './types';
+import { assertNoSecretRisk } from './secretGuard';
+import {
+  MEMORY_DELETION_REASONS,
+  MEMORY_KINDS,
+  MEMORY_SCOPES,
+  type MemoryConflict,
+  type MemoryDeletionReason,
+  type MemoryDeletionTombstone,
+  type MemoryListFilters,
+  type MemoryProposalDraft,
+  type MemoryRecord,
+  type MemoryScope,
+  type MemoryUpdatePatch,
+  type NewMemoryProposal,
+} from './types';
+
+/** Error raised when an optimistic update detects a stale updatedAt timestamp. */
+export class MemoryConcurrencyError extends Error {
+  constructor(message = 'Jarvis memory record was modified concurrently.') {
+    super(message);
+    this.name = 'MemoryConcurrencyError';
+  }
+}
+
+function canonicalSort(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(item => canonicalSort(item));
+  }
+  if (value !== null && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+      const entry = (value as Record<string, unknown>)[key];
+      if (entry !== undefined) {
+        out[key] = canonicalSort(entry);
+      }
+    }
+    return out;
+  }
+  return value;
+}
+
+/** Deterministic key-sorted JSON representation for conflict comparison. */
+export function canonicalizeJsonValue(value: unknown): string {
+  const serialized = JSON.stringify(canonicalSort(value));
+  return serialized === undefined ? 'null' : serialized;
+}
 
 type DbRow = {
   id: string;
@@ -109,6 +154,7 @@ class JarvisMemoryRepository {
   async createProposal(input: NewMemoryProposal): Promise<MemoryRecord> {
     await jarvisMemoryDatabase.ensureReady();
     const { subject, predicate, valueJson, scopeId } = validateProposal(input);
+    assertNoSecretRisk({ subject, predicate, value: input.value });
     const now = Date.now();
     const id = generateId();
     const db = jarvisMemoryDatabase.getDatabase();
@@ -181,11 +227,7 @@ class JarvisMemoryRepository {
    * Every list is explicitly scoped. This prevents a future prompt/retrieval caller
    * from accidentally mixing global, project and conversation memories.
    */
-  async list(filters: {
-    scope: MemoryRecord['scope'];
-    scopeId?: string;
-    status?: MemoryRecord['status'];
-  }): Promise<MemoryRecord[]> {
+  async list(filters: MemoryListFilters): Promise<MemoryRecord[]> {
     await jarvisMemoryDatabase.ensureReady();
 
     if (!MEMORY_SCOPES.includes(filters.scope)) throw new Error('Unsupported memory scope.');
@@ -209,6 +251,11 @@ class JarvisMemoryRepository {
       where.push('status = ?');
       params.push(filters.status);
     }
+    if (filters.excludeExpired) {
+      const now = filters.now ?? Date.now();
+      where.push('(expires_at IS NULL OR expires_at > ?)');
+      params.push(now);
+    }
 
     const rows = (jarvisMemoryDatabase.getDatabase().executeSync(
       `SELECT ${COLUMNS} FROM memory_records
@@ -217,6 +264,265 @@ class JarvisMemoryRepository {
       params as never[],
     ).rows ?? []) as unknown as DbRow[];
     return rows.map(mapRow);
+  }
+
+  /** Lists active confirmed records, applying both SQL and TypeScript expiry checks (MEM-005). */
+  async listActiveConfirmed(filters: {
+    scope: MemoryScope;
+    scopeId?: string;
+    now?: number;
+  }): Promise<MemoryRecord[]> {
+    const now = filters.now ?? Date.now();
+    const rows = await this.list({
+      scope: filters.scope,
+      scopeId: filters.scopeId,
+      status: 'confirmed',
+      excludeExpired: true,
+      now,
+    });
+    return rows.filter(
+      record => record.status === 'confirmed' && (record.expiresAt === null || record.expiresAt > now),
+    );
+  }
+
+  /** Lists unexpired pending proposals waiting for explicit user confirmation. */
+  async listPendingProposals(filters: {
+    scope: MemoryScope;
+    scopeId?: string;
+    now?: number;
+  }): Promise<MemoryRecord[]> {
+    const now = filters.now ?? Date.now();
+    const rows = await this.list({
+      scope: filters.scope,
+      scopeId: filters.scopeId,
+      status: 'proposed',
+      excludeExpired: true,
+      now,
+    });
+    return rows.filter(
+      record => record.status === 'proposed' && (record.expiresAt === null || record.expiresAt > now),
+    );
+  }
+
+  /** Finds same-scope confirmed records sharing subject and predicate without overwriting them. */
+  async findConflicts(params: {
+    scope: MemoryScope;
+    scopeId?: string | null;
+    subject: string;
+    predicate: string;
+    value?: unknown;
+    excludeId?: string;
+    now?: number;
+  }): Promise<MemoryConflict[]> {
+    await jarvisMemoryDatabase.ensureReady();
+    if (!MEMORY_SCOPES.includes(params.scope)) throw new Error('Unsupported memory scope.');
+    const scopeId = params.scopeId?.trim() || null;
+    if (params.scope === 'global' && scopeId !== null) {
+      throw new Error('Global memory conflict check must not have a scope id.');
+    }
+    if (params.scope !== 'global' && !scopeId) {
+      throw new Error('Project and conversation memory conflict checks require a scope id.');
+    }
+
+    const subject = params.subject.trim();
+    const predicate = params.predicate.trim();
+    if (!subject || !predicate) return [];
+
+    const now = params.now ?? Date.now();
+    const where = [
+      'scope = ?',
+      params.scope === 'global' ? 'scope_id IS NULL' : 'scope_id = ?',
+      "status = 'confirmed'",
+      '(expires_at IS NULL OR expires_at > ?)',
+      'lower(trim(subject)) = lower(?)',
+      'lower(trim(predicate)) = lower(?)',
+    ];
+    const queryParams: unknown[] = [params.scope];
+    if (params.scope !== 'global') queryParams.push(scopeId);
+    queryParams.push(now, subject, predicate);
+    if (params.excludeId) {
+      where.push('id <> ?');
+      queryParams.push(params.excludeId);
+    }
+
+    const rows = (jarvisMemoryDatabase.getDatabase().executeSync(
+      `SELECT ${COLUMNS} FROM memory_records
+       WHERE ${where.join(' AND ')}
+       ORDER BY updated_at DESC`,
+      queryParams as never[],
+    ).rows ?? []) as unknown as DbRow[];
+
+    const incomingCanonical = 'value' in params ? canonicalizeJsonValue(params.value) : null;
+    return rows.map(row => {
+      const existingRecord = mapRow(row);
+      const isDuplicate =
+        incomingCanonical !== null && canonicalizeJsonValue(existingRecord.value) === incomingCanonical;
+      return {
+        existingRecord,
+        reason: isDuplicate
+          ? 'duplicate_confirmed_value'
+          : 'same_subject_predicate_different_value',
+      };
+    });
+  }
+
+  /** Screens secrets, persists a proposed record, and surfaces conflicts for explicit UI approval. */
+  async proposeForConfirmation(input: NewMemoryProposal): Promise<MemoryProposalDraft> {
+    const secretRisk = assertNoSecretRisk({
+      subject: input.subject.trim(),
+      predicate: input.predicate.trim(),
+      value: input.value,
+    });
+    const proposal = await this.createProposal(input);
+    const conflicts = await this.findConflicts({
+      scope: proposal.scope,
+      scopeId: proposal.scopeId,
+      subject: proposal.subject,
+      predicate: proposal.predicate,
+      value: proposal.value,
+      excludeId: proposal.id,
+    });
+    return {
+      proposal,
+      secretRisk,
+      conflicts,
+      requiresExplicitConfirmation: true,
+    };
+  }
+
+  /** Updates an existing memory record using optimistic concurrency on updatedAt (MEM-011). */
+  async updateRecord(
+    id: string,
+    patch: MemoryUpdatePatch,
+    expectedUpdatedAt: number,
+  ): Promise<MemoryRecord> {
+    await jarvisMemoryDatabase.ensureReady();
+    if (!Number.isSafeInteger(expectedUpdatedAt) || expectedUpdatedAt <= 0) {
+      throw new Error('Expected updatedAt timestamp must be a valid epoch-millisecond integer.');
+    }
+
+    const existing = await this.getById(id);
+    if (!existing || existing.status === 'deleted') {
+      throw new Error(`Jarvis memory record ${id} was not found.`);
+    }
+
+    const nextInput: NewMemoryProposal = {
+      kind: existing.kind,
+      subject: patch.subject ?? existing.subject,
+      predicate: patch.predicate ?? existing.predicate,
+      value: 'value' in patch && patch.value !== undefined ? patch.value : existing.value,
+      scope: existing.scope,
+      scopeId: existing.scopeId,
+      expiresAt: patch.expiresAt !== undefined ? patch.expiresAt : existing.expiresAt,
+      confidenceMilli: patch.confidenceMilli ?? existing.confidenceMilli,
+    };
+
+    const { subject, predicate, valueJson } = validateProposal(nextInput);
+    assertNoSecretRisk({ subject, predicate, value: nextInput.value });
+
+    const nextUpdatedAt = Math.max(Date.now(), expectedUpdatedAt + 1);
+    const result = jarvisMemoryDatabase.getDatabase().executeSync(
+      `UPDATE memory_records
+       SET subject = ?, predicate = ?, value_json = ?, expires_at = ?, confidence_milli = ?, updated_at = ?
+       WHERE id = ? AND updated_at = ? AND status <> 'deleted'`,
+      [
+        subject,
+        predicate,
+        valueJson,
+        nextInput.expiresAt ?? null,
+        nextInput.confidenceMilli ?? 1000,
+        nextUpdatedAt,
+        id,
+        expectedUpdatedAt,
+      ],
+    );
+
+    if (result.rowsAffected !== 1) {
+      throw new MemoryConcurrencyError(
+        `Jarvis memory record ${id} was modified concurrently; reload before saving.`,
+      );
+    }
+
+    const updated = await this.getById(id);
+    if (!updated) throw new Error('Updated Jarvis memory record could not be loaded.');
+    return updated;
+  }
+
+  /**
+   * Deletes the active row transactionally and records a value-free deletion tombstone
+   * inside a SQLite SAVEPOINT (MEM-006).
+   */
+  async deleteRecord(id: string, reason: MemoryDeletionReason = 'user_delete'): Promise<boolean> {
+    await jarvisMemoryDatabase.ensureReady();
+    if (!MEMORY_DELETION_REASONS.includes(reason)) {
+      throw new Error('Unsupported memory deletion reason.');
+    }
+
+    const db = jarvisMemoryDatabase.getDatabase();
+    db.executeSync('SAVEPOINT jarvis_memory_delete');
+    try {
+      const existingRows = (db.executeSync(
+        'SELECT source_excerpt_hash FROM memory_records WHERE id = ? LIMIT 1',
+        [id],
+      ).rows ?? []) as unknown as Array<{ source_excerpt_hash?: string | null }>;
+      const provenanceHash = existingRows[0]?.source_excerpt_hash ?? null;
+
+      const deleted = db.executeSync('DELETE FROM memory_records WHERE id = ?', [id]);
+      if (deleted.rowsAffected === 1) {
+        db.executeSync(
+          `INSERT OR REPLACE INTO memory_deletion_tombstones (
+            memory_id, deleted_at, reason, provenance_hash
+          ) VALUES (?, ?, ?, ?)`,
+          [id, Date.now(), reason, provenanceHash],
+        );
+      }
+
+      db.executeSync('RELEASE SAVEPOINT jarvis_memory_delete');
+      return deleted.rowsAffected === 1;
+    } catch (error) {
+      try {
+        db.executeSync('ROLLBACK TO SAVEPOINT jarvis_memory_delete');
+        db.executeSync('RELEASE SAVEPOINT jarvis_memory_delete');
+      } catch {
+        /* Keep primary delete failure intact if savepoint cleanup also fails. */
+      }
+      throw error;
+    }
+  }
+
+  async listTombstones(limit = 100): Promise<MemoryDeletionTombstone[]> {
+    await jarvisMemoryDatabase.ensureReady();
+    const safeLimit = Math.max(1, Math.min(500, Math.floor(limit)));
+    const rows = (jarvisMemoryDatabase.getDatabase().executeSync(
+      `SELECT memory_id, deleted_at, reason, provenance_hash
+       FROM memory_deletion_tombstones
+       ORDER BY deleted_at DESC
+       LIMIT ?`,
+      [safeLimit],
+    ).rows ?? []) as unknown as Array<{
+      memory_id: string;
+      deleted_at: number;
+      reason: MemoryDeletionReason;
+      provenance_hash: string | null;
+    }>;
+    return rows.map(row => ({
+      memoryId: row.memory_id,
+      deletedAt: Number(row.deleted_at),
+      reason: row.reason,
+      provenanceHash: row.provenance_hash,
+    }));
+  }
+
+  /** Marks expired proposed/confirmed records inactive and clears approval timestamp per CHECK. */
+  async expireStale(now = Date.now()): Promise<number> {
+    await jarvisMemoryDatabase.ensureReady();
+    const result = jarvisMemoryDatabase.getDatabase().executeSync(
+      `UPDATE memory_records
+       SET status = 'expired', user_approved_at = NULL, updated_at = ?
+       WHERE expires_at IS NOT NULL AND expires_at <= ? AND status IN ('proposed', 'confirmed')`,
+      [now, now],
+    );
+    return result.rowsAffected ?? 0;
   }
 }
 
