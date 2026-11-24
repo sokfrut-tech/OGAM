@@ -1,4 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import DeviceInfoNative from 'react-native-device-info';
+import { TouchableOpacity } from '../components/Touchable';
+import { jarvisMemoryDatabase } from '../services/jarvisMemory/database';
+import { jarvisMemoryRepository } from '../services/jarvisMemory/repository';
 import {
   View,
   Text,
@@ -36,6 +40,101 @@ export const DeviceInfoScreen: React.FC = () => {
     return () => { alive = false; };
   }, []);
   const gb = (mb: number) => `${(mb / 1024).toFixed(1)} GB`;
+
+  const [isRunningMemoryProbe, setIsRunningMemoryProbe] = useState(false);
+  const [memoryProbeLines, setMemoryProbeLines] = useState<string[]>([]);
+  const isM1ValidationBuild = DeviceInfoNative.getBundleId().endsWith('.m1validation');
+
+  const runNativeMemoryProbe = async () => {
+    if (isRunningMemoryProbe) return;
+    setIsRunningMemoryProbe(true);
+    setMemoryProbeLines(['Running native op-sqlite checks…']);
+    const lines: string[] = [];
+    let probeRecordId: string | null = null;
+    let db: ReturnType<typeof jarvisMemoryDatabase.getDatabase> | null = null;
+    try {
+      await jarvisMemoryDatabase.ensureReady();
+      db = jarvisMemoryDatabase.getDatabase();
+
+      const versionRows = (db.executeSync(
+        'SELECT sqlite_version() AS version',
+      ).rows ?? []) as unknown as Array<{ version: string }>;
+      const sqliteVersion = versionRows[0]?.version;
+      if (!sqliteVersion) throw new Error('SQLite did not return its runtime version.');
+      lines.push('PASS · Native SQLite ' + sqliteVersion);
+
+      try {
+        const jsonRows = (db.executeSync(
+          'SELECT json_valid(?) AS valid',
+          ['{"jarvis":true}'],
+        ).rows ?? []) as unknown as Array<{ valid: number }>;
+        lines.push(Number(jsonRows[0]?.valid) === 1
+          ? 'PASS · JSON1 available'
+          : 'INFO · JSON1 returned false (not required by M1)');
+      } catch {
+        lines.push('INFO · JSON1 extension unavailable (not required by M1)');
+      }
+
+      const fkRows = (db.executeSync('PRAGMA foreign_keys').rows ?? []) as unknown as Array<{ foreign_keys: number }>;
+      lines.push('INFO · foreign_keys=' + String(fkRows[0]?.foreign_keys ?? 'unknown'));
+
+      const nonce = Date.now().toString() + '-' + Math.random().toString(36).slice(2);
+      const created = await jarvisMemoryRepository.createProposal({
+        kind: 'fact',
+        subject: 'Jarvis M1 native acceptance probe',
+        predicate: 'temporary_probe',
+        value: { nonce },
+        scope: 'global',
+      });
+      probeRecordId = created.id;
+      if (created.status !== 'proposed') throw new Error('New native proposal did not start as proposed.');
+      const readBack = await jarvisMemoryRepository.getById(created.id);
+      if (!readBack || (readBack.value as { nonce?: string }).nonce !== nonce) {
+        throw new Error('Native op-sqlite insert/read round-trip failed.');
+      }
+      lines.push('PASS · Insert and read through repository');
+
+      if (!(await jarvisMemoryRepository.confirmProposal(created.id))) {
+        throw new Error('Native proposal confirmation did not update one row.');
+      }
+      const confirmed = await jarvisMemoryRepository.list({ scope: 'global', status: 'confirmed' });
+      if (!confirmed.some(record => record.id === created.id)) {
+        throw new Error('Confirmed proposal was not returned by scoped native query.');
+      }
+      lines.push('PASS · Confirm and scoped read');
+
+      db.executeSync('CREATE TEMP TABLE IF NOT EXISTS jarvis_memory_m1_probe (value TEXT NOT NULL)');
+      db.executeSync('DELETE FROM jarvis_memory_m1_probe');
+      db.executeSync('SAVEPOINT jarvis_memory_m1_rollback');
+      db.executeSync('INSERT INTO jarvis_memory_m1_probe (value) VALUES (?)', ['must-rollback']);
+      db.executeSync('ROLLBACK TO SAVEPOINT jarvis_memory_m1_rollback');
+      db.executeSync('RELEASE SAVEPOINT jarvis_memory_m1_rollback');
+      const rollbackRows = (db.executeSync(
+        'SELECT COUNT(*) AS count FROM jarvis_memory_m1_probe',
+      ).rows ?? []) as unknown as Array<{ count: number }>;
+      if (Number(rollbackRows[0]?.count) !== 0) {
+        throw new Error('Native SQLite savepoint rollback left an inserted row.');
+      }
+      lines.push('PASS · Native savepoint rollback');
+      lines.push('PASS · All required M1 native checks completed');
+      setMemoryProbeLines(lines);
+    } catch (error) {
+      lines.push('FAIL · ' + (error instanceof Error ? error.message : String(error)));
+      setMemoryProbeLines(lines);
+    } finally {
+      if (db) {
+        try {
+          if (probeRecordId) db.executeSync('DELETE FROM memory_records WHERE id = ?', [probeRecordId]);
+          db.executeSync('DROP TABLE IF EXISTS jarvis_memory_m1_probe');
+        } catch (cleanupError) {
+          lines.push('WARN · Probe cleanup: ' + (cleanupError instanceof Error ? cleanupError.message : String(cleanupError)));
+          setMemoryProbeLines([...lines]);
+        }
+      }
+      setIsRunningMemoryProbe(false);
+    }
+  };
+
 
   return (
     <AliveScreen style={styles.container}>
@@ -77,6 +176,28 @@ export const DeviceInfoScreen: React.FC = () => {
             </Text>
           </View>
         </Card>
+
+        {isM1ValidationBuild ? (
+          <Card style={styles.section}>
+            <Text style={styles.description}>Temporary M1 acceptance tool. It tests the bundled native op-sqlite runtime, not a mocked database.</Text>
+            <TouchableOpacity
+              onPress={runNativeMemoryProbe}
+              disabled={isRunningMemoryProbe}
+              accessibilityRole="button"
+              accessibilityLabel="Run Jarvis memory native SQLite validation"
+              style={{ paddingVertical: SPACING.md, paddingHorizontal: SPACING.lg, borderRadius: 8, backgroundColor: colors.primary, opacity: isRunningMemoryProbe ? 0.6 : 1 }}
+            >
+              <Text style={{ color: '#FFFFFF', textAlign: 'center', fontWeight: '600' }}>
+                {isRunningMemoryProbe ? 'Testing native SQLite…' : 'Run native SQLite test'}
+              </Text>
+            </TouchableOpacity>
+            {memoryProbeLines.map((line, index) => (
+              <Text key={index} style={{ ...TYPOGRAPHY.bodySmall, color: colors.text, marginTop: SPACING.sm }}>
+                {line}
+              </Text>
+            ))}
+          </Card>
+        ) : null}
 
         <SectionLabel title="What runs here" />
         <Card style={styles.section}>

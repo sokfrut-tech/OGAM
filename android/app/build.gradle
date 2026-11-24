@@ -145,6 +145,14 @@ android {
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
+        // Standalone APK for Jarvis M1 native SQLite acceptance; isolated app ID, debug key.
+        m1Validation {
+            initWith release
+            applicationIdSuffix ".m1validation"
+            versionNameSuffix "-m1-validation"
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
     packaging {
         jniLibs {

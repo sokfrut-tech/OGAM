@@ -1,0 +1,81 @@
+name: Jarvis Memory M1 Android Native Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/jarvis-step-1-memory-m1-2026-11-24
+    paths:
+      - '.github/workflows/jarvis-memory-m1-android.yml'
+      - 'android/app/build.gradle'
+      - 'src/services/jarvisMemory/**'
+      - 'src/screens/DeviceInfoScreen.tsx'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jarvis-memory-m1-android-\${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Standalone M1 validation APK (arm64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Checkout M1 branch
+        uses: actions/checkout@v4
+
+      - name: Require private workspace access
+        env:
+          PRO_SUBMODULE_PAT: \${{ secrets.PRO_SUBMODULE_PAT }}
+        shell: bash
+        run: |
+          if [[ -z "$PRO_SUBMODULE_PAT" ]]; then
+            echo "::error::PRO_SUBMODULE_PAT is required to check out off-grid-ai/mobile-pro and off-grid-ai/shared for the React Native workspace."
+            exit 1
+          fi
+
+      - name: Set up Node workspace and private packages
+        uses: ./.github/actions/setup-mobile
+        with:
+          private-token: \${{ secrets.PRO_SUBMODULE_PAT }}
+          save-caches: 'false'
+
+      - name: Set up Java 17, pinned Android NDK and native runtime
+        uses: ./.github/actions/setup-android
+        with:
+          video: 'true'
+          save: 'false'
+
+      - name: Verify bundled Qualcomm QNN runtime assets
+        run: bash scripts/verify-qnn-assets.sh
+
+      - name: Set up Android SDK tools
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Build standalone M1 validation APK
+        run: |
+          cd android
+          ./gradlew --no-daemon assembleM1Validation -PreactNativeArchitectures=arm64-v8a
+
+      - name: Verify APK and write checksum
+        shell: bash
+        run: |
+          APK="android/app/build/outputs/apk/m1Validation/app-m1Validation.apk"
+          test -s "$APK"
+          sha256sum "$APK" | tee android/app/build/outputs/apk/m1Validation/app-m1Validation.apk.sha256
+          ls -lh "$APK"
+
+      - name: Upload APK and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: Jarvis-M1-Native-Validation-APK
+          path: |
+            android/app/build/outputs/apk/m1Validation/app-m1Validation.apk
+            android/app/build/outputs/apk/m1Validation/app-m1Validation.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
