@@ -14,41 +14,55 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { MemoryManagerPanel } from './src/components/jarvisMemory/MemoryManagerPanel';
 import { MemoryProposalCard } from './src/components/jarvisMemory/MemoryProposalCard';
 import {
   formatKindLabel,
   formatScopeLabel,
-  formatValuePreview,
   jarvisMemoryConfirmationController,
 } from './src/services/jarvisMemory/confirmationController';
 import { jarvisMemoryDatabase } from './src/services/jarvisMemory/database';
 import {
+  jarvisMemoryManagementService,
+  MemoryDisabledError,
+} from './src/services/jarvisMemory/managementService';
+import {
   jarvisMemoryRepository,
   MemoryConcurrencyError,
 } from './src/services/jarvisMemory/repository';
+import { jarvisMemoryRetrievalService } from './src/services/jarvisMemory/retrievalService';
 import { SecretMemoryBlockedError } from './src/services/jarvisMemory/secretGuard';
 import type {
   MemoryConflict,
+  MemoryExportBundle,
   MemoryKind,
   MemoryRecord,
+  MemoryRetrievalResult,
   MemoryScope,
+  MemoryUndoCheckpoint,
 } from './src/services/jarvisMemory/types';
+
+type ProbeTab = 'test' | 'm3' | 'm4';
+type PromptScopePreset = 'global' | 'ogam' | 'both';
 
 type ProbeReport = {
   sqliteVersion: string;
   schemaVersion: number;
   json1: boolean;
   foreignKeys: boolean;
-  proposalRoundTrip: boolean;
-  explicitConfirmation: boolean;
-  rejection: boolean;
-  savepointRollback: boolean;
-  checkConstraint: boolean;
   secretGuardBlocked: boolean;
   conflictDetected: boolean;
   optimisticConcurrency: boolean;
   deleteWithTombstone: boolean;
   expiryBoundary: boolean;
+  savepointRollback: boolean;
+  checkConstraint: boolean;
+  disableFailClosed: boolean;
+  searchAndFilter: boolean;
+  editAndUndo: boolean;
+  deleteAndUndo: boolean;
+  sourceDeleteAndExport: boolean;
+  scopedPromptRetrieval: boolean;
   databasePath: string;
 };
 
@@ -64,9 +78,15 @@ function requireTrue(value: unknown, message: string): asserts value {
 async function runNativeProbe(): Promise<ProbeReport> {
   await jarvisMemoryDatabase.ensureReady();
   const db = jarvisMemoryDatabase.getDatabase();
+  const initialState = await jarvisMemoryManagementService.getMemoryState();
   const createdIds: string[] = [];
 
   try {
+    // Ensure self-test starts enabled while preserving the user's prior toggle state in finally.
+    if (!initialState.enabled) {
+      await jarvisMemoryManagementService.setMemoryEnabled(true);
+    }
+
     const versionRow = db.executeSync('SELECT sqlite_version() AS version').rows?.[0] as
       | { version?: string }
       | undefined;
@@ -103,30 +123,30 @@ async function runNativeProbe(): Promise<ProbeReport> {
         predicate: 'api_key',
         value: 'ghp_1234567890abcdefghij1234567890abcdef',
         scope: 'conversation',
-        scopeId: 'm2-selftest-scope',
+        scopeId: 'm3-selftest-scope',
       });
     } catch (err) {
       secretGuardBlocked = err instanceof SecretMemoryBlockedError;
     }
     requireTrue(secretGuardBlocked, 'SecretMemoryBlockedError did not block token payload.');
 
-    // M1 Create + Read + Confirm + Scoped list
+    // M1 Propose + Read + Explicit Confirm
     const baseDraft = await jarvisMemoryConfirmationController.propose({
       kind: 'fact',
       subject: 'SelfTest Target Device',
       predicate: 'selftest_runtime',
-      value: { os: 'ColorOS 16', probe: 'M2' },
+      value: { os: 'ColorOS 16', probe: 'M3M4' },
       scope: 'conversation',
-      scopeId: 'm2-selftest-scope',
-      sourceExcerptHash: 'm2-selftest-hash',
+      scopeId: 'm3-selftest-scope',
+      sourceExcerptHash: 'm3-selftest-hash',
     });
     createdIds.push(baseDraft.proposal.id);
 
     const readBack = await jarvisMemoryRepository.getById(baseDraft.proposal.id);
     requireTrue(
       readBack?.id === baseDraft.proposal.id &&
-        (readBack.value as { probe?: string }).probe === 'M2',
-      'M2 self-test JSON round-trip failed.',
+        (readBack.value as { probe?: string }).probe === 'M3M4',
+      'M3 self-test JSON round-trip failed.',
     );
 
     const confirmed = await jarvisMemoryConfirmationController.confirm(baseDraft.proposal.id, {
@@ -139,9 +159,9 @@ async function runNativeProbe(): Promise<ProbeReport> {
       kind: 'fact',
       subject: 'SelfTest Target Device',
       predicate: 'selftest_runtime',
-      value: { os: 'Android 16', probe: 'M2' },
+      value: { os: 'Android 16', probe: 'M3M4' },
       scope: 'conversation',
-      scopeId: 'm2-selftest-scope',
+      scopeId: 'm3-selftest-scope',
     });
     createdIds.push(conflictDraft.proposal.id);
     const conflictDetected =
@@ -157,7 +177,7 @@ async function runNativeProbe(): Promise<ProbeReport> {
     requireTrue(beforeUpdate, 'Confirmed self-test record missing before update.');
     const updated = await jarvisMemoryConfirmationController.updateConfirmed(
       baseDraft.proposal.id,
-      { value: { os: 'ColorOS 16.0.5', probe: 'M2' } },
+      { value: { os: 'ColorOS 16.0.5', probe: 'M3M4' } },
       beforeUpdate.updatedAt,
     );
     let concurrencyRejected = false;
@@ -173,6 +193,122 @@ async function runNativeProbe(): Promise<ProbeReport> {
     const optimisticConcurrency = updated.updatedAt > beforeUpdate.updatedAt && concurrencyRejected;
     requireTrue(optimisticConcurrency, 'Optimistic concurrency update guard failed.');
 
+    // M3 Search + Filter (MEM-025) with strict scope isolation
+    const searchHits = await jarvisMemoryManagementService.searchRecords({
+      scope: 'conversation',
+      scopeId: 'm3-selftest-scope',
+      kind: 'fact',
+      status: 'confirmed',
+      query: 'ColorOS',
+    });
+    const wrongScopeHits = await jarvisMemoryManagementService.searchRecords({
+      scope: 'project',
+      scopeId: 'm3-other-project',
+      query: 'ColorOS',
+    });
+    const searchAndFilter =
+      searchHits.length === 1 &&
+      searchHits[0]?.id === baseDraft.proposal.id &&
+      wrongScopeHits.length === 0;
+    requireTrue(searchAndFilter, 'M3 scoped search and filter failed.');
+
+    // M3 Edit + 1-step Undo
+    const { record: editedRecord } = await jarvisMemoryManagementService.updateWithCheckpoint(
+      baseDraft.proposal.id,
+      { subject: 'SelfTest Edited Device', value: { os: 'Android 16 Beta', probe: 'M3M4' } },
+      updated.updatedAt,
+    );
+    requireTrue(editedRecord.subject === 'SelfTest Edited Device', 'M3 checkpoint update failed.');
+    const undoEdit = await jarvisMemoryManagementService.undoLastChange();
+    const editAndUndo =
+      undoEdit.undone &&
+      undoEdit.operation === 'update' &&
+      undoEdit.restoredRecord?.subject === 'SelfTest Target Device';
+    requireTrue(editAndUndo, 'M3 edit Undo failed to restore prior snapshot.');
+
+    // M3 Delete + Undo clearing tombstone + M2 Tombstone verification
+    const { deleted: deletedWithCp } = await jarvisMemoryManagementService.deleteWithCheckpoint(
+      baseDraft.proposal.id,
+      'user_delete',
+    );
+    const tombstonesMid = await jarvisMemoryRepository.listTombstones(100);
+    const deleteWithTombstone =
+      deletedWithCp &&
+      (await jarvisMemoryRepository.getById(baseDraft.proposal.id)) === undefined &&
+      tombstonesMid.some(
+        t =>
+          t.memoryId === baseDraft.proposal.id &&
+          t.reason === 'user_delete' &&
+          t.provenanceHash === 'm3-selftest-hash',
+      );
+    requireTrue(deleteWithTombstone, 'Delete did not write value-free tombstone.');
+
+    const undoDelete = await jarvisMemoryManagementService.undoLastChange();
+    const tombstonesAfterUndo = await jarvisMemoryRepository.listTombstones(100);
+    const deleteAndUndo =
+      undoDelete.undone &&
+      undoDelete.operation === 'delete' &&
+      undoDelete.restoredRecord?.status === 'confirmed' &&
+      !tombstonesAfterUndo.some(t => t.memoryId === baseDraft.proposal.id);
+    requireTrue(deleteAndUndo, 'Delete Undo did not restore record and clear tombstone.');
+
+    // M3 Fail-Closed Disable Switch (MEM-026) + M4 Retrieval Blocked While Paused
+    await jarvisMemoryManagementService.setMemoryEnabled(false);
+    let proposeBlockedWhileDisabled = false;
+    try {
+      await jarvisMemoryConfirmationController.propose({
+        kind: 'fact',
+        subject: 'SelfTest Disabled Write',
+        predicate: 'paused',
+        value: 'blocked',
+        scope: 'conversation',
+        scopeId: 'm3-selftest-scope',
+      });
+    } catch (err) {
+      proposeBlockedWhileDisabled = err instanceof MemoryDisabledError;
+    }
+    const pausedRetrieval = await jarvisMemoryRetrievalService.retrieveForPrompt({
+      query: 'ColorOS',
+      includeGlobal: false,
+      conversationId: 'm3-selftest-scope',
+    });
+    const disableFailClosed =
+      proposeBlockedWhileDisabled && !pausedRetrieval.enabled && pausedRetrieval.items.length === 0;
+    requireTrue(disableFailClosed, 'Fail-closed memory disable check failed.');
+    await jarvisMemoryManagementService.setMemoryEnabled(true);
+
+    // M4 Deterministic Scoped Prompt Retrieval
+    const m4Res = await jarvisMemoryRetrievalService.retrieveForPrompt({
+      query: 'ColorOS',
+      includeGlobal: false,
+      conversationId: 'm3-selftest-scope',
+      maxTokens: 250,
+    });
+    const scopedPromptRetrieval =
+      m4Res.enabled &&
+      m4Res.items.some(i => i.record.id === baseDraft.proposal.id) &&
+      m4Res.promptBlock.includes('[JARVIS_CONFIRMED_MEMORY_BEGIN]') &&
+      m4Res.estimatedTokens <= 250;
+    requireTrue(scopedPromptRetrieval, 'M4 scoped prompt retrieval check failed.');
+
+    // M3 Source Conversation Deletion (MEM-019) + Portable JSON Export (MEM-020)
+    const exportBundle = await jarvisMemoryManagementService.exportPortableJson({
+      userInitiated: true,
+      scope: 'conversation',
+      scopeId: 'm3-selftest-scope',
+    });
+    const srcDelRes = await jarvisMemoryManagementService.handleSourceConversationDeleted(
+      'm3-selftest-scope',
+      'delete_linked',
+    );
+    const sourceDeleteAndExport =
+      exportBundle.format === 'jarvis.memory.export.v1' &&
+      exportBundle.encrypted === false &&
+      exportBundle.records.some(r => r.id === baseDraft.proposal.id) &&
+      srcDelRes.deletedIds.includes(baseDraft.proposal.id) &&
+      (await jarvisMemoryRepository.getById(baseDraft.proposal.id)) === undefined;
+    requireTrue(sourceDeleteAndExport, 'M3 export or source conversation delete failed.');
+
     // M2 Expiry Boundary (MEM-005)
     const expFuture = Date.now() + 60_000;
     const expDraft = await jarvisMemoryConfirmationController.propose({
@@ -181,7 +317,7 @@ async function runNativeProbe(): Promise<ProbeReport> {
       predicate: 'selftest_expiry',
       value: 'expiring',
       scope: 'conversation',
-      scopeId: 'm2-selftest-scope',
+      scopeId: 'm3-selftest-scope',
       expiresAt: expFuture,
     });
     createdIds.push(expDraft.proposal.id);
@@ -193,7 +329,7 @@ async function runNativeProbe(): Promise<ProbeReport> {
     );
     const afterExpiry = await jarvisMemoryRepository.listActiveConfirmed({
       scope: 'conversation',
-      scopeId: 'm2-selftest-scope',
+      scopeId: 'm3-selftest-scope',
       now: expFuture + 1,
     });
     requireTrue(
@@ -206,31 +342,13 @@ async function runNativeProbe(): Promise<ProbeReport> {
       expiredCount >= 1 && expiredRow?.status === 'expired' && expiredRow.userApprovedAt === null;
     requireTrue(expiryBoundary, 'expireStale did not transition record with NULL userApprovedAt.');
 
-    // M2 Delete + Tombstone (MEM-006)
-    const deleted = await jarvisMemoryConfirmationController.remove(
-      baseDraft.proposal.id,
-      'user_delete',
-    );
-    const afterDelete = await jarvisMemoryRepository.getById(baseDraft.proposal.id);
-    const tombstones = await jarvisMemoryRepository.listTombstones(100);
-    const deleteWithTombstone =
-      deleted &&
-      afterDelete === undefined &&
-      tombstones.some(
-        item =>
-          item.memoryId === baseDraft.proposal.id &&
-          item.reason === 'user_delete' &&
-          item.provenanceHash === 'm2-selftest-hash',
-      );
-    requireTrue(deleteWithTombstone, 'Delete did not create value-free tombstone.');
-
     // M1 Savepoint Rollback & CHECK constraint
-    const tempName = 'jarvis_m2_native_rollback_probe';
-    db.executeSync('SAVEPOINT jarvis_m2_native_rollback');
+    const tempName = 'jarvis_m3_native_rollback_probe';
+    db.executeSync('SAVEPOINT jarvis_m3_native_rollback');
     db.executeSync('CREATE TEMP TABLE ' + tempName + ' (id INTEGER NOT NULL)');
     db.executeSync('INSERT INTO ' + tempName + ' (id) VALUES (1)');
-    db.executeSync('ROLLBACK TO SAVEPOINT jarvis_m2_native_rollback');
-    db.executeSync('RELEASE SAVEPOINT jarvis_m2_native_rollback');
+    db.executeSync('ROLLBACK TO SAVEPOINT jarvis_m3_native_rollback');
+    db.executeSync('RELEASE SAVEPOINT jarvis_m3_native_rollback');
     const tempRow = db.executeSync(
       "SELECT COUNT(*) AS count FROM sqlite_temp_master WHERE name = '" + tempName + "'",
     ).rows?.[0] as { count?: number } | undefined;
@@ -240,7 +358,7 @@ async function runNativeProbe(): Promise<ProbeReport> {
     let checkConstraint = false;
     try {
       db.executeSync(
-        "INSERT INTO memory_records (id, kind, subject, predicate, value_json, scope, created_at, updated_at, confidence_milli, status, sync_policy, schema_version) VALUES ('m2-invalid-kind-probe', 'not-a-kind', 'x', 'x', '{}', 'global', 1, 1, 1000, 'proposed', 'local_only', 1)",
+        "INSERT INTO memory_records (id, kind, subject, predicate, value_json, scope, created_at, updated_at, confidence_milli, status, sync_policy, schema_version) VALUES ('m3-invalid-kind-probe', 'not-a-kind', 'x', 'x', '{}', 'global', 1, 1, 1000, 'proposed', 'local_only', 1)",
       );
     } catch {
       checkConstraint = true;
@@ -252,16 +370,19 @@ async function runNativeProbe(): Promise<ProbeReport> {
       schemaVersion: Number(schemaRow.schema_version),
       json1,
       foreignKeys,
-      proposalRoundTrip: true,
-      explicitConfirmation: true,
-      rejection: true,
-      savepointRollback,
-      checkConstraint,
       secretGuardBlocked,
       conflictDetected,
       optimisticConcurrency,
       deleteWithTombstone,
       expiryBoundary,
+      savepointRollback,
+      checkConstraint,
+      disableFailClosed,
+      searchAndFilter,
+      editAndUndo,
+      deleteAndUndo,
+      sourceDeleteAndExport,
+      scopedPromptRetrieval,
       databasePath: db.getDbPath(),
     };
   } finally {
@@ -269,39 +390,81 @@ async function runNativeProbe(): Promise<ProbeReport> {
       try {
         db.executeSync('DELETE FROM memory_records WHERE id = ?', [id]);
         db.executeSync('DELETE FROM memory_deletion_tombstones WHERE memory_id = ?', [id]);
+        db.executeSync('DELETE FROM memory_undo_checkpoints WHERE memory_id = ?', [id]);
       } catch {
         /* best-effort self-test cleanup */
       }
+    }
+    try {
+      await jarvisMemoryManagementService.setMemoryEnabled(initialState.enabled);
+    } catch {
+      /* keep best-effort restore */
     }
   }
 }
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState<ProbeTab>('test');
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState<ProbeReport | null>(null);
   const [probeError, setProbeError] = useState<string | null>(null);
 
-  // Interactive M2 sandbox state
+  // Interactive M3 sandbox state
   const [scopeMode, setScopeMode] = useState<MemoryScope>('global');
   const [kind, setKind] = useState<MemoryKind>('fact');
   const [subject, setSubject] = useState('OPPO Find X6 Pro');
   const [predicate, setPredicate] = useState('device_os');
-  const [valueText, setValueText] = useState('ColorOS 16 · Android 16');
+  const [valueText, setValueText] = useState('ColorOS 16 · Android 16 · PGEM10');
+  const [memoryEnabled, setMemoryEnabled] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [kindFilter, setKindFilter] = useState<MemoryKind | null>(null);
+  const [latestUndo, setLatestUndo] = useState<MemoryUndoCheckpoint | null>(null);
+  const [exportBundle, setExportBundle] = useState<MemoryExportBundle | null>(null);
   const [sandboxBusy, setSandboxBusy] = useState(false);
   const [sandboxError, setSandboxError] = useState<string | null>(null);
   const [pendingDrafts, setPendingDrafts] = useState<PendingDraft[]>([]);
   const [confirmedRecords, setConfirmedRecords] = useState<MemoryRecord[]>([]);
   const [tombstoneCount, setTombstoneCount] = useState(0);
 
-  const activeScopeId = scopeMode === 'project' ? 'jarvis-demo' : undefined;
+  // Interactive M4 retrieval state
+  const [promptQuery, setPromptQuery] = useState('PGEM10');
+  const [promptScopePreset, setPromptScopePreset] = useState<PromptScopePreset>('both');
+  const [promptMaxTokens, setPromptMaxTokens] = useState(250);
+  const [retrievalResult, setRetrievalResult] = useState<MemoryRetrievalResult | null>(null);
+
+  const activeScopeId =
+    scopeMode === 'project' ? 'ogam' : scopeMode === 'conversation' ? 'demo-chat' : undefined;
+
+  const refreshRetrieval = useCallback(async () => {
+    const res = await jarvisMemoryRetrievalService.retrieveForPrompt({
+      query: promptQuery,
+      includeGlobal: promptScopePreset === 'global' || promptScopePreset === 'both',
+      projectId: promptScopePreset === 'ogam' || promptScopePreset === 'both' ? 'ogam' : null,
+      conversationId: null,
+      maxTokens: promptMaxTokens,
+      requireQueryMatch: promptQuery.trim().length > 0,
+    });
+    setRetrievalResult(res);
+  }, [promptQuery, promptScopePreset, promptMaxTokens]);
 
   const refreshSandbox = useCallback(async () => {
-    const snapshot = await jarvisMemoryConfirmationController.loadScopeSnapshot(
-      scopeMode,
-      activeScopeId,
-    );
+    const [enabledState, pendingList, filteredConfirmed, undoCp, tombstones] = await Promise.all([
+      jarvisMemoryManagementService.getMemoryState(),
+      jarvisMemoryRepository.listPendingProposals({ scope: scopeMode, scopeId: activeScopeId }),
+      jarvisMemoryManagementService.searchRecords({
+        scope: scopeMode,
+        scopeId: activeScopeId,
+        status: 'confirmed',
+        kind: kindFilter ?? undefined,
+        query: searchQuery,
+        excludeExpired: true,
+      }),
+      jarvisMemoryManagementService.getLatestUndoCheckpoint(),
+      jarvisMemoryRepository.listTombstones(100),
+    ]);
+
     const enrichedPending = await Promise.all(
-      snapshot.pending.map(async item => ({
+      pendingList.map(async item => ({
         proposal: item,
         conflicts: await jarvisMemoryRepository.findConflicts({
           scope: item.scope,
@@ -313,10 +476,13 @@ export default function App() {
         }),
       })),
     );
+
+    setMemoryEnabled(enabledState.enabled);
     setPendingDrafts(enrichedPending);
-    setConfirmedRecords(snapshot.confirmed);
-    setTombstoneCount(snapshot.tombstoneCount);
-  }, [scopeMode, activeScopeId]);
+    setConfirmedRecords(filteredConfirmed);
+    setLatestUndo(undoCp);
+    setTombstoneCount(tombstones.length);
+  }, [scopeMode, activeScopeId, kindFilter, searchQuery]);
 
   const runProbe = useCallback(async () => {
     setBusy(true);
@@ -325,16 +491,17 @@ export default function App() {
     try {
       const nextReport = await runNativeProbe();
       setReport(nextReport);
-      console.log('[JARVIS_M2_PROBE] PASS ' + JSON.stringify(nextReport));
+      console.log('[JARVIS_M3_M4_PROBE] PASS ' + JSON.stringify(nextReport));
       await refreshSandbox();
+      await refreshRetrieval();
     } catch (cause) {
       const message = cause instanceof Error ? cause.stack || cause.message : String(cause);
       setProbeError(message);
-      console.error('[JARVIS_M2_PROBE] FAIL ' + message);
+      console.error('[JARVIS_M3_M4_PROBE] FAIL ' + message);
     } finally {
       setBusy(false);
     }
-  }, [refreshSandbox]);
+  }, [refreshSandbox, refreshRetrieval]);
 
   useEffect(() => {
     void runProbe();
@@ -344,59 +511,17 @@ export default function App() {
     void refreshSandbox().catch(() => undefined);
   }, [refreshSandbox]);
 
-  const handlePropose = async () => {
-    setSandboxBusy(true);
-    setSandboxError(null);
-    try {
-      await jarvisMemoryConfirmationController.propose({
-        kind,
-        subject,
-        predicate,
-        value: valueText,
-        scope: scopeMode,
-        scopeId: activeScopeId ?? null,
-      });
-      await refreshSandbox();
-    } catch (cause) {
-      const msg = cause instanceof Error ? cause.message : String(cause);
-      setSandboxError(msg);
-    } finally {
-      setSandboxBusy(false);
-    }
-  };
+  useEffect(() => {
+    void refreshRetrieval().catch(() => undefined);
+  }, [refreshRetrieval]);
 
-  const handleConfirm = async (id: string) => {
+  const withSandboxAction = async (fn: () => Promise<void>) => {
     setSandboxBusy(true);
     setSandboxError(null);
     try {
-      await jarvisMemoryConfirmationController.confirm(id, { userAction: 'explicit_confirm' });
+      await fn();
       await refreshSandbox();
-    } catch (cause) {
-      setSandboxError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setSandboxBusy(false);
-    }
-  };
-
-  const handleReject = async (id: string) => {
-    setSandboxBusy(true);
-    setSandboxError(null);
-    try {
-      await jarvisMemoryConfirmationController.reject(id);
-      await refreshSandbox();
-    } catch (cause) {
-      setSandboxError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setSandboxBusy(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    setSandboxBusy(true);
-    setSandboxError(null);
-    try {
-      await jarvisMemoryConfirmationController.remove(id, 'user_delete');
-      await refreshSandbox();
+      await refreshRetrieval();
     } catch (cause) {
       setSandboxError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -406,13 +531,17 @@ export default function App() {
 
   const checks: Array<[string, boolean]> = report
     ? [
-        ['Схема v1 и нативный OP-SQLite', report.schemaVersion === 1 && report.foreignKeys],
-        ['M2 Фильтр секретов (MEM-014)', report.secretGuardBlocked],
-        ['M2 Детектор конфликтов (MEM-010)', report.conflictDetected],
-        ['M2 Оптимистическая блокировка (MEM-011)', report.optimisticConcurrency],
-        ['M2 Удаление + tombstone (MEM-006)', report.deleteWithTombstone],
-        ['M2 Истечение срока + CHECK (MEM-005)', report.expiryBoundary],
+        ['Схема v1 + OP-SQLite 15.2.5', report.schemaVersion === 1 && report.foreignKeys],
         ['M1 SAVEPOINT + CHECK constraints', report.savepointRollback && report.checkConstraint],
+        ['M2 Фильтр секретов (MEM-014)', report.secretGuardBlocked],
+        ['M2 Конфликты + Concurrency', report.conflictDetected && report.optimisticConcurrency],
+        ['M2 Срок действия + Tombstone', report.expiryBoundary && report.deleteWithTombstone],
+        ['M3 Пауза памяти fail-closed (MEM-026)', report.disableFailClosed],
+        ['M3 Поиск и фильтр по области (MEM-025)', report.searchAndFilter],
+        ['M3 Правка + 1-шаговый Undo', report.editAndUndo],
+        ['M3 Удаление + Undo без tombstone', report.deleteAndUndo],
+        ['M3 Удаление источника + Экспорт JSON', report.sourceDeleteAndExport],
+        ['M4 Выдача в промпт + бюджет токенов', report.scopedPromptRetrieval],
       ]
     : [];
 
@@ -420,237 +549,405 @@ export default function App() {
     <View style={styles.screen}>
       <StatusBar barStyle="light-content" backgroundColor="#101827" />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.eyebrow}>OGAM · JARVIS MEMORY STEP 1 · M2</Text>
-        <Text style={styles.title}>Jarvis M2 Memory</Text>
+        <Text style={styles.eyebrow}>OGAM · JARVIS MEMORY STEP 1 · M3 + M4</Text>
+        <Text style={styles.title}>Jarvis M3+M4 Memory</Text>
         <Text style={styles.subtitle}>
-          Нативный OP-SQLite 15.2.5 + фильтр секретов, конфликты и явное подтверждение
+          Нативный OP-SQLite 15.2.5 · Пауза, Поиск, Правка/Undo, Экспорт JSON и M4 Промпт
         </Text>
 
-        <View style={styles.statusCard}>
-          {busy ? (
-            <ActivityIndicator size="large" color="#7DD3FC" />
-          ) : report ? (
-            <Text style={styles.passMark}>PASS</Text>
-          ) : probeError ? (
-            <Text style={styles.failMark}>FAIL</Text>
-          ) : null}
-          <Text style={styles.statusTitle}>
-            {busy
-              ? 'Нативная проверка M1+M2…'
-              : report
-                ? 'Нативный M1+M2 самотест пройден'
-                : probeError
-                  ? 'Ошибка самотеста'
-                  : 'Ожидание'}
-          </Text>
-          <Text style={styles.muted}>
-            {report
-              ? `SQLite ${report.sqliteVersion} · JSON1: ${report.json1 ? 'да' : 'нет'} · Android ${String(Platform.Version)}`
-              : 'Автопроверка схемы, секретов, конфликтов и транзакций'}
-          </Text>
+        {/* Segmented tabs */}
+        <View style={styles.tabBar}>
+          {(
+            [
+              ['test', 'Самотест'],
+              ['m3', 'Память M3'],
+              ['m4', 'Промпт M4'],
+            ] as const
+          ).map(([tabKey, tabLabel]) => (
+            <Pressable
+              key={tabKey}
+              accessibilityRole="button"
+              onPress={() => setActiveTab(tabKey)}
+              style={[styles.tabButton, activeTab === tabKey && styles.tabButtonActive]}
+            >
+              <Text style={[styles.tabText, activeTab === tabKey && styles.tabTextActive]}>
+                {tabLabel}
+              </Text>
+            </Pressable>
+          ))}
         </View>
 
-        {report ? (
-          <View style={styles.results}>
-            {checks.map(([label, ok]) => (
-              <View key={label} style={styles.resultRow}>
-                <Text style={styles.resultLabel}>{label}</Text>
-                <Text style={[styles.resultValue, ok ? styles.good : styles.bad]}>
-                  {ok ? 'PASS' : 'FAIL'}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-
-        {probeError ? (
-          <View style={styles.errorCard}>
-            <Text style={styles.errorTitle}>Ошибка нативного самотеста</Text>
-            <Text selectable style={styles.errorText}>
-              {probeError}
-            </Text>
-          </View>
-        ) : null}
-
-        <Pressable
-          accessibilityRole="button"
-          disabled={busy}
-          onPress={() => void runProbe()}
-          style={({ pressed }) => [styles.button, (pressed || busy) && styles.buttonMuted]}
-        >
-          <Text style={styles.buttonText}>
-            {busy ? 'Проверяем…' : 'Повторить нативный самотест M1+M2'}
-          </Text>
-        </Pressable>
-
-        <View style={styles.sandboxSection}>
-          <Text style={styles.sectionTitle}>Интерактивная проверка M2 на телефоне</Text>
-          <Text style={styles.sectionHint}>
-            Создайте предложение: оно попадёт в очередь подтверждения, переживёт перезапуск после
-            сохранения и заблокируется при попытке записать секрет.
-          </Text>
-
-          <View style={styles.chipRow}>
-            {(['global', 'project'] as const).map(item => (
-              <Pressable
-                key={item}
-                onPress={() => setScopeMode(item)}
-                style={[styles.chip, scopeMode === item && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, scopeMode === item && styles.chipTextActive]}>
-                  {item === 'global' ? 'Глобально' : 'Проект: jarvis-demo'}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <View style={styles.chipRow}>
-            {(['fact', 'preference', 'project_decision'] as const).map(item => (
-              <Pressable
-                key={item}
-                onPress={() => setKind(item)}
-                style={[styles.chip, kind === item && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, kind === item && styles.chipTextActive]}>
-                  {formatKindLabel(item)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <View style={styles.chipRow}>
-            <Pressable
-              onPress={() => {
-                setKind('fact');
-                setSubject('OPPO Find X6 Pro');
-                setPredicate('device_os');
-                setValueText('ColorOS 16 · Android 16 · PGEM10');
-                setSandboxError(null);
-              }}
-              style={styles.presetChip}
-            >
-              <Text style={styles.presetText}>Пресет: факт о телефоне</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setKind('fact');
-                setSubject('GitHub API');
-                setPredicate('api_key');
-                setValueText('ghp_1234567890abcdefghij1234567890abcdef');
-                setSandboxError(null);
-              }}
-              style={styles.presetChipDanger}
-            >
-              <Text style={styles.presetTextDanger}>Пресет: токен (проверка блока)</Text>
-            </Pressable>
-          </View>
-
-          <Text style={styles.inputLabel}>Тема (subject)</Text>
-          <TextInput
-            value={subject}
-            onChangeText={setSubject}
-            style={styles.input}
-            placeholder="Например, OPPO Find X6 Pro"
-            placeholderTextColor="#64748B"
-          />
-
-          <Text style={styles.inputLabel}>Предикат (predicate)</Text>
-          <TextInput
-            value={predicate}
-            onChangeText={setPredicate}
-            style={styles.input}
-            placeholder="Например, device_os"
-            placeholderTextColor="#64748B"
-          />
-
-          <Text style={styles.inputLabel}>Значение (value)</Text>
-          <TextInput
-            value={valueText}
-            onChangeText={setValueText}
-            style={styles.input}
-            placeholder="Любое текстовое значение"
-            placeholderTextColor="#64748B"
-          />
-
-          <Pressable
-            accessibilityRole="button"
-            disabled={sandboxBusy}
-            onPress={() => void handlePropose()}
-            style={({ pressed }) => [
-              styles.proposeButton,
-              (pressed || sandboxBusy) && styles.buttonMuted,
-            ]}
-          >
-            <Text style={styles.buttonText}>
-              {sandboxBusy ? 'Обработка…' : 'Предложить запись в память'}
-            </Text>
-          </Pressable>
-
-          {sandboxError ? (
-            <View style={styles.errorCard}>
-              <Text style={styles.errorTitle}>Заблокировано защитой памяти</Text>
-              <Text selectable style={styles.errorText}>
-                {sandboxError}
+        {activeTab === 'test' ? (
+          <View>
+            <View style={styles.statusCard}>
+              {busy ? (
+                <ActivityIndicator size="large" color="#7DD3FC" />
+              ) : report ? (
+                <Text style={styles.passMark}>PASS</Text>
+              ) : probeError ? (
+                <Text style={styles.failMark}>FAIL</Text>
+              ) : null}
+              <Text style={styles.statusTitle}>
+                {busy
+                  ? 'Нативная проверка M1–M4…'
+                  : report
+                    ? 'Нативный M1–M4 самотест пройден'
+                    : probeError
+                      ? 'Ошибка самотеста'
+                      : 'Ожидание'}
+              </Text>
+              <Text style={styles.muted}>
+                {report
+                  ? `SQLite ${report.sqliteVersion} · JSON1: ${report.json1 ? 'да' : 'нет'} · Android ${String(Platform.Version)}`
+                  : 'Автопроверка схемы, Undo, паузы, экспорта JSON и M4 промпт-выдачи'}
               </Text>
             </View>
-          ) : null}
 
-          <Text style={styles.listHeader}>
-            Ожидают подтверждения ({pendingDrafts.length})
-          </Text>
-          {pendingDrafts.length === 0 ? (
-            <Text style={styles.emptyHint}>Нет неподтверждённых предложений в выбранной области.</Text>
-          ) : (
-            pendingDrafts.map(({ proposal, conflicts }) => (
-              <MemoryProposalCard
-                key={proposal.id}
-                proposal={proposal}
-                conflicts={conflicts}
-                busy={sandboxBusy}
-                onConfirm={id => void handleConfirm(id)}
-                onReject={id => void handleReject(id)}
-              />
-            ))
-          )}
-
-          <Text style={styles.listHeader}>
-            Подтверждённая память ({formatScopeLabel(scopeMode, activeScopeId ?? null)} ·{' '}
-            {confirmedRecords.length})
-          </Text>
-          {confirmedRecords.length === 0 ? (
-            <Text style={styles.emptyHint}>
-              Пока нет подтверждённых записей. Сохраните предложение выше и перезапустите
-              приложение для проверки сохранности.
-            </Text>
-          ) : (
-            confirmedRecords.map(record => (
-              <View key={record.id} style={styles.confirmedCard}>
-                <View style={styles.confirmedHeader}>
-                  <View style={styles.confirmedTitleWrap}>
-                    <Text style={styles.confirmedSubject}>{record.subject}</Text>
-                    <Text style={styles.confirmedMeta}>
-                      {formatKindLabel(record.kind)} · {record.predicate}
+            {report ? (
+              <View style={styles.results}>
+                {checks.map(([label, ok]) => (
+                  <View key={label} style={styles.resultRow}>
+                    <Text style={styles.resultLabel}>{label}</Text>
+                    <Text style={[styles.resultValue, ok ? styles.good : styles.bad]}>
+                      {ok ? 'PASS' : 'FAIL'}
                     </Text>
                   </View>
-                  <Pressable
-                    onPress={() => void handleDelete(record.id)}
-                    disabled={sandboxBusy}
-                    style={styles.deleteButton}
-                  >
-                    <Text style={styles.deleteText}>Удалить</Text>
-                  </Pressable>
-                </View>
-                <Text selectable style={styles.confirmedValue}>
-                  {formatValuePreview(record.value)}
+                ))}
+              </View>
+            ) : null}
+
+            {probeError ? (
+              <View style={styles.errorCard}>
+                <Text style={styles.errorTitle}>Ошибка нативного самотеста</Text>
+                <Text selectable style={styles.errorText}>
+                  {probeError}
                 </Text>
               </View>
-            ))
-          )}
+            ) : null}
 
-          <Text style={styles.tombstoneFooter}>
-            Tombstones удалений (без значений): {tombstoneCount}
-          </Text>
-        </View>
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={() => void runProbe()}
+              style={({ pressed }) => [styles.button, (pressed || busy) && styles.buttonMuted]}
+            >
+              <Text style={styles.buttonText}>
+                {busy ? 'Проверяем…' : 'Повторить нативный самотест M1–M4'}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {activeTab === 'm3' ? (
+          <View>
+            <Text style={styles.sectionTitle}>Предложение и управление памятью (M3)</Text>
+            <Text style={styles.sectionHint}>
+              Проверяйте паузу памяти (fail-closed), конфликты, редактирование, удаление с 1-тап
+              откатом (Undo) и переносимый экспорт JSON.
+            </Text>
+
+            <View style={styles.chipRow}>
+              {(['global', 'project', 'conversation'] as const).map(item => (
+                <Pressable
+                  key={item}
+                  onPress={() => setScopeMode(item)}
+                  style={[styles.chip, scopeMode === item && styles.chipActive]}
+                >
+                  <Text style={[styles.chipText, scopeMode === item && styles.chipTextActive]}>
+                    {item === 'global'
+                      ? 'Глобально'
+                      : item === 'project'
+                        ? 'Проект: ogam'
+                        : 'Диалог: demo-chat'}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={styles.chipRow}>
+              {(['fact', 'preference', 'project_decision'] as const).map(item => (
+                <Pressable
+                  key={item}
+                  onPress={() => setKind(item)}
+                  style={[styles.chip, kind === item && styles.chipActive]}
+                >
+                  <Text style={[styles.chipText, kind === item && styles.chipTextActive]}>
+                    {formatKindLabel(item)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={styles.chipRow}>
+              <Pressable
+                onPress={() => {
+                  setKind('fact');
+                  setSubject('OPPO Find X6 Pro');
+                  setPredicate('device_os');
+                  setValueText('ColorOS 16 · Android 16 · PGEM10');
+                  setSandboxError(null);
+                }}
+                style={styles.presetChip}
+              >
+                <Text style={styles.presetText}>Пресет: факт PGEM10</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setKind('preference');
+                  setSubject('Язык ответа');
+                  setPredicate('language');
+                  setValueText('Отвечать кратко и только на русском языке');
+                  setSandboxError(null);
+                }}
+                style={styles.presetChip}
+              >
+                <Text style={styles.presetText}>Пресет: язык</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setKind('fact');
+                  setSubject('GitHub API');
+                  setPredicate('api_key');
+                  setValueText('ghp_1234567890abcdefghij1234567890abcdef');
+                  setSandboxError(null);
+                }}
+                style={styles.presetChipDanger}
+              >
+                <Text style={styles.presetTextDanger}>Пресет: токен (блок)</Text>
+              </Pressable>
+            </View>
+
+            <Text style={styles.inputLabel}>Тема (subject)</Text>
+            <TextInput
+              value={subject}
+              onChangeText={setSubject}
+              style={styles.input}
+              placeholder="Например, OPPO Find X6 Pro"
+              placeholderTextColor="#64748B"
+            />
+
+            <Text style={styles.inputLabel}>Предикат (predicate)</Text>
+            <TextInput
+              value={predicate}
+              onChangeText={setPredicate}
+              style={styles.input}
+              placeholder="Например, device_os"
+              placeholderTextColor="#64748B"
+            />
+
+            <Text style={styles.inputLabel}>Значение (value)</Text>
+            <TextInput
+              value={valueText}
+              onChangeText={setValueText}
+              style={styles.input}
+              placeholder="Любое значение"
+              placeholderTextColor="#64748B"
+            />
+
+            <Pressable
+              accessibilityRole="button"
+              disabled={sandboxBusy}
+              onPress={() =>
+                void withSandboxAction(async () => {
+                  await jarvisMemoryConfirmationController.propose({
+                    kind,
+                    subject,
+                    predicate,
+                    value: valueText,
+                    scope: scopeMode,
+                    scopeId: activeScopeId ?? null,
+                    sourceConversationId: scopeMode === 'conversation' ? 'demo-chat' : null,
+                  });
+                })
+              }
+              style={({ pressed }) => [
+                styles.proposeButton,
+                (pressed || sandboxBusy) && styles.buttonMuted,
+              ]}
+            >
+              <Text style={styles.buttonText}>
+                {sandboxBusy ? 'Обработка…' : 'Предложить запись в память'}
+              </Text>
+            </Pressable>
+
+            {sandboxError ? (
+              <View style={styles.errorCard}>
+                <Text style={styles.errorTitle}>Операция заблокирована</Text>
+                <Text selectable style={styles.errorText}>
+                  {sandboxError}
+                </Text>
+              </View>
+            ) : null}
+
+            <Text style={styles.listHeader}>
+              Ожидают подтверждения ({pendingDrafts.length})
+            </Text>
+            {pendingDrafts.length === 0 ? (
+              <Text style={styles.emptyHint}>Нет неподтверждённых предложений в области.</Text>
+            ) : (
+              pendingDrafts.map(({ proposal, conflicts }) => (
+                <MemoryProposalCard
+                  key={proposal.id}
+                  proposal={proposal}
+                  conflicts={conflicts}
+                  busy={sandboxBusy}
+                  onConfirm={id =>
+                    void withSandboxAction(async () => {
+                      await jarvisMemoryConfirmationController.confirm(id, {
+                        userAction: 'explicit_confirm',
+                      });
+                    })
+                  }
+                  onReject={id =>
+                    void withSandboxAction(async () => {
+                      await jarvisMemoryConfirmationController.reject(id);
+                    })
+                  }
+                />
+              ))
+            )}
+
+            <Text style={styles.listHeader}>
+              Управление ({formatScopeLabel(scopeMode, activeScopeId ?? null)} ·{' '}
+              {confirmedRecords.length})
+            </Text>
+
+            <MemoryManagerPanel
+              memoryEnabled={memoryEnabled}
+              onToggleEnabled={nextEnabled =>
+                void withSandboxAction(async () => {
+                  await jarvisMemoryManagementService.setMemoryEnabled(nextEnabled);
+                })
+              }
+              records={confirmedRecords}
+              searchQuery={searchQuery}
+              onSearchQueryChange={setSearchQuery}
+              kindFilter={kindFilter}
+              onKindFilterChange={setKindFilter}
+              latestUndo={latestUndo}
+              onUndo={() =>
+                void withSandboxAction(async () => {
+                  await jarvisMemoryManagementService.undoLastChange();
+                })
+              }
+              onEditRecord={(record, nextSubject, nextPredicate, nextValue) =>
+                withSandboxAction(async () => {
+                  await jarvisMemoryManagementService.updateWithCheckpoint(
+                    record.id,
+                    { subject: nextSubject, predicate: nextPredicate, value: nextValue },
+                    record.updatedAt,
+                  );
+                })
+              }
+              onDeleteRecord={id =>
+                void withSandboxAction(async () => {
+                  await jarvisMemoryManagementService.deleteWithCheckpoint(id, 'user_delete');
+                })
+              }
+              onExportJson={() =>
+                void withSandboxAction(async () => {
+                  const bundle = await jarvisMemoryManagementService.exportPortableJson({
+                    userInitiated: true,
+                    scope: scopeMode,
+                    scopeId: activeScopeId,
+                  });
+                  setExportBundle(bundle);
+                })
+              }
+              exportBundle={exportBundle}
+              onDismissExport={() => setExportBundle(null)}
+              busy={sandboxBusy}
+            />
+
+            <Text style={styles.tombstoneFooter}>
+              Tombstones удалений (без значений): {tombstoneCount}
+            </Text>
+          </View>
+        ) : null}
+
+        {activeTab === 'm4' ? (
+          <View>
+            <Text style={styles.sectionTitle}>Детерминированный поиск для LLM (M4)</Text>
+            <Text style={styles.sectionHint}>
+              Подбирает только подтверждённые неистёкшие записи в выбранных областях в пределах
+              бюджета токенов и прикрепляет ссылки на источник.
+            </Text>
+
+            <Text style={styles.inputLabel}>Запрос пользователя к ассистенту</Text>
+            <TextInput
+              value={promptQuery}
+              onChangeText={setPromptQuery}
+              style={styles.input}
+              placeholder="Например, PGEM10 или язык ответа (пусто = топ фактов)"
+              placeholderTextColor="#64748B"
+            />
+
+            <Text style={styles.inputLabel}>Области выдачи</Text>
+            <View style={styles.chipRow}>
+              {(
+                [
+                  ['global', 'Только Глобально'],
+                  ['ogam', 'Только Проект ogam'],
+                  ['both', 'Глобально + ogam'],
+                ] as const
+              ).map(([presetKey, label]) => (
+                <Pressable
+                  key={presetKey}
+                  onPress={() => setPromptScopePreset(presetKey)}
+                  style={[styles.chip, promptScopePreset === presetKey && styles.chipActive]}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      promptScopePreset === presetKey && styles.chipTextActive,
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.inputLabel}>Бюджет токенов</Text>
+            <View style={styles.chipRow}>
+              {[120, 250, 400].map(budget => (
+                <Pressable
+                  key={budget}
+                  onPress={() => setPromptMaxTokens(budget)}
+                  style={[styles.chip, promptMaxTokens === budget && styles.chipActive]}
+                >
+                  <Text
+                    style={[styles.chipText, promptMaxTokens === budget && styles.chipTextActive]}
+                  >
+                    {budget} токенов
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {retrievalResult ? (
+              <View style={styles.promptResultCard}>
+                {!retrievalResult.enabled ? (
+                  <Text style={styles.promptPausedText}>
+                    Выдача отключена: память поставлена на паузу на вкладке «Память M3» (fail-closed).
+                  </Text>
+                ) : (
+                  <View>
+                    <Text style={styles.promptStats}>
+                      Отобрано: {retrievalResult.items.length} из {retrievalResult.totalMatched} ·
+                      Пропущено по бюджету: {retrievalResult.omittedCount} · Токены:{' '}
+                      {retrievalResult.estimatedTokens}/{retrievalResult.maxTokens}
+                    </Text>
+                    <Text selectable style={styles.promptBlock}>
+                      {retrievalResult.promptBlock ||
+                        '(Подходящих подтверждённых записей в выбранных областях пока нет. Добавьте факт во вкладке «Память M3».)'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -658,15 +955,32 @@ export default function App() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#101827' },
-  content: { padding: 20, paddingTop: 34, paddingBottom: 48 },
+  content: { padding: 20, paddingTop: 42, paddingBottom: 96 },
   eyebrow: { color: '#7DD3FC', fontSize: 11, letterSpacing: 1.5, fontWeight: '700' },
-  title: { color: '#F8FAFC', fontSize: 28, fontWeight: '800', marginTop: 8 },
+  title: { color: '#F8FAFC', fontSize: 27, fontWeight: '800', marginTop: 8 },
   subtitle: { color: '#A8B5C7', fontSize: 13, lineHeight: 19, marginTop: 6 },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#1B293B',
+    borderRadius: 12,
+    padding: 4,
+    marginTop: 16,
+    gap: 4,
+  },
+  tabButton: {
+    flex: 1,
+    borderRadius: 9,
+    paddingVertical: 9,
+    alignItems: 'center',
+  },
+  tabButtonActive: { backgroundColor: '#0284C7' },
+  tabText: { color: '#94A3B8', fontSize: 12, fontWeight: '700' },
+  tabTextActive: { color: '#FFFFFF', fontWeight: '800' },
   statusCard: {
     backgroundColor: '#1B293B',
     borderRadius: 16,
     padding: 18,
-    marginTop: 20,
+    marginTop: 18,
     alignItems: 'center',
   },
   passMark: { color: '#4ADE80', fontSize: 28, fontWeight: '900', letterSpacing: 2 },
@@ -678,7 +992,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 9,
+    paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#35445A',
   },
@@ -712,15 +1026,9 @@ const styles = StyleSheet.create({
   },
   buttonMuted: { opacity: 0.55 },
   buttonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-  sandboxSection: {
-    marginTop: 24,
-    paddingTop: 18,
-    borderTopWidth: 1,
-    borderTopColor: '#263449',
-  },
-  sectionTitle: { color: '#F8FAFC', fontSize: 18, fontWeight: '800' },
+  sectionTitle: { color: '#F8FAFC', fontSize: 18, fontWeight: '800', marginTop: 18 },
   sectionHint: { color: '#94A3B8', fontSize: 12, lineHeight: 18, marginTop: 6 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   chip: {
     backgroundColor: '#1E293B',
     borderColor: '#334155',
@@ -758,27 +1066,25 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 13,
   },
-  listHeader: { color: '#E2E8F0', fontSize: 14, fontWeight: '800', marginTop: 20 },
+  listHeader: { color: '#E2E8F0', fontSize: 14, fontWeight: '800', marginTop: 18 },
   emptyHint: { color: '#64748B', fontSize: 12, marginTop: 8, lineHeight: 18 },
-  confirmedCard: {
-    backgroundColor: '#1B293B',
-    borderColor: '#065F46',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 10,
-  },
-  confirmedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  confirmedTitleWrap: { flex: 1, paddingRight: 10 },
-  confirmedSubject: { color: '#F8FAFC', fontSize: 14, fontWeight: '800' },
-  confirmedMeta: { color: '#94A3B8', fontSize: 11, marginTop: 2 },
-  confirmedValue: { color: '#D1FAE5', fontSize: 12, marginTop: 8, lineHeight: 18 },
-  deleteButton: {
-    backgroundColor: '#7F1D1D',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  deleteText: { color: '#FEE2E2', fontSize: 11, fontWeight: '800' },
   tombstoneFooter: { color: '#64748B', fontSize: 11, marginTop: 16, textAlign: 'center' },
+  promptResultCard: {
+    backgroundColor: '#1B293B',
+    borderColor: '#334155',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 16,
+  },
+  promptPausedText: { color: '#FCA5A5', fontSize: 13, fontWeight: '700', lineHeight: 19 },
+  promptStats: { color: '#7DD3FC', fontSize: 11, fontWeight: '700', marginBottom: 10 },
+  promptBlock: {
+    color: '#E2E8F0',
+    backgroundColor: '#0F172A',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 12,
+    lineHeight: 18,
+  },
 });

@@ -1,0 +1,110 @@
+name: Jarvis Memory M3+M4 OP-SQLite Android Native Probe
+
+on:
+  push:
+    branches:
+      - feature/jarvis-step-1-memory-m3-m4-2026-11-24
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jarvis-m3-m4-op-sqlite-probe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-arm64:
+    name: Build isolated M3+M4 OP-SQLite ARM64 APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout OGAM
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare exact M3+M4 source copy
+        run: bash .ci/prepare-jarvis-memory-m3-m4-native-probe.sh
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configure Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install required SDK packages
+        shell: bash
+        run: |
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;27.1.12297006" "cmake;3.22.1"
+
+      - name: Install isolated public dependencies
+        working-directory: validation/android-native-probe
+        run: npm install --no-audit --no-fund
+
+      - name: Type-check M3+M4 native probe app and production components
+        working-directory: validation/android-native-probe
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Verify OP-SQLite Android autolinking
+        working-directory: validation/android-native-probe
+        run: |
+          npx react-native config > /tmp/rn-config.json
+          node -e "const c=require('/tmp/rn-config.json'); if (!c.dependencies['@op-engineering/op-sqlite']?.platforms?.android) process.exit(1); console.log('OP-SQLite Android autolinking: OK')"
+
+      - name: Set up Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Build release APK for ARM64 and x86_64 emulator
+        working-directory: validation/android-native-probe/android
+        run: gradle --no-daemon assembleRelease -PreactNativeArchitectures=arm64-v8a,x86_64
+
+      - name: Verify APK and create checksum
+        working-directory: validation/android-native-probe
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          test -s "$APK"
+          unzip -l "$APK" | grep 'lib/arm64-v8a/' | tee /tmp/arm64-native-libraries.txt
+          test -s /tmp/arm64-native-libraries.txt
+          unzip -l "$APK" | grep 'lib/x86_64/' | tee /tmp/x86-native-libraries.txt
+          test -s /tmp/x86-native-libraries.txt
+          sha256sum "$APK" | tee android/app/build/outputs/apk/release/app-release.apk.sha256
+          ls -lh "$APK"
+
+      - name: Launch APK in Android emulator and capture M3+M4 diagnostics
+        id: emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          ANDROID_I_WANT_MY_TCG: 'yes'
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot-save
+          disable-animations: true
+          script: bash "$GITHUB_WORKSPACE/.ci/run-jarvis-m3-m4-emulator-probe.sh"
+
+      - name: Upload M3+M4 probe APK, checksum, lockfile and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Jarvis-M3-M4-OPSQLite-Native-Probe-APK
+          path: |
+            validation/android-native-probe/android/app/build/outputs/apk/release/app-release.apk
+            validation/android-native-probe/android/app/build/outputs/apk/release/app-release.apk.sha256
+            validation/android-native-probe/package-lock.json
+            validation/android-native-probe/runtime-diagnostics/
+          if-no-files-found: warn
+          retention-days: 14
