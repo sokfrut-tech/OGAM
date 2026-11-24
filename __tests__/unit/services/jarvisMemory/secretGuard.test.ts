@@ -95,7 +95,7 @@ describe('Jarvis memory M2 secret guard (MEM-014)', () => {
   it('scans values at the depth boundary and fails closed beyond it', () => {
     const token = 'ghp_1234567890abcdefghij1234567890abcdef';
     let atBoundary: unknown = token;
-    for (let i = 0; i < 7; i += 1) atBoundary = { nested: atBoundary };
+    for (let i = 0; i < 8; i += 1) atBoundary = { nested: atBoundary };
     const boundary = assessSecretRisk({
       subject: 'nested value',
       predicate: 'note',
@@ -105,7 +105,7 @@ describe('Jarvis memory M2 secret guard (MEM-014)', () => {
     expect(boundary.findings.some(f => f.category === 'api_token')).toBe(true);
 
     let beyondBoundary: unknown = token;
-    for (let i = 0; i < 8; i += 1) beyondBoundary = { nested: beyondBoundary };
+    for (let i = 0; i < 9; i += 1) beyondBoundary = { nested: beyondBoundary };
     const beyond = assessSecretRisk({
       subject: 'nested value',
       predicate: 'note',
