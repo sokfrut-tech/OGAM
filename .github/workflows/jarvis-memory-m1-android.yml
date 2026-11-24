@@ -35,6 +35,17 @@ jobs:
           private-token: ${{ secrets.PRO_SUBMODULE_PAT }}
           save-caches: 'false'
 
+      - name: Type-check complete Android app and M1 probe
+        run: npx tsc --noEmit
+
+      - name: Run focused Jarvis M1 tests
+        run: |
+          npx jest --runInBand --no-coverage --runTestsByPath \
+            __tests__/unit/services/jarvisMemory/schema.test.ts \
+            __tests__/unit/services/jarvisMemory/database.test.ts \
+            __tests__/unit/services/jarvisMemory/repositoryValidation.test.ts \
+            __tests__/unit/services/jarvisMemory/repositoryGuards.test.ts
+
       - name: Set up Java 17, pinned Android NDK and native runtime
         uses: ./.github/actions/setup-android
         with:
