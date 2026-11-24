@@ -1,3 +1,4 @@
+import { jarvisMemoryManagementService } from './managementService';
 import { jarvisMemoryRepository } from './repository';
 import { assertNoSecretRisk } from './secretGuard';
 import type {
@@ -72,6 +73,7 @@ export class JarvisMemoryConfirmationController {
       predicate: input.predicate.trim(),
       value: input.value,
     });
+    await jarvisMemoryManagementService.assertMemoryEnabled();
     return jarvisMemoryRepository.proposeForConfirmation(input);
   }
 
