@@ -52,6 +52,7 @@ export const DeviceInfoScreen: React.FC = () => {
     const lines: string[] = [];
     let probeRecordId: string | null = null;
     let db: ReturnType<typeof jarvisMemoryDatabase.getDatabase> | null = null;
+    let savepointOpen = false;
     try {
       await jarvisMemoryDatabase.ensureReady();
       db = jarvisMemoryDatabase.getDatabase();
@@ -106,9 +107,11 @@ export const DeviceInfoScreen: React.FC = () => {
       db.executeSync('CREATE TEMP TABLE IF NOT EXISTS jarvis_memory_m1_probe (value TEXT NOT NULL)');
       db.executeSync('DELETE FROM jarvis_memory_m1_probe');
       db.executeSync('SAVEPOINT jarvis_memory_m1_rollback');
+      savepointOpen = true;
       db.executeSync('INSERT INTO jarvis_memory_m1_probe (value) VALUES (?)', ['must-rollback']);
       db.executeSync('ROLLBACK TO SAVEPOINT jarvis_memory_m1_rollback');
       db.executeSync('RELEASE SAVEPOINT jarvis_memory_m1_rollback');
+      savepointOpen = false;
       const rollbackRows = (db.executeSync(
         'SELECT COUNT(*) AS count FROM jarvis_memory_m1_probe',
       ).rows ?? []) as unknown as Array<{ count: number }>;
@@ -124,6 +127,10 @@ export const DeviceInfoScreen: React.FC = () => {
     } finally {
       if (db) {
         try {
+          if (savepointOpen) {
+            db.executeSync('ROLLBACK TO SAVEPOINT jarvis_memory_m1_rollback');
+            db.executeSync('RELEASE SAVEPOINT jarvis_memory_m1_rollback');
+          }
           if (probeRecordId) db.executeSync('DELETE FROM memory_records WHERE id = ?', [probeRecordId]);
           db.executeSync('DROP TABLE IF EXISTS jarvis_memory_m1_probe');
         } catch (cleanupError) {

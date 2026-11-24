@@ -2,6 +2,14 @@ name: Jarvis Memory M1 Android Native Probe
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - feature/jarvis-step-2-storage-privacy
+    paths:
+      - '.github/workflows/jarvis-memory-m1-android.yml'
+      - 'android/app/build.gradle'
+      - 'src/services/jarvisMemory/**'
+      - 'src/screens/DeviceInfoScreen.tsx'
   push:
     branches:
       - feature/jarvis-step-1-memory-m1-2026-11-24
