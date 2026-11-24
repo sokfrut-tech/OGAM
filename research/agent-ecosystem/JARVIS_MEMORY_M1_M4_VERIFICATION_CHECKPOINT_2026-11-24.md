@@ -88,3 +88,8 @@ The user reports: “Скачал работает” after receiving the standa
 ### Physical OPPO smoke test update — USER REPORTED (2026-11-24)
 
 The user reports that all checks shown in the probe are green and every tab responds to taps on the OPPO device. This confirms a successful basic physical-device launch, green self-test display and responsive tab navigation. The user has not yet separately described exercising each state-changing M3 operation (edit/undo, delete/undo, source deletion/export) or inspecting the actual scoped M4 prompt contents. Keep those deeper functional assertions pending unless the user confirms them. Do not overstate this smoke test as full end-to-end acceptance of every memory workflow.
+
+
+### Physical OPPO M3 edit/undo check — USER REPORTED (2026-11-24)
+
+The user confirms that changing a test memory entry and then using Undo worked in the M3 tab. This is a user-reported physical-device functional check for the edit/undo path. Delete/undo, source deletion/export, and detailed M4 scoped prompt content remain unconfirmed.
