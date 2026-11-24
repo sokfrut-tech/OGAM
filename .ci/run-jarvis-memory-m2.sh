@@ -94,7 +94,7 @@ module.exports = {
   verbose: true,
   testTimeout: 10000
 };
-JSON
+JS
 
 echo "=== Type-checking M1+M2 production services and 7 focused tests ==="
 npx tsc --noEmit -p tsconfig.json
