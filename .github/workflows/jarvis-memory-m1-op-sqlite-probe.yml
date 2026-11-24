@@ -16,7 +16,7 @@ concurrency:
 jobs:
   android-arm64:
     name: Build isolated OP-SQLite ARM64 APK
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
       - name: Checkout OGAM
@@ -87,6 +87,7 @@ jobs:
           api-level: 35
           arch: x86_64
           profile: pixel_2
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot-save
           disable-animations: true
           script: |
             mkdir -p validation/android-native-probe/runtime-diagnostics
