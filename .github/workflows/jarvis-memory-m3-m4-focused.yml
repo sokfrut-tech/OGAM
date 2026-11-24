@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/jarvis-step-1-memory-m3-m4-2026-11-24
+      - fix/jarvis-m5-undo-secret-guard-2026-11-24
   workflow_dispatch:
 
 permissions:
