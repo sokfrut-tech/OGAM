@@ -299,9 +299,21 @@ export class JarvisMemoryManagementService {
       throw new Error(`Jarvis memory record ${id} was not found.`);
     }
 
-    const updated = await jarvisMemoryRepository.updateRecord(id, patch, expectedUpdatedAt);
-    const checkpoint = this.saveCheckpoint(db, 'update', existing);
-    return { record: updated, checkpoint };
+    db.executeSync('SAVEPOINT jarvis_memory_update_checkpoint');
+    try {
+      const checkpoint = this.saveCheckpoint(db, 'update', existing);
+      const updated = await jarvisMemoryRepository.updateRecord(id, patch, expectedUpdatedAt);
+      db.executeSync('RELEASE SAVEPOINT jarvis_memory_update_checkpoint');
+      return { record: updated, checkpoint };
+    } catch (error) {
+      try {
+        db.executeSync('ROLLBACK TO SAVEPOINT jarvis_memory_update_checkpoint');
+        db.executeSync('RELEASE SAVEPOINT jarvis_memory_update_checkpoint');
+      } catch {
+        /* Preserve the primary update/checkpoint failure. */
+      }
+      throw error;
+    }
   }
 
   /** Captures a pre-delete local snapshot before delegating to repository.deleteRecord (MEM-006 + PocketMind undo). */
@@ -315,13 +327,26 @@ export class JarvisMemoryManagementService {
       return { deleted: false, checkpoint: null };
     }
 
-    const deleted = await jarvisMemoryRepository.deleteRecord(id, reason);
-    if (!deleted) {
-      return { deleted: false, checkpoint: null };
+    db.executeSync('SAVEPOINT jarvis_memory_delete_checkpoint');
+    try {
+      const checkpoint = this.saveCheckpoint(db, 'delete', existing);
+      const deleted = await jarvisMemoryRepository.deleteRecord(id, reason);
+      if (!deleted) {
+        db.executeSync('ROLLBACK TO SAVEPOINT jarvis_memory_delete_checkpoint');
+        db.executeSync('RELEASE SAVEPOINT jarvis_memory_delete_checkpoint');
+        return { deleted: false, checkpoint: null };
+      }
+      db.executeSync('RELEASE SAVEPOINT jarvis_memory_delete_checkpoint');
+      return { deleted: true, checkpoint };
+    } catch (error) {
+      try {
+        db.executeSync('ROLLBACK TO SAVEPOINT jarvis_memory_delete_checkpoint');
+        db.executeSync('RELEASE SAVEPOINT jarvis_memory_delete_checkpoint');
+      } catch {
+        /* Preserve the primary delete/checkpoint failure. */
+      }
+      throw error;
     }
-
-    const checkpoint = this.saveCheckpoint(db, 'delete', existing);
-    return { deleted: true, checkpoint };
   }
 
   async getLatestUndoCheckpoint(): Promise<MemoryUndoCheckpoint | null> {
