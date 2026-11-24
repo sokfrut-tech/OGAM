@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: jarvis-memory-m1-android-\${{ github.ref }}
+  group: jarvis-memory-m1-android-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -37,7 +37,7 @@ jobs:
 
       - name: Require private workspace access
         env:
-          PRO_SUBMODULE_PAT: \${{ secrets.PRO_SUBMODULE_PAT }}
+          PRO_SUBMODULE_PAT: ${{ secrets.PRO_SUBMODULE_PAT }}
         shell: bash
         run: |
           if [[ -z "$PRO_SUBMODULE_PAT" ]]; then
@@ -48,7 +48,7 @@ jobs:
       - name: Set up Node workspace and private packages
         uses: ./.github/actions/setup-mobile
         with:
-          private-token: \${{ secrets.PRO_SUBMODULE_PAT }}
+          private-token: ${{ secrets.PRO_SUBMODULE_PAT }}
           save-caches: 'false'
 
       - name: Set up Java 17, pinned Android NDK and native runtime
