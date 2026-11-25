@@ -117,7 +117,7 @@ const MOBILE_TOPICS: readonly GuideTopicFacts[] = [
       'Save finished clips into Gallery',
     ],
     group: 'chat-media',
-    where: 'both',
+    where: 'phone',
     pro: true,
   },
   {
@@ -191,7 +191,7 @@ const MOBILE_TOPICS: readonly GuideTopicFacts[] = [
   {
     id: 'phone-vault',
     label: 'Private Vault',
-    tagline: 'Store sensitive snippets with app lock protection.',
+    tagline: 'Your passwords, locked on this phone.',
     description: 'Protect confidential data behind passphrase lock and encrypted device boundaries.',
     highlights: [
       'Guard access via Security passphrase settings',

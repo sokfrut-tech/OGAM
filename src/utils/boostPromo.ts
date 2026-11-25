@@ -44,6 +44,6 @@ export function boostPromoLink(
 ): string {
   const source = encodeURIComponent(`off-grid-${platform}-app`);
   const medium = encodeURIComponent(`boost-${surface}`);
-  const campaign = encodeURIComponent(BOOST_PROMO.version);
+  const campaign = encodeURIComponent('in-app');
   return `https://getoffgridai.co/boost?utm_source=${source}&utm_medium=${medium}&utm_campaign=${campaign}`;
 }

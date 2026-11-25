@@ -32,7 +32,7 @@ function isPositiveFinite(value: unknown): value is number {
 /** Derive default steps, CFG scale, and resolution class from an image model name or ID. */
 export function standardImageModelDefaults(nameOrId: string): ImageModelDefaults {
   const fewStep = FEW_STEP_PATTERN.test(nameOrId);
-  const defaultSteps = fewStep ? 4 : 20;
+  const defaultSteps = fewStep ? 10 : 20;
   const defaultCfg = ZERO_CFG_PATTERN.test(nameOrId)
     ? 1.0
     : fewStep

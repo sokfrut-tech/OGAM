@@ -28,7 +28,7 @@ test('effectiveImageParameter and resolveImageParameters fall back from invalid 
 
   const defaults = resolveImageParameters({ id: 'realvisxl-lightning', name: 'RealVisXL v5.0 Lightning (Light)' });
   assert.deepEqual(defaults, {
-    steps: 4,
+    steps: 10,
     cfgScale: 2.0,
     size: 768,
   });

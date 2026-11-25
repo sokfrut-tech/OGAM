@@ -69,7 +69,9 @@ export function pickMmProjForDownload(
   const candidates = projectorsFor(modelFileName, candidateNames.map(rfilename => ({ rfilename })));
   if (candidates.length === 0) return undefined;
   const modelStem = modelIdentityStem(modelFileName);
-  const exact = candidates.find(c => modelIdentityStem(c.rfilename) === modelStem);
+  const exact = modelStem
+    ? candidates.find(c => modelIdentityStem(c.rfilename) === modelStem)
+    : undefined;
   if (exact) return exact.rfilename;
   const f16 = candidates.find(c => {
     const lower = c.rfilename.toLowerCase();

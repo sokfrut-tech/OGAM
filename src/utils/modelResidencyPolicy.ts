@@ -137,14 +137,15 @@ export function admissionBudgetMB(args: {
   return Math.round(Math.max(0, Math.min(physicalCapMB, dynamicMB)));
 }
 
-/** True when `spec` fits inside `budgetMB` without evicting any current resident. */
+/** True when `spec` fits inside `budgetMB` without evicting any other current resident. */
 export function fitsWithoutEviction(
   residents: readonly Pick<Resident, 'key' | 'sizeMB'>[],
   spec: { key: string; sizeMB: number },
   budgetMB: number,
 ): boolean {
-  if (residents.some(resident => resident.key === spec.key)) return true;
-  const usedMB = residents.reduce((sum, resident) => sum + resident.sizeMB, 0);
+  const usedMB = residents
+    .filter(resident => resident.key !== spec.key)
+    .reduce((sum, resident) => sum + resident.sizeMB, 0);
   return usedMB + spec.sizeMB <= budgetMB;
 }
 
@@ -186,13 +187,12 @@ export function planEviction(
   const evict: Resident[] = [];
   const evictedKeys = new Set<string>();
   const isEvicted = (resident: Resident) => evictedKeys.has(resident.key);
-  const alreadyResident = current.some(resident => resident.key === incoming.key);
 
   const usedMB = () =>
     current
       .filter(resident => resident.key !== incoming.key && !isEvicted(resident))
       .reduce((sum, resident) => sum + resident.sizeMB, 0);
-  const incomingCostMB = alreadyResident ? 0 : incoming.sizeMB;
+  const incomingCostMB = incoming.sizeMB;
 
   if (opts?.singleModel) {
     for (

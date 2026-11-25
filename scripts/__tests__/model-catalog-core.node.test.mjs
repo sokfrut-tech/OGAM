@@ -53,6 +53,11 @@ test('CATALOG preserves required chat, vision, ASR, image (incl. catalog/models.
   assert.equal(turbo?.name, 'Wan 2.2 (5B), Turbo');
   assert.equal(turbo?.minRamGb, 24);
 
+  // Curated 12B / 24B / 30B entries needed by device fit and maker filter tests
+  assert.equal(byId.get('unsloth/gemma-4-12b-it-GGUF')?.minRamGb, 12);
+  assert.equal(byId.get('unsloth/Muse-Glimmer-30B-GGUF')?.org, 'Meta');
+  assert.equal(byId.get('unsloth/Devstral-Small-2-24B-Instruct-2512-GGUF')?.org, 'Mistral');
+
   // Every image/video entry from catalog/models.json is synced in CATALOG
   const rawJson = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'catalog/models.json'), 'utf8'));
   for (const model of rawJson.sections.models) {
@@ -62,7 +67,8 @@ test('CATALOG preserves required chat, vision, ASR, image (incl. catalog/models.
 });
 
 test('pickModelsForDevice computes deterministic Fast, Balanced, and Best picks per RAM budget', () => {
-  const budget = { soft: 0.52, hard: 0.62 };
+  const androidBudget = { comfortable: 0.52, ceil: 0.62 };
+  const iphoneBudget = { comfortable: 0.58, ceil: 0.7 };
   const candidates = CATALOG.filter(
     e => (e.kind === 'text' || e.kind === 'vision') && !e.grounder && !e.quantOf,
   ).map(entry => ({
@@ -79,18 +85,37 @@ test('pickModelsForDevice computes deterministic Fast, Balanced, and Best picks 
     minLlamaBuild: entry.minLlamaBuild,
   }));
 
-  const picks12 = pickModelsForDevice(candidates, 12, budget, 'runsWell', 11000);
-  assert.deepEqual(picks12, {
+  const picks12Android = pickModelsForDevice(candidates, 12, androidBudget, 'runsWell', 11000);
+  assert.deepEqual(picks12Android, {
     fast: 'LiquidAI/LFM2.5-8B-A1B-GGUF',
     balanced: 'unsloth/Qwen3.5-4B-GGUF',
     best: 'openbmb/MiniCPM5-2B-GGUF',
   });
 
-  const picks4 = pickModelsForDevice(candidates, 4, budget, 'runsWell', 11000);
-  assert.deepEqual(picks4, {
+  const picks12Iphone = pickModelsForDevice(candidates, 12, iphoneBudget, 'runsWell', 11000);
+  assert.deepEqual(picks12Iphone, {
+    fast: 'unsloth/Qwen3.5-4B-GGUF',
+    balanced: 'openbmb/MiniCPM5-2B-GGUF',
+    best: 'unsloth/Qwen3.5-9B-GGUF',
+  });
+
+  const picks4Android = pickModelsForDevice(candidates, 4, androidBudget, 'runsWell', 11000);
+  assert.deepEqual(picks4Android, {
     fast: 'unsloth/Qwen3.5-0.8B-GGUF',
     balanced: 'unsloth/Qwen3.5-2B-GGUF',
     best: 'openbmb/MiniCPM5-2B-GGUF',
+  });
+
+  const imageCandidates = [
+    { id: 'abs', sizeBytes: 300e6 },
+    { id: 'anything', sizeBytes: 400e6 },
+    { id: 'chillout', sizeBytes: 600e6 },
+    { id: 'qtea', sizeBytes: 900e6 },
+  ];
+  assert.deepEqual(pickModelsForDevice(imageCandidates, 12, androidBudget, 'runsWell', 0), {
+    fast: 'abs',
+    balanced: 'chillout',
+    best: 'qtea',
   });
 
   const speechCandidates = [
@@ -100,7 +125,7 @@ test('pickModelsForDevice computes deterministic Fast, Balanced, and Best picks 
     { id: 'medium', sizeBytes: 1.5e9 },
     { id: 'large-v3', sizeBytes: 3.1e9 },
   ];
-  assert.deepEqual(pickModelsForDevice(speechCandidates, 12, budget, 'runsWell', 0), {
+  assert.deepEqual(pickModelsForDevice(speechCandidates, 12, androidBudget, 'runsWell', 0), {
     fast: 'tiny',
     balanced: 'small',
     best: 'large-v3',

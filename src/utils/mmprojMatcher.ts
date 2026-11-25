@@ -17,6 +17,8 @@ const PROJECTOR_NOISE_TOKENS = new Set([
   'vision',
   'visual',
   'model',
+  'ud',
+  'qad',
 ]);
 
 function stripDirectory(fileName: string): string {
@@ -38,6 +40,7 @@ export function modelIdentityStem(fileName: string): string {
   const base = stripDirectory(fileName)
     .replace(/\.(?:gguf|bin|safetensors|onnx)$/i, '')
     .replace(SPLIT_GGUF_SUFFIX, '')
+    .replace(/-text-model(?=[-_.]|$)/gi, '')
     .replace(/(?:^|[-_])(?:mm[-_]?proj(?:ector)?|clip[-_]?vision|vision[-_]?proj(?:ector)?)(?=$|[-_.])/gi, '-')
     .replace(/(?:^|[-_.])(?:I?Q\d+(?:_[A-Z0-9_]+)*|BF16|FP?16|FP?32|MXFP\d+|INT[48])(?=$|[-_.])/gi, '-');
 

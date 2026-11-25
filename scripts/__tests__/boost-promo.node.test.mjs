@@ -28,9 +28,8 @@ test('boostPromoLink builds expected campaign URL for mobile and desktop surface
   const link = boostPromoLink('mobile', 'models');
   assert.match(
     link,
-    /^https:\/\/getoffgridai\.co\/boost\?utm_source=off-grid-mobile-app&utm_medium=boost-models&/,
+    /^https:\/\/getoffgridai\.co\/boost\?utm_source=off-grid-mobile-app&utm_medium=boost-models&utm_campaign=in-app$/,
   );
-  assert.ok(link.includes(encodeURIComponent(BOOST_PROMO.version)));
 });
 
 test('all 7 Boost promo consumers and its integration test import from utils/boostPromo', () => {

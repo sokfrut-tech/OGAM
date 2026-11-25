@@ -267,3 +267,31 @@ test('CompositeDiscoveryService tolerates optional source failures when secondar
   assert.deepEqual(nearbyEvents, ['started', 'rescanned']);
   assert.equal(sourceErrors.length, 2);
 });
+
+test('DiscoveryOrchestrator keeps discoverable state true when stopAdvertising rejects', async () => {
+  let failStop = true;
+  const orch = new DiscoveryOrchestrator({
+    discovery: {
+      start: async () => {},
+      stop: async () => {},
+      onDeviceFound: () => {},
+      onDeviceLost: () => {},
+      rescan: async () => {},
+      advertise: async () => {},
+      stopAdvertising: async () => {
+        if (failStop) throw new Error('stop failed');
+      },
+    },
+    localDevice: local,
+    engine: { isPaired: () => false, reconnect: async () => {} },
+    discoverable: true,
+  });
+
+  await orch.start();
+  await assert.rejects(() => orch.setDiscoverable(false), /stop failed/);
+  assert.equal(orch.isDiscoverable(), true);
+
+  failStop = false;
+  await orch.setDiscoverable(false);
+  assert.equal(orch.isDiscoverable(), false);
+});

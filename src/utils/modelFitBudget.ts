@@ -12,14 +12,14 @@ export interface FitBudget {
 
 /** Standard phone budget for copied/unmapped allocations and non-iOS devices. */
 export const PHONE_FIT_BUDGET: FitBudget = {
-  comfortable: 0.45,
+  comfortable: 0.52,
   tight: 0.62,
   ceil: 0.62,
 };
 
 /** iOS GGUF chat weights are mmap-backed and page cleanly up to 70% of RAM. */
 export const IPHONE_MAPPED_FIT_BUDGET: FitBudget = {
-  comfortable: 0.5,
+  comfortable: 0.58,
   tight: 0.7,
   ceil: 0.7,
 };

@@ -325,6 +325,50 @@ test('DocumentTurnService enforces when-needed KB isolation, stale embedder guar
   });
   assert.equal(unrelatedTurn, null);
 
+  // 1b) Saved conversation inside a project resolves project KB via forConversation without options.projectId.
+  const isolatedTurns = new DocumentTurnService({
+    ingest,
+    store,
+    conversations: {
+      async list() {
+        return [];
+      },
+      async excluded() {
+        return new Set();
+      },
+    },
+    projects: {
+      async forProject(projectId) {
+        return projectId === 'proj-coast' ? [lighthouseDoc] : [];
+      },
+      async forConversation(convId) {
+        return convId === 'filed-chat' ? [lighthouseDoc] : [];
+      },
+    },
+    keyword: {
+      async search() {
+        return [];
+      },
+    },
+    embed,
+  });
+  const filedTurn = await isolatedTurns.prepare({
+    conversationId: 'filed-chat',
+    current: [],
+    question: 'Pickles at the lighthouse beacon',
+    budget: {
+      ctx: 4096,
+      replyReserve: 400,
+      systemTokens: 100,
+      requiredToolTokens: 0,
+      historyTokens: 0,
+      questionTokens: 10,
+      prefillTokensPerSecond: 150,
+      remote: false,
+    },
+  });
+  assert.ok(filedTurn?.stable.includes('Pickles'));
+
   // 2) Attached document goes to `stable` and never contains `question`.
   const directTurn = await turns.prepare({
     conversationId: 'chat-2',

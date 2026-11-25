@@ -14,9 +14,9 @@ import { reasoningBudgetPayload } from '../../src/utils/reasoningBudget.ts';
 const LEGACY_MODELS_PKG = `${'@offgrid'}/models`;
 
 test('fitTier, PHONE_FIT_BUDGET, and phoneFitBudget enforce exact >= ceiling and platform budgets', () => {
-  assert.deepEqual(PHONE_FIT_BUDGET, { comfortable: 0.45, tight: 0.62, ceil: 0.62 });
+  assert.deepEqual(PHONE_FIT_BUDGET, { comfortable: 0.52, tight: 0.62, ceil: 0.62 });
   assert.deepEqual(phoneFitBudget('android'), PHONE_FIT_BUDGET);
-  assert.deepEqual(phoneFitBudget('ios'), { comfortable: 0.5, tight: 0.7, ceil: 0.7 });
+  assert.deepEqual(phoneFitBudget('ios'), { comfortable: 0.58, tight: 0.7, ceil: 0.7 });
 
   const ramGB = 4;
   const exactCeilingGB = ramGB * PHONE_FIT_BUDGET.ceil;

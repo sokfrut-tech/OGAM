@@ -325,7 +325,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
         // (llama) model's hold-to-talk has. Transcribe the recording and drop the text into the composer
         // for the user to review/edit/send; do NOT build a voice-note attachment (that was the litert-only
         // divergence). The temp recording file is transient there.
-        const autoSend = !!onAutoSendRef.current;
+        const autoSend = isInAudioInterfaceMode() && !!onAutoSendRef.current;
         const { whisperReady, transcript } = await transcribeRecordedFile(
           path,
           autoSend ? '[Voice] transcription error:' : '[Voice] chat-mode dictation transcription error:',

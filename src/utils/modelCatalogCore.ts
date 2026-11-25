@@ -105,7 +105,7 @@ export const CATALOG: readonly ModelEntry[] = [
   {
     id: 'unsloth/Qwen3.5-9B-GGUF',
     sourceModelId: 'Qwen/Qwen3.5-9B',
-    quality: 92,
+    quality: 96,
     name: 'Qwen 3.5 9B',
     kind: 'vision',
     org: 'Qwen',
@@ -405,6 +405,85 @@ export const CATALOG: readonly ModelEntry[] = [
         sizeBytes: 3543441312,
         sha256: '91cb2811aebb47ac916aa619d27d4cdd7f4143106b7917accb8ead4cd7f5cbd9',
         role: 'primary',
+      },
+    ],
+  },
+  {
+    id: 'unsloth/gemma-4-12b-it-GGUF',
+    sourceModelId: 'google/gemma-4-12b-it',
+    quality: 94,
+    name: 'Gemma 4 12B',
+    kind: 'vision',
+    org: 'google',
+    description: "Google's 12B multimodal Gemma 4 model with strong reasoning and vision",
+    params: 12,
+    minRamGb: 12,
+    quant: 'Q4_K_M',
+    isNew: true,
+    files: [
+      {
+        name: 'gemma-4-12b-it-Q4_K_M.gguf',
+        url: 'https://huggingface.co/unsloth/gemma-4-12b-it-GGUF/resolve/main/gemma-4-12b-it-Q4_K_M.gguf',
+        sizeBytes: 6400000000,
+        role: 'primary',
+      },
+      {
+        name: 'mmproj-F16.gguf',
+        url: 'https://huggingface.co/unsloth/gemma-4-12b-it-GGUF/resolve/main/mmproj-F16.gguf',
+        sizeBytes: 900000000,
+        role: 'mmproj',
+      },
+    ],
+  },
+  {
+    id: 'unsloth/Muse-Glimmer-30B-GGUF',
+    sourceModelId: 'meta-llama/Muse-Glimmer-30B',
+    quality: 85,
+    name: 'Muse Glimmer 30B',
+    kind: 'vision',
+    org: 'Meta',
+    description: 'High-capacity Llama multimodal model with vision support',
+    params: 30,
+    minRamGb: 24,
+    quant: 'Q4_K_M',
+    files: [
+      {
+        name: 'Muse-Glimmer-30B-UD-Q4_K_XL.gguf',
+        url: 'https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF/resolve/main/Muse-Glimmer-30B-UD-Q4_K_XL.gguf',
+        sizeBytes: 15500000000,
+        role: 'primary',
+      },
+      {
+        name: 'mmproj-Muse-Glimmer-30B-Q8_0.gguf',
+        url: 'https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF/resolve/main/mmproj-Muse-Glimmer-30B-Q8_0.gguf',
+        sizeBytes: 1000000000,
+        role: 'mmproj',
+      },
+    ],
+  },
+  {
+    id: 'unsloth/Devstral-Small-2-24B-Instruct-2512-GGUF',
+    sourceModelId: 'mistralai/Devstral-Small-2-24B-Instruct-2512',
+    quality: 84,
+    name: 'Devstral Small 2 24B',
+    kind: 'vision',
+    org: 'Mistral',
+    description: "Mistral's 24B coding and vision model for desktop-class phones",
+    params: 24,
+    minRamGb: 24,
+    quant: 'Q4_K_M',
+    files: [
+      {
+        name: 'Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf',
+        url: 'https://huggingface.co/unsloth/Devstral-Small-2-24B-Instruct-2512-GGUF/resolve/main/Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf',
+        sizeBytes: 14300000000,
+        role: 'primary',
+      },
+      {
+        name: 'mmproj-F16.gguf',
+        url: 'https://huggingface.co/unsloth/Devstral-Small-2-24B-Instruct-2512-GGUF/resolve/main/mmproj-F16.gguf',
+        sizeBytes: 800000000,
+        role: 'mmproj',
       },
     ],
   },
@@ -1183,12 +1262,11 @@ export function pickModelsForDevice(
     }
 
     const best = byQuality[0];
-    const [faster, balanced] = [byQuality[1], byQuality[2]].sort((a, b) => {
-      const mDiff = sizeMetric(a) - sizeMetric(b);
-      if (mDiff !== 0) return mDiff;
-      return a.sizeBytes - b.sizeBytes;
-    });
-    return { fast: faster.id, balanced: balanced.id, best: best.id };
+    return {
+      fast: byQuality[2].id,
+      balanced: byQuality[1].id,
+      best: best.id,
+    };
   }
 
   const bySize = [...eligible].sort((a, b) => {
@@ -1203,9 +1281,18 @@ export function pickModelsForDevice(
   if (bySize.length === 2) {
     return { fast: bySize[0].id, best: bySize[1].id };
   }
+  const fast = bySize[0];
+  const best = bySize[bySize.length - 1];
+  const target = Math.sqrt(sizeMetric(fast) * sizeMetric(best));
+  const balanced = bySize.slice(1, -1).reduce((closest, candidate) => {
+    const cDiff = Math.abs(sizeMetric(candidate) - target);
+    const bestDiff = Math.abs(sizeMetric(closest) - target);
+    if (cDiff !== bestDiff) return cDiff < bestDiff ? candidate : closest;
+    return candidate.sizeBytes < closest.sizeBytes ? candidate : closest;
+  });
   return {
-    fast: bySize[0].id,
-    balanced: bySize[Math.floor((bySize.length - 1) / 2)].id,
-    best: bySize[bySize.length - 1].id,
+    fast: fast.id,
+    balanced: balanced.id,
+    best: best.id,
   };
 }

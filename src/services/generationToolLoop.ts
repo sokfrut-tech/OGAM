@@ -201,9 +201,10 @@ function parseGemmaToolCallBody(raw: string, toolCalls: ToolCall[]): void {
   args = normalizeToolArgs(args);
 
   if (name === 'web_search' && !args.query && args.queries) {
+    const { queries, ...restArgs } = args;
     args = {
-      ...args,
-      query: Array.isArray(args.queries) ? args.queries[0] : args.queries,
+      ...restArgs,
+      query: Array.isArray(queries) ? queries[0] : queries,
     };
   }
   toolCalls.push({

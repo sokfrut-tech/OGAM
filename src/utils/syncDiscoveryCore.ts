@@ -716,10 +716,17 @@ export class DiscoveryOrchestrator {
 
   async setDiscoverable(next: boolean): Promise<void> {
     if (this.discoverable === next && this.started) return;
-    this.discoverable = next;
     if (this.started) {
-      await this.refreshAdvertisement();
+      if (next) {
+        await this.discovery.advertise?.(this.localDevice);
+      } else {
+        await this.discovery.stopAdvertising?.();
+      }
+      this.discoverable = next;
+      this.emitState();
+      return;
     }
+    this.discoverable = next;
   }
 
   isDiscoverable(): boolean {

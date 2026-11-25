@@ -776,13 +776,6 @@ export class DocumentIngestService {
       error: undefined,
       lastUsedAt: Date.now(),
     });
-    this.onProgress?.({
-      id: source.id,
-      phase: 'ready',
-      done: pageCount,
-      total: pageCount,
-      pageCount,
-    });
 
     await this.store.putMap(
       source.id,
@@ -791,6 +784,14 @@ export class DocumentIngestService {
 
     if (this.embed && chunks.length > 0) {
       await this.embedChunksSafely(source, chunks, pageCount);
+    } else {
+      this.onProgress?.({
+        id: source.id,
+        phase: 'ready',
+        done: pageCount,
+        total: pageCount,
+        pageCount,
+      });
     }
     return this.store.getDocument(source.id);
   }
@@ -802,9 +803,17 @@ export class DocumentIngestService {
   ): Promise<void> {
     if (!this.embed || chunks.length === 0) return;
     const activeEmbedder = this.embed.embedder;
-    const EMBED_BATCH = 8;
+    const EMBED_BATCH = 16;
     const collectedVectors = new Map<number, Float32Array>();
     let embeddedCount = 0;
+
+    this.onProgress?.({
+      id: source.id,
+      phase: 'indexing',
+      done: 0,
+      total: chunks.length,
+      pageCount,
+    });
 
     try {
       for (let i = 0; i < chunks.length; i += EMBED_BATCH) {
@@ -818,6 +827,13 @@ export class DocumentIngestService {
           if (vec) collectedVectors.set(chunk.position, new Float32Array(vec));
         });
         embeddedCount += vectors.length;
+        this.onProgress?.({
+          id: source.id,
+          phase: 'indexing',
+          done: embeddedCount,
+          total: chunks.length,
+          pageCount,
+        });
       }
 
       await this.store.updateDocument(source.id, {
@@ -829,6 +845,13 @@ export class DocumentIngestService {
         source.id,
         documentMap(chunks.map((c) => c.position), collectedVectors),
       );
+      this.onProgress?.({
+        id: source.id,
+        phase: 'ready',
+        done: pageCount,
+        total: pageCount,
+        pageCount,
+      });
     } catch (error) {
       // Keep the document ready and keyword-searchable on embedding OOM/timeout.
       this.onWarning?.(`Embedding ${source.name} failed (keyword search stays active)`, error);
@@ -942,9 +965,11 @@ export class DocumentTurnService {
     const excluded = await this.conversations.excluded(options.conversationId);
     const conversationDocs = await this.conversations.list(options.conversationId);
     const projectDocs =
-      options.projectId && options.projectDocuments !== 'when-needed'
-        ? await this.projects.forProject(options.projectId)
-        : [];
+      options.projectDocuments === 'when-needed'
+        ? []
+        : options.projectId
+          ? await this.projects.forProject(options.projectId)
+          : await this.projects.forConversation(options.conversationId);
 
     const candidateDocs = dedupeSources([
       ...options.current,

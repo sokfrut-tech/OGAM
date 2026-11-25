@@ -59,9 +59,9 @@ test('build-android-apk.yml and setup-mobile allow standalone open-core builds w
 test('Slice 14 runtime contracts: selectedFill, fit budget + device picks, guide phone filter, boost pro_tab, textParts, ingest isRunning', async () => {
   assert.equal(typeof COLORS_LIGHT.selectedFill, 'string');
   assert.equal(typeof COLORS_DARK.selectedFill, 'string');
-  assert.equal(PHONE_FIT_BUDGET.comfortable, 0.45);
+  assert.equal(PHONE_FIT_BUDGET.comfortable, 0.52);
   assert.equal(PHONE_FIT_BUDGET.ceil, 0.62);
-  assert.equal(IPHONE_MAPPED_FIT_BUDGET.comfortable, 0.5);
+  assert.equal(IPHONE_MAPPED_FIT_BUDGET.comfortable, 0.58);
   assert.equal(IPHONE_MAPPED_FIT_BUDGET.ceil, 0.7);
   assert.equal(
     pickModelsForDevice([{ id: 'm1', sizeBytes: 1e9 }], 4, PHONE_FIT_BUDGET).best,

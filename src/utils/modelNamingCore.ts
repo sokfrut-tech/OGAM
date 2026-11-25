@@ -6,6 +6,8 @@
  * llamaEngineSupport.
  */
 
+import { CATALOG } from './modelCatalogCore.ts';
+
 export type ModelCredibilitySource =
   | 'offgrid'
   | 'official'
@@ -96,24 +98,38 @@ export function splitGgufModelName(fileName: string): string {
   return base.replace(SPLIT_PART_PATTERN, '');
 }
 
-/** Return true if a string looks like a file path, Hugging Face repo slug, raw archive, or raw quant slug. */
+/** Return true if a string looks like a file path, Hugging Face repo slug, raw archive, or split shard. */
 export function isRawModelName(name: string): boolean {
   const trimmed = name.trim();
   if (!trimmed) return false;
   if (trimmed.includes('/') || trimmed.includes('\\')) return true;
   if (RAW_EXTENSION_PATTERN.test(trimmed)) return true;
-  if (SPLIT_PART_PATTERN.test(trimmed) || /-gguf$/i.test(trimmed)) return true;
-  if (!trimmed.includes(' ') && TRAILING_QUANT_PATTERN.test(trimmed)) return true;
+  if (SPLIT_PART_PATTERN.test(trimmed)) return true;
   return false;
 }
 
-/** Convert a raw filename or Hugging Face repo slug into a clean human-readable display label. */
+/** Convert a raw filename, file path, or Hugging Face repo slug into a clean human-readable display label. */
 export function modelDisplayName(rawName: string): string | undefined {
   const trimmed = rawName.trim();
-  if (!trimmed || !isRawModelName(trimmed)) return undefined;
+  if (!trimmed) return undefined;
 
-  let base = splitGgufModelName(trimmed);
-  base = base.replace(/\.(?:gguf|bin|onnx|safetensors)$/i, '');
+  const baseFile = splitGgufModelName(trimmed);
+  const lowerTrimmed = trimmed.toLowerCase();
+  const lowerBase = baseFile.toLowerCase();
+
+  for (const entry of CATALOG) {
+    if (
+      entry.id.toLowerCase() === lowerTrimmed ||
+      entry.files.some(file => file.name.toLowerCase() === lowerBase)
+    ) {
+      return entry.name;
+    }
+  }
+
+  if (!isRawModelName(trimmed)) return undefined;
+
+  let base = baseFile;
+  base = base.replace(RAW_EXTENSION_PATTERN, '');
   base = base.replace(/-gguf$/i, '');
 
   // Strip up to two trailing quantization/format tags (e.g. `-Instruct-Q4_K_M`, `-Q4_K_M`).
@@ -123,8 +139,12 @@ export function modelDisplayName(rawName: string): string | undefined {
     base = stripped;
   }
 
-  const cleaned = base.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
-  return cleaned || undefined;
+  let cleaned = base.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!cleaned) return undefined;
+  if (/^[a-z]/.test(cleaned)) {
+    cleaned = cleaned[0].toUpperCase() + cleaned.slice(1);
+  }
+  return cleaned;
 }
 
 /** Parse sparse Mixture-of-Experts parameter counts (e.g. `Qwen3-30B-A3B` or `Mixtral-8x7B`). */

@@ -128,6 +128,17 @@ test('resolveHuggingFaceModel resolves whisper transcription weights from blobs 
   assert.equal(entry.files[0].sizeBytes, 147_000_000);
 });
 
+test('searchHuggingFace reports Hugging Face HTTP error status cleanly', async () => {
+  await assert.rejects(
+    () =>
+      searchHuggingFace('flux', {
+        kind: 'image',
+        fetchImpl: async () => ({ ok: false, status: 500, json: async () => ({}) }),
+      }),
+    /Hugging Face search failed: HTTP 500/,
+  );
+});
+
 test('src/services/huggingface.ts has 0 imports from @offgrid/models', () => {
   const src = fs.readFileSync(path.join(REPO_ROOT, 'src/services/huggingface.ts'), 'utf8');
   assert.doesNotMatch(src, /from\s+['"]@offgrid\/models(?:\/[^'"]*)?['"]/);

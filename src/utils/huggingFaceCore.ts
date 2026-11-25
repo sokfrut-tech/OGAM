@@ -63,6 +63,8 @@ const PROJECTOR_NOISE_TOKENS = new Set([
   'vision',
   'visual',
   'model',
+  'ud',
+  'qad',
 ]);
 
 interface RawHfRepo {
@@ -109,6 +111,7 @@ function modelIdentityStem(fileName: string): string {
   const base = stripDirectory(fileName)
     .replace(/\.(?:gguf|bin|safetensors|onnx)$/i, '')
     .replace(SPLIT_GGUF_SUFFIX, '')
+    .replace(/-text-model(?=[-_.]|$)/gi, '')
     .replace(/(?:^|[-_])(?:mm[-_]?proj(?:ector)?|clip[-_]?vision|vision[-_]?proj(?:ector)?)(?=$|[-_.])/gi, '-')
     .replace(/(?:^|[-_.])(?:I?Q\d+(?:_[A-Z0-9_]+)*|BF16|FP?16|FP?32|MXFP\d+|INT[48])(?=$|[-_.])/gi, '-');
 
@@ -275,7 +278,7 @@ export async function searchHuggingFace(
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
+    throw new Error(`Hugging Face search failed: HTTP ${response.status}`);
   }
   const repos = (await response.json()) as RawHfRepo[];
   if (!Array.isArray(repos)) return [];
@@ -365,7 +368,7 @@ async function fetchRepoFileList(
     );
     if (treeRes.ok) {
       const entries = (await treeRes.json()) as RawHfTreeFile[];
-      if (Array.isArray(entries)) {
+      if (Array.isArray(entries) && entries.length > 0) {
         return entries
           .filter(e => (e.type === undefined || e.type === 'file') && typeof e.path === 'string')
           .map(e => ({

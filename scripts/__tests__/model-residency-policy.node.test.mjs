@@ -113,7 +113,14 @@ test('dirty pressure, headroom, admission budget, dirty ceiling, warning victims
   assert.equal(sameKeyReload, false);
 
   assert.equal(fitsWithoutEviction([resident('txt', 'text', 700, 1)], { key: 'txt', sizeMB: 700 }, 1000), true);
+  assert.equal(fitsWithoutEviction([resident('txt', 'text', 700, 1)], { key: 'txt', sizeMB: 1200 }, 1000), false);
   assert.equal(fitsWithoutEviction([resident('txt', 'text', 700, 1)], { key: 'img', sizeMB: 400 }, 1000), false);
+  const oversizedReplacement = planEviction(
+    [resident('txt', 'text', 700, 1)],
+    { key: 'txt', type: 'text', sizeMB: 1200 },
+    1000,
+  );
+  assert.equal(oversizedReplacement.fits, false);
   assert.deepEqual(memoryWarningVictims(residents).map(v => v.key), ['tts']);
   assert.equal(freesIdleSpeechForGeneration(4 * 1024), true);
   assert.equal(freesIdleSpeechForGeneration(8 * 1024), false);

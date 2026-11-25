@@ -21,18 +21,22 @@ test('determineCredibility and isOffGridHfRepo classify model authors consistent
   assert.equal(determineCredibility('random-user-123'), 'community');
 });
 
-test('isRawModelName, splitGgufModelName, and modelDisplayName preserve human titles and strip GGUF noise', () => {
+test('isRawModelName, splitGgufModelName, and modelDisplayName preserve human titles, slugs, and catalog names', () => {
   assert.equal(isRawModelName('K2 Horizon 3.7B'), false);
+  assert.equal(isRawModelName('K2-Horizon-4B-Q4_K_M'), false);
+  assert.equal(isRawModelName('granite-4.0-micro-GGUF'), false);
   assert.equal(isRawModelName('K2-Horizon-4B-Q4_K_M.gguf'), true);
-  assert.equal(isRawModelName('K2-Horizon-4B-Q4_K_M'), true);
   assert.equal(isRawModelName('LiquidAI/LFM2.5-8B-A1B-GGUF'), true);
 
   assert.equal(
     splitGgufModelName('DeepSeek-R1-Q4_K_M-00001-of-00003.gguf'),
     'DeepSeek-R1-Q4_K_M.gguf',
   );
-  assert.equal(modelDisplayName('K2-Horizon-4B-Q4_K_M.gguf'), 'K2 Horizon 4B');
-  assert.equal(modelDisplayName('K2-Horizon-4B-Q4_K_M'), 'K2 Horizon 4B');
+  assert.equal(modelDisplayName('K2-Horizon-4B-Q4_K_M.gguf'), 'K2 Horizon 3.7B');
+  assert.equal(modelDisplayName('Qwen3.5-0.8B-Q4_K_M.gguf'), 'Qwen 3.5 0.8B');
+  assert.equal(modelDisplayName('Bonsai-27B-Q4_K_M-00001-of-00002.gguf'), 'Bonsai 27B');
+  assert.equal(modelDisplayName('model.gguf'), 'Model');
+  assert.equal(modelDisplayName('model-file.gguf'), 'Model file');
   assert.equal(modelDisplayName('K2 Horizon 3.7B'), undefined);
 });
 
