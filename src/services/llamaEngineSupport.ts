@@ -1,4 +1,4 @@
-import type { ModelEntry } from '@offgrid/models';
+import type { ModelEntry } from '../types/modelCatalog';
 import { baseModelKey } from '../utils/modelNamingCore';
 import { runningLlamaBuild } from './enginePacks/running';
 

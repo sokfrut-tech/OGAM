@@ -1,4 +1,4 @@
-import { VIDEO_SETTING_KEYS, acceptsVideoSetting } from '@offgrid/models';
+import { VIDEO_SETTING_KEYS, acceptsVideoSetting } from '../../utils/videoPackPolicy';
 import { callHook, HOOKS } from '../../bootstrap/hookRegistry';
 import {
   KNOWLEDGE_DOCUMENT_ENTITY,

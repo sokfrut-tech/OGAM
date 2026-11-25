@@ -1,5 +1,5 @@
 import { EmbeddingModelsTab } from './EmbeddingModelsTab';
-import type { HFSearchResult } from '@offgrid/models';
+import type { HFSearchResult } from '../../types/modelCatalog';
 import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';

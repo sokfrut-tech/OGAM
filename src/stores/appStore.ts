@@ -4,7 +4,7 @@ import { videoModelDisplayName } from '../utils/modelHelpers';
 import type {
   ModelEntry,
   VideoGenerationRequestContract,
-} from '@offgrid/models';
+} from '../types/modelCatalog';
 import type { VideoModel } from '../services/videoModelFiles';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';

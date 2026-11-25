@@ -7,7 +7,7 @@ import { DownloadedModel, ModelFile, PersistedDownloadInfo } from '../../types';
 import { backgroundDownloadService } from '../backgroundDownloadService';
 import { buildDownloadedModel, persistDownloadedModel } from './storage';
 import { sizeToBytes } from '../../utils/fileSize';
-import { mtpHeadForPrimaryFile } from '@offgrid/models';
+import { mtpHeadForPrimaryFile } from '../../utils/mtpHeadsCore';
 
 /**
  * Every file a model owns besides its vision projector: the main file, the later parts of a model
