@@ -9,7 +9,7 @@ import type { ThemeColors } from '../theme';
 type ThemeMode = 'system' | 'light' | 'dark';
 import type { createStyles } from './SettingsScreen.styles';
 
-interface SettingsAppearanceRowProps {
+interface SettingsВнешний видRowProps {
   focusTrigger: number;
   styles: ReturnType<typeof createStyles>;
   colors: ThemeColors;
@@ -17,8 +17,8 @@ interface SettingsAppearanceRowProps {
   onSelect: (mode: ThemeMode) => void;
 }
 
-/** System, light or dark. Its own component so the Settings render stays inside the 350-line cap. */
-export const SettingsAppearanceRow: React.FC<SettingsAppearanceRowProps> = ({
+/** Система, light or dark. Its own component so the Settings render stays inside the 350-line cap. */
+export const SettingsВнешний видRow: React.FC<SettingsВнешний видRowProps> = ({
   focusTrigger,
   styles,
   colors,
@@ -31,13 +31,13 @@ export const SettingsAppearanceRow: React.FC<SettingsAppearanceRowProps> = ({
               <Icon name="aperture" size={16} color={colors.textSecondary} />
             </View>
             <View style={styles.navItemContent}>
-              <Text style={styles.navItemTitle}>Appearance</Text>
+              <Text style={styles.navItemTitle}>Внешний вид</Text>
             </View>
             <View style={styles.themeSelector}>
               {[
-                { mode: 'system' as const, icon: 'monitor', label: 'System' },
-                { mode: 'light' as const, icon: 'sun', label: 'Light' },
-                { mode: 'dark' as const, icon: 'moon', label: 'Dark' },
+                { mode: 'system' as const, icon: 'monitor', label: 'Система' },
+                { mode: 'light' as const, icon: 'sun', label: 'Светлая' },
+                { mode: 'dark' as const, icon: 'moon', label: 'Тёмная' },
               ].map(({ mode, icon, label }) => (
                 <TouchableOpacity
                   key={mode}
