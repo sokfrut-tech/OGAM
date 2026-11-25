@@ -41,11 +41,11 @@ type Props = {
 };
 
 const labelForItem = (item: AutoSetupItem) => {
-  if (item.kind === 'text') return 'TEXT';
-  if (item.kind === 'image') return 'IMAGE';
-  if (item.kind === 'video') return 'VIDEO';
-  if (item.kind === 'embedding') return 'SEARCH';
-  return 'SPEECH';
+  if (item.kind === 'text') return 'ТЕКСТ';
+  if (item.kind === 'image') return 'ИЗОБРАЖЕНИЯ';
+  if (item.kind === 'video') return 'ВИДЕО';
+  if (item.kind === 'embedding') return 'ПОИСК';
+  return 'РЕЧЬ';
 };
 
 export const AutoSetupScreen: React.FC<Props> = ({
@@ -128,11 +128,11 @@ export const AutoSetupScreen: React.FC<Props> = ({
   if (snapshot.phase === 'loading_catalog')
     return (
       <AliveScreen style={styles.container}>
-        {openedFromApp && <ScreenHeader title="Choose models" onBack={navigation.goBack} />}
+        {openedFromApp && <ScreenHeader title="Выбор моделей" onBack={navigation.goBack} />}
         <View style={styles.center}>
           <LoadingDots color={colors.primary} />
           <Text style={styles.secondary}>
-            Finding model choices...
+            Подбираю модели для этого устройства…
           </Text>
         </View>
       </AliveScreen>
@@ -145,16 +145,16 @@ export const AutoSetupScreen: React.FC<Props> = ({
         contentContainerStyle={styles.content}
         testID="auto-setup-screen"
       >
-        <Text style={styles.title}>Choose model downloads.</Text>
+        <Text style={styles.title}>Выбери модели для загрузки.</Text>
         <Text style={styles.secondary}>
-          Installed models add no download size.
+          Установленные модели не нужно скачивать повторно.
         </Text>
 
         {snapshot.error && (
           <Card style={styles.errorCard}>
             <Text style={styles.error}>{snapshot.error}</Text>
             <Button
-              title="Try Again"
+              title="Повторить"
               onPress={() => {
                 if (snapshot.plans.length)
                   session.start().catch(() => undefined);
@@ -172,7 +172,7 @@ export const AutoSetupScreen: React.FC<Props> = ({
             onPress={toggleShareAnalytics}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: shareAnalytics }}
-            accessibilityLabel="Share anonymous stats and crash reports"
+            accessibilityLabel="Отправлять анонимную статистику и отчёты об ошибках"
             testID="auto-setup-share-analytics"
           >
             <Icon
@@ -182,10 +182,10 @@ export const AutoSetupScreen: React.FC<Props> = ({
             />
             <View style={styles.consentText}>
               <Text style={styles.consentLabel}>
-                Share anonymous stats and crash reports
+                Отправлять анонимную статистику и отчёты об ошибках
               </Text>
               <Text style={styles.consentHint}>
-                Helps us fix what breaks on your device. Your chats never leave it.
+                Это помогает исправлять ошибки. Содержимое диалогов не отправляется.
               </Text>
             </View>
           </Pressable>
@@ -195,7 +195,7 @@ export const AutoSetupScreen: React.FC<Props> = ({
             accessibilityRole="link"
             testID="auto-setup-what-we-share"
           >
-            What we share
+            Какими данными делимся
           </Text>
         </View>
 
@@ -222,7 +222,7 @@ export const AutoSetupScreen: React.FC<Props> = ({
                 disabled={starting}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel={`${plan.title} plan`}
+                accessibilityLabel={`План: ${plan.title}`}
                 accessibilityState={{ expanded: expandedTier === plan.tier, disabled: starting }}
                 testID={`auto-setup-plan-heading-${plan.tier}`}
               >
@@ -247,7 +247,7 @@ export const AutoSetupScreen: React.FC<Props> = ({
                       const installed = snapshot.installedIds.includes(autoSetupDownloadId(item));
                       const needsAction = autoSetupItemNeedsAction(item, snapshot.installedIds);
                       const size = item.kind === 'embedding' && item.sizeBytes === 0
-                        ? 'Included' : formatBytes(item.sizeBytes);
+                        ? 'Включено' : formatBytes(item.sizeBytes);
                       return (
                         <View
                           key={`${plan.tier}:${item.kind}:${item.id}`}
@@ -272,7 +272,7 @@ export const AutoSetupScreen: React.FC<Props> = ({
                             <View
                               style={styles.choiceControl}
                               accessible
-                              accessibilityLabel={`${item.name}, included`}
+                              accessibilityLabel={`${item.name}, включено`}
                               testID={`auto-setup-included-${item.kind}`}
                             >
                               <Icon name="package" size={20} color={colors.textMuted} />
@@ -285,22 +285,22 @@ export const AutoSetupScreen: React.FC<Props> = ({
                           <Text style={styles.itemSize}>
                             {needsAction
                               ? `${size}${installed ? '' : outcomeLabel(snapshot.outcomes[autoSetupDownloadId(item)])}`
-                              : item.sizeBytes === 0 ? 'Included' : `${size} · Included`}
+                              : item.sizeBytes === 0 ? 'Включено' : `${size} · включено`}
                           </Text>
                         </View>
                       );
                     })}
                     {!plan.items.some(item => item.kind === 'video') && (
                       <View style={styles.unavailableItem} testID="auto-setup-video-row">
-                        <Text style={styles.itemKind}>VIDEO</Text>
+                        <Text style={styles.itemKind}>ВИДЕО</Text>
                         <Text style={styles.itemSize}>
                           {plan.videoOnComputer && pairedComputer
-                            ? `Videos are made on ${pairedComputer.name}.`
-                            : plan.videoExclusionReason ?? 'No video model is included in this Auto Setup plan.'}
+                            ? `Видео создаются на компьютере ${pairedComputer.name}.`
+                            : plan.videoExclusionReason ?? 'В этот план не входит видеомодель.'}
                         </Text>
                         {plan.videoOnComputer && !pairedComputer && (
                           <Button
-                            title="Find my computer"
+                            title="Найти компьютер"
                             variant="outline"
                             size="small"
                             onPress={() => navigation.push('RemoteServers')}
@@ -311,7 +311,7 @@ export const AutoSetupScreen: React.FC<Props> = ({
                     )}
                   </View>
                   <Text style={styles.total}>
-                    {formatBytes(selectedBytes)} selected download
+                    {formatBytes(selectedBytes)} к загрузке
                   </Text>
                   {starting && (
                     <View style={styles.progressTrack}>
@@ -325,7 +325,7 @@ export const AutoSetupScreen: React.FC<Props> = ({
                   )}
                   {isComplete ? (
                     <Button
-                      title="Continue"
+                      title="Продолжить"
                       onPress={() => {
                         session.complete();
                         leave();
@@ -336,9 +336,9 @@ export const AutoSetupScreen: React.FC<Props> = ({
                     <Button
                       title={
                         snapshot.phase === 'failed'
-                          ? 'Retry Downloads'
-                          : selectedBytes === 0 ? 'Use selected models'
-                          : `Download ${formatBytes(selectedBytes)}`
+                          ? 'Повторить загрузку'
+                          : selectedBytes === 0 ? 'Использовать выбранные модели'
+                          : `Скачать ${formatBytes(selectedBytes)}`
                       }
                       onPress={() => {
                         markConsentAsked();
@@ -351,7 +351,7 @@ export const AutoSetupScreen: React.FC<Props> = ({
                   )}
                   {starting && (
                     <Button
-                      title="Stop Downloads"
+                      title="Остановить загрузку"
                       variant="outline"
                       onPress={() => { session.cancel().catch(() => undefined); }}
                       testID="auto-setup-cancel"
@@ -376,13 +376,13 @@ export const AutoSetupScreen: React.FC<Props> = ({
         {!selected && (
           <Card style={styles.errorCard}>
             <Text style={styles.error}>
-              Auto Setup could not find the models it needs to show a plan.
+              Не удалось найти модели для подготовки плана.
             </Text>
           </Card>
         )}
 
         <Button
-          title="Configure it yourself"
+          title="Настроить вручную"
           variant="ghost"
           style={styles.textAction}
           onPress={() => {
@@ -392,7 +392,7 @@ export const AutoSetupScreen: React.FC<Props> = ({
           testID="auto-setup-advanced"
         />
         <Button
-          title={openedFromApp ? 'Not now' : 'Skip for Now'}
+          title={openedFromApp ? 'Не сейчас' : 'Пропустить'}
           variant="ghost"
           style={styles.textAction}
           onPress={() => {
