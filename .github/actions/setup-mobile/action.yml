@@ -16,9 +16,9 @@ inputs:
     required: false
     default: 'true'
   shared:
-    description: Check out and build the shared monorepo beside this checkout.
+    description: Optional opt-in to check out the legacy sibling shared monorepo (OGAM open-core no longer declares file:../shared/packages/* dependencies).
     required: false
-    default: 'true'
+    default: 'false'
   pro-ref:
     description: The pro commit to build. Empty takes the branch that matches this run (CI); a build that ships passes the commit Core pins.
     required: false

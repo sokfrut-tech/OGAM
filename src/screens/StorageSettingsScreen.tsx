@@ -24,6 +24,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Card } from '../components';
 import { CustomAlert, showAlert, hideAlert, AlertState, initialAlertState } from '../components/CustomAlert';
 import { useTheme, useThemedStyles } from '../theme';
+import { t } from '../i18n';
 import { SPACING } from '../constants';
 import { useAppStore, useChatStore } from '../stores';
 import { useDownloadStore } from '../stores/downloadStore';

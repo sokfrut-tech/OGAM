@@ -5,7 +5,6 @@
  */
 
 import type {
-  MobileTextCatalogModel,
   ModelEntry,
   PickCandidate,
 } from '../types/modelCatalog';
@@ -1150,11 +1149,13 @@ function sizeMetric(candidate: PickCandidate): number {
 export function pickModelsForDevice(
   candidates: readonly PickCandidate[],
   ramGB: number,
-  budget: FitBudgetRatio,
+  budget: FitBudgetRatio | { comfortable: number; ceil: number },
   tier: 'runsWell' | 'fits' = 'runsWell',
   engineBuild = 0,
 ): DevicePickResult {
-  const ratio = tier === 'runsWell' ? budget.soft : budget.hard;
+  const soft = 'soft' in budget ? budget.soft : budget.comfortable;
+  const hard = 'hard' in budget ? budget.hard : budget.ceil;
+  const ratio = tier === 'runsWell' ? soft : hard;
   const maxBytes = ramGB * ratio * 1e9;
 
   const eligible = candidates.filter(c => {

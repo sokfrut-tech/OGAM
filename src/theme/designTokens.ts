@@ -23,6 +23,7 @@ export const COLORS_LIGHT = {
   surfaceGlass: 'rgba(0,0,0,0.04)',
   surfaceLight: '#EBEBEB',
   surfaceHover: '#E0E0E0',
+  selectedFill: 'rgba(5, 150, 105, 0.12)',
 
   // Text hierarchy
   text: '#0A0A0A',
@@ -68,6 +69,7 @@ export const COLORS_DARK: ThemeColors = {
   surfaceGlass: 'rgba(255,255,255,0.04)',
   surfaceLight: '#1E1E1E',
   surfaceHover: '#252525',
+  selectedFill: 'rgba(52, 211, 153, 0.14)',
 
   // Text hierarchy
   text: '#FFFFFF',

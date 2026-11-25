@@ -8,6 +8,7 @@ import {
   Text,
   TextInput,
   View,
+  type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -55,8 +56,12 @@ export const ImageGenScreen: React.FC = () => {
   const [negativePrompt, setNegativePrompt] = useState('');
   const initialModel = app.downloadedImageModels.find(model => model.id === app.activeImageModelId);
   const initialParameters = initialModel
-    ? resolveMobileImageParameters(initialModel, app)
-    : { steps: app.imageSteps, guidanceScale: app.imageGuidanceScale, size: app.imageWidth ?? 512 };
+    ? resolveMobileImageParameters(initialModel, app.settings)
+    : {
+        steps: app.settings.imageSteps ?? 20,
+        guidanceScale: app.settings.imageGuidanceScale ?? 7.5,
+        size: app.settings.imageWidth ?? 512,
+      };
   const [steps, setSteps] = useState(String(initialParameters.steps));
   const [guidanceScale, setGuidanceScale] = useState(String(initialParameters.guidanceScale));
   const [seed, setSeed] = useState('');
@@ -72,7 +77,7 @@ export const ImageGenScreen: React.FC = () => {
     const state = useAppStore.getState();
     const selected = state.downloadedImageModels.find(model => model.id === state.activeImageModelId);
     if (selected) {
-      const resolved = resolveMobileImageParameters(selected, state);
+      const resolved = resolveMobileImageParameters(selected, state.settings);
       setSteps(String(resolved.steps));
       setGuidanceScale(String(resolved.guidanceScale));
     }
@@ -199,7 +204,7 @@ export const ImageGenScreen: React.FC = () => {
   const progressPercent = progress && progress.totalSteps > 0
     ? Math.round((progress.step / progress.totalSteps) * 100)
     : 0;
-  const progressFillStyle = useMemo(() => ({ width: `${progressPercent}%` }), [progressPercent]);
+  const progressFillStyle = useMemo((): ViewStyle => ({ width: `${progressPercent}%` }), [progressPercent]);
   const resultImageAspectRatioStyle = useMemo(() => imageState.result
     ? { aspectRatio: imageState.result.width / imageState.result.height }
     : undefined, [imageState.result]);

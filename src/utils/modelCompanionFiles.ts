@@ -11,7 +11,7 @@ function basename(value: string): string {
 }
 
 function hasToken(name: string, token: string): boolean {
-  return new RegExp('(?:^|[-_])' + token + '(?:[-_.]|$)', 'i').test(name);
+  return new RegExp(`(?:^|[-_])${token}(?:[-_.]|$)`, 'i').test(name);
 }
 
 /** Separate MTP head sidecars (including MTP-only/draft naming) are not primary weights. */

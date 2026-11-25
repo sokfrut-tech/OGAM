@@ -9,7 +9,7 @@ export const BOOST_PROMO = {
   version: '2026-11-boost-v1',
 } as const;
 
-export type BoostPromoSurface = 'models' | 'model_settings' | 'home' | 'pro' | 'chat' | 'settings';
+export type BoostPromoSurface = 'models' | 'model_settings' | 'home' | 'pro' | 'pro_tab' | 'chat' | 'settings';
 
 export interface BoostPromoCopy {
   title: string;

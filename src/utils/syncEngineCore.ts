@@ -17,12 +17,10 @@
 
 import type {
   DeviceInfo,
-  MembershipRevocationPersistence,
   MembershipRevocationSnapshot,
   PairedDevice,
   PairingAttemptSnapshot,
   PairingEntitlementHostAdapter,
-  PairingPersistence,
   PendingMembershipRevocation,
   SyncByteCodec,
   SyncConnection,
@@ -227,7 +225,7 @@ function hkdfSha256(
   const effectiveSalt = salt.length > 0 ? salt : new Uint8Array(32);
   const prk = hmacSha256(effectiveSalt, ikm);
   const okm = new Uint8Array(length);
-  let prev = new Uint8Array(0);
+  let prev: Uint8Array = new Uint8Array(0);
   let offset = 0;
   let counter = 1;
   while (offset < length) {
@@ -522,7 +520,7 @@ export function encodeLengthPrefixedFrame(payload: Uint8Array): Uint8Array {
 
 /** Reassembles length-prefixed wire frames across arbitrary TCP chunk boundaries. */
 export class LengthPrefixedFrameDecoder {
-  private buffer = new Uint8Array(0);
+  private buffer: Uint8Array = new Uint8Array(0);
 
   push(chunk: Uint8Array): Uint8Array[] {
     if (chunk.length > 0) {

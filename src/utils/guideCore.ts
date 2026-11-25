@@ -14,7 +14,7 @@ export const GUIDE_LINKS = {
   extension: 'https://offgridai.app/extension',
 } as const;
 
-export type GuideWhere = 'mobile' | 'desktop' | 'extension' | 'both' | 'everywhere';
+export type GuideWhere = 'phone' | 'mobile' | 'desktop' | 'extension' | 'both' | 'everywhere';
 
 export interface GuideGroup {
   id: string;
@@ -51,7 +51,7 @@ const MOBILE_TOPICS: readonly GuideTopicFacts[] = [
       'Connects optionally to remote servers on your Wi-Fi',
     ],
     group: 'chat-media',
-    where: 'mobile',
+    where: 'phone',
   },
   {
     id: 'phone-vision',
@@ -64,7 +64,7 @@ const MOBILE_TOPICS: readonly GuideTopicFacts[] = [
       'Runs locally with full privacy',
     ],
     group: 'chat-media',
-    where: 'mobile',
+    where: 'phone',
   },
   {
     id: 'phone-images',
@@ -77,7 +77,7 @@ const MOBILE_TOPICS: readonly GuideTopicFacts[] = [
       'Saves creations locally to Gallery',
     ],
     group: 'chat-media',
-    where: 'mobile',
+    where: 'phone',
   },
   {
     id: 'phone-speech',
@@ -90,7 +90,7 @@ const MOBILE_TOPICS: readonly GuideTopicFacts[] = [
       'Re-transcribe recordings directly from message actions',
     ],
     group: 'chat-media',
-    where: 'mobile',
+    where: 'phone',
   },
   {
     id: 'phone-voice',
@@ -103,7 +103,7 @@ const MOBILE_TOPICS: readonly GuideTopicFacts[] = [
       'Keeps voice audio completely local',
     ],
     group: 'chat-media',
-    where: 'mobile',
+    where: 'phone',
     pro: true,
   },
   {
@@ -131,7 +131,7 @@ const MOBILE_TOPICS: readonly GuideTopicFacts[] = [
       'Switch Document search models anytime in Settings',
     ],
     group: 'workspace-tools',
-    where: 'mobile',
+    where: 'phone',
   },
   {
     id: 'phone-tools',
@@ -144,7 +144,7 @@ const MOBILE_TOPICS: readonly GuideTopicFacts[] = [
       'Deterministic tool execution safeguards',
     ],
     group: 'workspace-tools',
-    where: 'mobile',
+    where: 'phone',
     pro: true,
   },
   {
@@ -158,7 +158,7 @@ const MOBILE_TOPICS: readonly GuideTopicFacts[] = [
       'Support for llama.cpp GGUF and Google LiteRT acceleration',
     ],
     group: 'workspace-tools',
-    where: 'mobile',
+    where: 'phone',
   },
   {
     id: 'phone-notes',
@@ -185,7 +185,7 @@ const MOBILE_TOPICS: readonly GuideTopicFacts[] = [
       'Unlocked with Off Grid AI Pro',
     ],
     group: 'workspace-tools',
-    where: 'mobile',
+    where: 'phone',
     pro: true,
   },
   {
@@ -199,7 +199,7 @@ const MOBILE_TOPICS: readonly GuideTopicFacts[] = [
       'Synchronizable only with explicitly paired devices',
     ],
     group: 'workspace-tools',
-    where: 'mobile',
+    where: 'phone',
     pro: true,
   },
   {
@@ -284,6 +284,7 @@ export function guideTopicsFor(_surface: 'mobile' | 'desktop'): GuideTopicFacts[
 
 export function guideWhereLabel(_surface: 'mobile' | 'desktop', where: GuideWhere): string {
   switch (where) {
+    case 'phone':
     case 'mobile':
       return 'On this phone';
     case 'desktop':

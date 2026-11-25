@@ -103,7 +103,11 @@ test('text cleaning, chunking, tokenization, and map generation stay within boun
   assert.equal(cleaned[2].text.includes('Page footer'), false);
 
   const longParagraph = `# Chapter One\n\n${'Detailed explanation of local inference latency and memory bandwidth. '.repeat(25)}`;
-  assert.ok(textParts('A'.repeat(3000)).length >= 2);
+  const parts = textParts('A'.repeat(3000));
+  assert.ok(parts.length >= 2);
+  assert.equal(parts[0].page, 1);
+  assert.equal(typeof parts[0].text, 'string');
+  assert.equal(parts[1].page, 2);
 
   const { chunks } = await splitPages('doc-1', 'md', [{ page: 1, label: 'p. 1', text: longParagraph }]);
   assert.ok(chunks.length >= 2);

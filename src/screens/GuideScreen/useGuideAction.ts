@@ -86,7 +86,7 @@ export function useGuideAction(): (topic: MobileGuideTopic) => GuideAction | nul
   return topic => {
     if (topic.open) {
       const open = topic.open;
-      const locked = topic.pro && !hasPro;
+      const locked = Boolean(topic.pro && !hasPro);
       return {
         label: locked ? 'Get Pro' : OPEN_LABEL[open],
         icon: locked ? 'lock' : 'arrow-right',

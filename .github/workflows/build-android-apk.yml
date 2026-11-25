@@ -19,20 +19,22 @@ jobs:
       - name: Checkout fork
         uses: actions/checkout@v4
 
-      - name: Require private workspace access
+      - name: Report build mode
         env:
           PRO_SUBMODULE_PAT: ${{ secrets.PRO_SUBMODULE_PAT }}
         shell: bash
         run: |
-          if [[ -z "$PRO_SUBMODULE_PAT" ]]; then
-            echo "::error::Add the PRO_SUBMODULE_PAT repository secret with read access to off-grid-ai/mobile-pro and off-grid-ai/shared, then run this workflow again."
-            exit 1
+          if [[ -n "$PRO_SUBMODULE_PAT" ]]; then
+            echo "Building with optional Pro submodule token (standalone shared workspace disabled)."
+          else
+            echo "Building standalone open-core APK without PRO_SUBMODULE_PAT (pro/ uses proStub.js)."
           fi
 
-      - name: Set up Node workspace and private packages
+      - name: Set up Node workspace
         uses: ./.github/actions/setup-mobile
         with:
           private-token: ${{ secrets.PRO_SUBMODULE_PAT }}
+          shared: 'false'
           save-caches: 'false'
 
       - name: Set up Java 17, pinned Android NDK and native runtime

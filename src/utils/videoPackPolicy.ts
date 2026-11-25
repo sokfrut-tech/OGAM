@@ -2,7 +2,7 @@
  * OGAM-owned video model architecture, pack validation, platform availability, and sync rules.
  */
 
-import type { ModelFileEntry, VideoGenerationRequestContract } from '../types/modelCatalog';
+import type { ModelFileEntry } from '../types/modelCatalog';
 
 export type { VideoGenerationRequestContract } from '../types/modelCatalog';
 

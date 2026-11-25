@@ -70,7 +70,7 @@ export interface MobileWhisperCatalogModel {
   id: string;
   name: string;
   size: number;
-  lang: string;
+  lang: 'en' | 'multi';
   url: string;
   description: string;
 }

@@ -89,7 +89,7 @@ class HuggingFaceService {
       ...(result.activeParams ? { activeParams: result.activeParams } : {}),
       ...(result.hasMtp ? { hasMtp: true } : {}),
       ...(result.newer ? { newer: result.newer } : {}),
-      ...(result.variants?.length ? { variants: result.variants } : {}),
+      ...(result.variants?.length ? { variants: result.variants.map(v => v.id) } : {}),
     };
   }
 

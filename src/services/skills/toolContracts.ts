@@ -1,4 +1,3 @@
-import type { ToolDefinition } from '../tools/types';
 import { offeredTools } from '../tools/registry';
 import {
   validateSkillInvocation,

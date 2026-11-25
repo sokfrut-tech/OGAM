@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, ScrollView, Text, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -146,7 +146,7 @@ export const LocalModelsScreen: React.FC = () => {
   const textModels = inventory?.textModels ?? [];
   const imageModels = inventory?.imageModels ?? [];
   const whisperModels = inventory?.whisperModels ?? [];
-  const importProgressStyle = useMemo(() => ({ width: `${Math.round(importProgress * 100)}%` }), [importProgress]);
+  const importProgressStyle = useMemo((): ViewStyle => ({ width: `${Math.round(importProgress * 100)}%` }), [importProgress]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -180,7 +180,7 @@ export const LocalModelsScreen: React.FC = () => {
           {imageModels.map(model => (
             <View key={model.id} style={styles.modelRowSimple}>
               <Text style={styles.modelName} numberOfLines={1}>{model.name}</Text>
-              <Text style={styles.modelMeta}>{model.backend.toUpperCase()} · {formatBytes(model.size)}</Text>
+              <Text style={styles.modelMeta}>{(model.backend ?? 'local').toUpperCase()} · {formatBytes(model.size)}</Text>
             </View>
           ))}
           {!inventory && !scanning ? <Text style={styles.noFiles}>{t('models.noInventory')}</Text> : null}

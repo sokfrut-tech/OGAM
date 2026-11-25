@@ -18,7 +18,8 @@ export interface DocumentSource {
   id: string;
   name: string;
   kind: string;
-  path: string;
+  path?: string;
+  text?: string;
 }
 
 export interface DocumentPage {
@@ -237,12 +238,14 @@ export function estimateTokens(text: string): number {
 }
 
 /** Split plain text documents into reader-friendly pseudo-pages of ~2400 characters. */
-export function textParts(text: string): string[] {
+export function textParts(text: string): DocumentPage[] {
   const normalized = text.replace(/\r\n?/g, '\n');
   if (!normalized.trim()) return [];
-  if (normalized.length <= TEXT_PAGE_CHARS) return [normalized];
+  if (normalized.length <= TEXT_PAGE_CHARS) {
+    return [{ page: 1, label: 'Part 1', text: normalized }];
+  }
 
-  const parts: string[] = [];
+  const rawParts: string[] = [];
   let cursor = 0;
   while (cursor < normalized.length) {
     let end = Math.min(normalized.length, cursor + TEXT_PAGE_CHARS);
@@ -257,10 +260,15 @@ export function textParts(text: string): string[] {
       }
     }
     const slice = normalized.slice(cursor, end);
-    if (slice.trim()) parts.push(slice);
+    if (slice.trim()) rawParts.push(slice);
     cursor = end;
   }
-  return parts.length ? parts : [normalized];
+  const parts = rawParts.length ? rawParts : [normalized];
+  return parts.map((partText, idx) => ({
+    page: idx + 1,
+    label: `Part ${idx + 1}`,
+    text: partText,
+  }));
 }
 
 /** Return true when extracted page text contains too little readable text and needs OCR. */
@@ -648,6 +656,10 @@ export class DocumentIngestService {
     this.embed = options.embed;
     this.onProgress = options.onProgress;
     this.onWarning = options.onWarning;
+  }
+
+  isRunning(documentId: string): boolean {
+    return this.inFlight.has(documentId);
   }
 
   ingest(source: DocumentSource): Promise<StoredDocument | null> {

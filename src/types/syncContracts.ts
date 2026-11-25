@@ -26,7 +26,7 @@ export interface RecordProvenance {
   originDeviceName?: string;
 }
 
-export type SyncedTurnStatus = 'completed' | 'cancelled' | 'failed';
+export type SyncedTurnStatus = 'running' | 'completed' | 'cancelled' | 'failed';
 
 export type SyncedAssistantTimelineEntry =
   | { kind: 'thinking'; text: string }
@@ -290,10 +290,10 @@ export interface TransportRoute {
 export interface DiscoveryService {
   start(): Promise<void>;
   startBrowsing?(): Promise<void>;
-  stopBrowsing?(): Promise<void>;
-  rescan?(): Promise<void>;
-  advertise?(device?: DeviceInfo): Promise<void>;
-  stopAdvertising?(): Promise<void>;
+  stopBrowsing(): Promise<void>;
+  rescan(): Promise<void>;
+  advertise(device?: DeviceInfo): Promise<void>;
+  stopAdvertising(): Promise<void>;
   onDeviceFound(listener: (device: DiscoveredDevice) => void): void;
   onDeviceLost(listener: (deviceId: string) => void): void;
   stop(): Promise<void>;
@@ -391,7 +391,6 @@ export interface PairingPersistence {
   save?(device: PairedDevice): Promise<void>;
   load?(): Promise<PairedDevice[]>;
   remove?(deviceId: string): Promise<void>;
-  [key: string]: unknown;
 }
 
 export interface MembershipRevocationSnapshot {
@@ -436,7 +435,6 @@ export interface MembershipRevocationPersistence {
   ): string | undefined | Promise<string | undefined>;
   save?(records: MembershipRevocationSnapshot[]): Promise<void>;
   load?(): Promise<MembershipRevocationSnapshot[]>;
-  [key: string]: unknown;
 }
 
 export type DeviceCap =
