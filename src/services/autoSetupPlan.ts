@@ -22,7 +22,7 @@ interface AutoSetupCandidate<T = unknown> {
   sizeBytes: number;
   fitScore: number;
   parameterCountB?: number;
-  /** The phone's pick slot this chat model fills (Fast, Balanced or Best), or the starter: the
+  /** The phone's pick slot this chat model fills (Fast, Сбалансированный or Best), or the starter: the
    *  best model under 1 GB, which a new person gets first. */
   pick?: PickSlot | 'starter';
   payload: T;
@@ -61,11 +61,11 @@ const PLAN_COPY: Record<
   AutoSetupTier,
   Pick<AutoSetupPlan, 'title' | 'summary'>
 > = {
-  lean: { title: 'Quick start', summary: 'A small model that is ready in minutes. Add bigger ones any time.' },
-  balanced: { title: 'Balanced', summary: 'A comfortable fit for this phone.' },
+  lean: { title: 'Быстрый старт', summary: 'Небольшая модель, которую можно запустить за несколько минут. Более крупные модели можно добавить позже.' },
+  balanced: { title: 'Balanced', summary: 'Оптимальный выбор для этого телефона.' },
   extreme: {
-    title: 'Extreme',
-    summary: 'The most this phone can run.',
+    title: 'Максимум',
+    summary: 'Самая крупная модель из подходящих для этого телефона.',
   },
 };
 
