@@ -10,6 +10,7 @@ import { useAppStore } from '../stores';
 import { AnimatedPressable } from './AnimatedPressable';
 import { boostPromo } from '../services/analytics/analytics';
 import { OfflineError, openWebSheet } from '../services/proCheckout';
+import { isJarvisStandaloneRuntime } from '../i18n';
 
 const COPY = boostPromoCopy('phone');
 
@@ -28,10 +29,10 @@ export const BoostPromoCard: React.FC<{ surface: BoostPromoSurface }> = ({ surfa
   const [offline, setOffline] = useState(false);
 
   useEffect(() => {
-    if (visible) boostPromo('shown', surface);
+    if (visible && !isJarvisStandaloneRuntime) boostPromo('shown', surface);
   }, [visible, surface]);
 
-  if (!visible) return null;
+  if (isJarvisStandaloneRuntime || !visible) return null;
 
   const claim = (): void => {
     boostPromo('clicked', surface);

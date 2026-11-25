@@ -34,12 +34,12 @@ const MODEL_TABS: ReadonlyArray<{
   label: string;
   testID?: string;
 }> = [
-  { key: 'text', label: 'Text' },
-  { key: 'embedding', label: 'Documents', testID: 'embedding-tab' },
-  { key: 'image', label: 'Image' },
-  { key: 'video', label: 'Video', testID: 'video-models-tab' },
-  { key: 'voice', label: 'Voice', testID: 'voice-models-tab' },
-  { key: 'transcription', label: 'Speech', testID: 'transcription-models-tab' },
+  { key: 'text', label: t('models.tab.text') },
+  { key: 'embedding', label: t('models.tab.documents'), testID: 'embedding-tab' },
+  { key: 'image', label: t('models.tab.image') },
+  { key: 'video', label: t('models.tab.video'), testID: 'video-models-tab' },
+  { key: 'voice', label: t('models.tab.voice'), testID: 'voice-models-tab' },
+  { key: 'transcription', label: t('models.tab.speech'), testID: 'transcription-models-tab' },
 ];
 
 interface ModelsScreenProps {
@@ -133,7 +133,7 @@ export const ModelsScreen: React.FC<ModelsScreenProps> = ({
         {/* Header */}
         <HideWhenEmbedded embedded={embedded}>
           <ScreenHeader
-            title="Models"
+            title={t('models.screenTitle')}
             variant="tab"
             right={
               <View style={headerStyles.actions}>

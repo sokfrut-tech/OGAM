@@ -8,6 +8,7 @@ import { createStyles } from '../styles';
 import { useAppStore } from '../../../stores';
 import { OFF_GRID_DESKTOP_URL } from '../../../constants';
 import { withUtm } from '../../../utils/utm';
+import { isJarvisStandaloneRuntime } from '../../../i18n';
 
 const DESKTOP_URL = withUtm(OFF_GRID_DESKTOP_URL, 'home-promo');
 
@@ -31,7 +32,7 @@ export const DesktopPromoCard: React.FC = () => {
     setTimeout(() => setLinkCopied(false), 2000);
   }, []);
 
-  if (desktopPromoDismissed) return null;
+  if (isJarvisStandaloneRuntime || desktopPromoDismissed) return null;
 
   return (
     <AnimatedPressable

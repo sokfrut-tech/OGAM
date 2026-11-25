@@ -189,7 +189,7 @@ export const StorageSettingsScreen: React.FC = () => {
 
   return (
     <AliveScreen style={styles.container}>
-      <ScreenHeader title="Storage" onBack={() => navigation.goBack()} />
+      <ScreenHeader title={t('storage.title')} onBack={() => navigation.goBack()} />
 
       <ScrollView
         style={styles.scrollView}
@@ -220,7 +220,7 @@ export const StorageSettingsScreen: React.FC = () => {
           </>
         ) : null}
 
-        <SectionLabel title="Space on this phone" />
+        <SectionLabel title={t('storage.spaceOnPhone')} />
         <Card style={styles.section}>
           <View style={styles.storageBar}>
             <View style={[styles.storageUsed, { width: `${Math.min(usedPercentage, 100)}%` }]} />
@@ -248,7 +248,7 @@ export const StorageSettingsScreen: React.FC = () => {
           </View>
         </Card>
 
-        <SectionLabel title="What uses it" />
+        <SectionLabel title={t('storage.whatUsesIt')} />
         <Card style={styles.section}>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Chat models</Text>

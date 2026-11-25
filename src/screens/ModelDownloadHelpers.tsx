@@ -12,6 +12,7 @@ import { TYPOGRAPHY, SPACING, FONTS, OFF_GRID_DESKTOP_URL } from '../constants';
 import { RemoteModel, RemoteServer } from '../types';
 export { fetchModelFiles } from '../services/modelCatalogFiles';
 import { withUtm } from '../utils/utm';
+import { isJarvisStandaloneRuntime } from '../i18n';
 
 // ---------------------------------------------------------------------------
 // Model file fetching
@@ -105,17 +106,23 @@ export const NetworkSection: React.FC<{
       ))}
 
       {!isCheckingNetwork && !hasServers && (
-        <>
+        isJarvisStandaloneRuntime ? (
           <Text style={styles.emptyText}>
-            No Off Grid AI Desktop, Ollama, or LM Studio server found. Scan again or add one.
+            Серверы Ollama или LM Studio не найдены. Запустите сервер в локальной сети или добавьте адрес вручную.
           </Text>
-          <TouchableOpacity
-            onPress={() => Linking.openURL(withUtm(OFF_GRID_DESKTOP_URL, 'model-download')).catch(() => {})}
-            testID="onboarding-get-desktop"
-          >
-            <Text style={[styles.getDesktopLink, { color: colors.primary }]}>Get Off Grid AI Desktop</Text>
-          </TouchableOpacity>
-        </>
+        ) : (
+          <>
+            <Text style={styles.emptyText}>
+              No Off Grid AI Desktop, Ollama, or LM Studio server found. Scan again or add one.
+            </Text>
+            <TouchableOpacity
+              onPress={() => Linking.openURL(withUtm(OFF_GRID_DESKTOP_URL, 'model-download')).catch(() => {})}
+              testID="onboarding-get-desktop"
+            >
+              <Text style={[styles.getDesktopLink, { color: colors.primary }]}>Get Off Grid AI Desktop</Text>
+            </TouchableOpacity>
+          </>
+        )
       )}
 
       <View style={styles.actionRow}>
@@ -126,13 +133,17 @@ export const NetworkSection: React.FC<{
         >
           {busy
             ? <LoadingDots color={colors.primary} />
-            : <Text style={[styles.actionButtonText, { color: colors.primary }]}>Scan network</Text>}
+            : <Text style={[styles.actionButtonText, { color: colors.primary }]}>
+                {isJarvisStandaloneRuntime ? 'Сканировать сеть' : 'Scan network'}
+              </Text>}
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, { borderColor: colors.primary }]}
           onPress={onAddManually}
         >
-          <Text style={[styles.actionButtonText, { color: colors.primary }]}>Add server</Text>
+          <Text style={[styles.actionButtonText, { color: colors.primary }]}>
+            {isJarvisStandaloneRuntime ? 'Добавить сервер' : 'Add server'}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

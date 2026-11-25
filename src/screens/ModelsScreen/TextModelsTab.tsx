@@ -35,6 +35,7 @@ import { TextFiltersSection } from './TextFiltersSection';
 import { FilterState, SortOption } from './types';
 import { SORT_OPTIONS } from './constants';
 import { formatNumber, getTextModelCompatibility, modelFactChips, modelSpeedBadges } from './utils';
+import { isJarvisStandaloneRuntime, t } from '../../i18n';
 import { buildCuratedLiteRTFiles, curatedLiteRTDownloadWarning, getCuratedLiteRTEntry, LITERT_PARENT_ID, useCuratedLiteRTEntries } from '../../services/curatedLiteRTRegistry';
 import { useWithRemoteCatalog } from '../../stores/modelCatalogStore';
 import { liteRTFileMeta, liteRTRecommendedModel, LITERT_PARENT_RECOMMENDED } from './litertRecommended';
@@ -53,9 +54,9 @@ function hasNonSortFilters(fs: FilterState): boolean {
 }
 
 function getEmptyText(hasSearched: boolean, hasActiveFilters: boolean): string {
-  if (!hasSearched) return 'No recommended models available.';
-  if (hasActiveFilters) return 'No models match your filters. Try adjusting or clearing them.';
-  return 'No models found. Try a different search term.';
+  if (!hasSearched) return t('models.noRecommended');
+  if (hasActiveFilters) return t('models.noMatchFilters');
+  return t('models.noSearchResults');
 }
 
 type Props = Pick<ModelsScreenViewModel,
@@ -316,7 +317,7 @@ const ModelDetailView: React.FC<DetailProps> = ({
           renderItem={renderFileItem}
           keyExtractor={item => item.name}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={<Card style={styles.emptyCard}><Text style={styles.emptyText}>No compatible files found for this model.</Text></Card>}
+          ListEmptyComponent={<Card style={styles.emptyCard}><Text style={styles.emptyText}>{t('models.noCompatibleFiles')}</Text></Card>}
           ListFooterComponent={selectedModel.id !== LITERT_PARENT_ID && runnableFiles.length > choices.length ? (
             <TouchableOpacity onPress={() => setShowAllFiles(v => !v)} testID="all-files-toggle">
               <Text style={styles.sectionSubtitle}>{showAllFiles ? 'Fewer sizes' : 'All files'}</Text>
@@ -507,7 +508,7 @@ export const TextModelsTab: React.FC<Props> = (props) => {
       <View style={[styles.searchContainer, styles.searchContainerRaised]} testID="text-model-search-row">
         <SearchField
           style={styles.searchField}
-          placeholder="Search models"
+          placeholder={isJarvisStandaloneRuntime ? 'Поиск моделей' : 'Search models'}
           value={searchQuery}
           onChangeText={setSearchQuery}
           onSubmitEditing={handleSearch}
@@ -587,7 +588,7 @@ export const TextModelsTab: React.FC<Props> = (props) => {
             <>
               <DevicePicksRow ramGB={ramGB} onChat={() => navigation.navigate('Chat', {})} />
               <BoostPromoCard surface="models" />
-              {moreModels.length > 0 && <Text style={styles.recommendedTitle}>More models</Text>}
+              {moreModels.length > 0 && <Text style={styles.recommendedTitle}>{t('models.moreModels')}</Text>}
               {onboardingLiteRTCards}
             </>
           )}

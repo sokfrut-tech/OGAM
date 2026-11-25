@@ -29,6 +29,8 @@ import { useDebugLogsStore } from './src/stores/debugLogsStore';
 import { initDebugLogFile, appendDebugLine, stopDebugLogFile } from './src/utils/debugLogFile';
 import { startStartupMemoryProbe } from './src/services/startupMemoryProbe';
 import { loadProFeatures } from './src/bootstrap/loadProFeatures';
+import { activateJarvisOpenCapabilities } from './src/bootstrap/activateJarvisOpenCapabilities';
+import { isJarvisStandaloneRuntime } from './src/i18n';
 import { hydrateDownloadStore } from './src/services/downloadHydration';
 import { initModelCatalog } from './src/stores/modelCatalogStore';
 import { initActiveDownloadPersistence } from './src/services/activeDownloadPersistence';
@@ -392,6 +394,9 @@ function App() {
         // Debug developer unlock; Sync reconciliation owns device admission.
         logger.log('[BOOT] load pro features');
         await loadProFeatures();
+        if (isJarvisStandaloneRuntime) {
+          activateJarvisOpenCapabilities();
+        }
       } catch (proError) {
         logger.error('[App] Pro feature load failed, continuing without Pro:', proError);
       }

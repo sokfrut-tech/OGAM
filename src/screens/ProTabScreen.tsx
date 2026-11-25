@@ -26,6 +26,8 @@ import type { RootStackParamList } from '../navigation/types';
 import { mobileGuideTopics } from './GuideScreen/guideTopics';
 import { useGuideAction } from './GuideScreen/useGuideAction';
 import { createStyles } from './SettingsScreen.styles';
+import { useOpenProTools } from '../hooks/useOpenProTools';
+import { isJarvisStandaloneRuntime } from '../i18n';
 
 export const ProTabScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -33,6 +35,7 @@ export const ProTabScreen: React.FC = () => {
   const styles = useThemedStyles(createStyles);
   const hasPro = useAppStore(selectHasProAccess);
   const getPro = useGetPro();
+  const openProTools = useOpenProTools();
   const focusTrigger = useFocusTrigger();
   const actionFor = useGuideAction();
   const topics = useMemo(() => mobileGuideTopics(), []);
@@ -53,6 +56,109 @@ export const ProTabScreen: React.FC = () => {
         : [];
     }),
   ];
+
+  if (isJarvisStandaloneRuntime) {
+    const proModules = [
+      {
+        key: 'mcp',
+        icon: 'terminal',
+        title: 'Инструменты и MCP-серверы',
+        desc: 'Все встроенные инструменты (видео, веб, калькулятор, база знаний) и ваши MCP HTTP-серверы',
+        onPress: openProTools,
+      },
+      {
+        key: 'voice',
+        icon: 'volume-2',
+        title: 'Голос и озвучка (RU TTS)',
+        desc: 'Локальная русская озвучка ответов через Android TextToSpeech',
+        onPress: () =>
+          navigation.navigate('Main', {
+            screen: 'ModelsTab',
+            params: { initialTab: 'voice' },
+          }),
+      },
+      {
+        key: 'video',
+        icon: 'film',
+        title: 'Генерация видео (Wan 2.1)',
+        desc: 'Создание видео на устройстве и загрузка моделей Wan',
+        onPress: () =>
+          navigation.navigate('Main', {
+            screen: 'ModelsTab',
+            params: { initialTab: 'video' },
+          }),
+      },
+      {
+        key: 'models',
+        icon: 'cpu',
+        title: 'Модели ИИ (без цензуры и русские)',
+        desc: 'Dolphin 3.0, Dolphin 2.9.3, Hermes 3, Saiga Nemo 12B, Saiga Llama 3, Qwen 2.5',
+        onPress: () =>
+          navigation.navigate('Main', {
+            screen: 'ModelsTab',
+            params: { initialTab: 'text' },
+          }),
+      },
+      {
+        key: 'image',
+        icon: 'image',
+        title: 'Генерация изображений',
+        desc: 'Локальное создание картинок без цензуры и ограничений',
+        onPress: () => navigation.navigate('ImageGen'),
+      },
+      {
+        key: 'gallery',
+        icon: 'grid',
+        title: 'Галерея (фото и видео)',
+        desc: 'Просмотр и сохранение созданных изображений и видеороликов',
+        onPress: () => navigation.navigate('Gallery'),
+      },
+      {
+        key: 'remote',
+        icon: 'server',
+        title: 'Локальные серверы (Ollama / LM Studio)',
+        desc: 'Подключение домашних серверов по Wi-Fi или локальной сети',
+        onPress: () => navigation.navigate('RemoteServers'),
+      },
+      {
+        key: 'status',
+        icon: 'award',
+        title: 'Статус Jarvis Ai Pro',
+        desc: 'Все Pro-модули активны локально без подписок и ограничений',
+        onPress: () => navigation.navigate('ProDetail'),
+      },
+    ];
+
+    return (
+      <SafeAreaView style={styles.container} edges={['top']} testID="pro-tab-screen">
+        <ScreenField />
+        <ScreenHeader title="Jarvis Ai Pro" subtitle="Все функции активны" variant="tab" />
+        <ScrollView {...SCROLL_DEPTH_PROPS} style={styles.scrollView} contentContainerStyle={styles.content}>
+          <View style={styles.navSection}>
+            {proModules.map((item, index) => (
+              <TouchableOpacity
+                key={item.key}
+                style={[styles.navItem, index === proModules.length - 1 && styles.navItemLast]}
+                onPress={item.onPress}
+                accessibilityRole="button"
+                accessibilityLabel={item.title}
+                testID={`pro-tab-${item.key}`}
+              >
+                <View style={styles.navItemIcon}>
+                  <Icon name={item.icon} size={16} color={colors.primary} />
+                </View>
+                <View style={styles.navItemContent}>
+                  <Text style={styles.navItemTitle}>{item.title}</Text>
+                  <Text style={styles.navItemDesc} numberOfLines={2}>{item.desc}</Text>
+                </View>
+                <Icon name="chevron-right" size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']} testID="pro-tab-screen">

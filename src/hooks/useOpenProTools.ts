@@ -7,6 +7,7 @@ import { selectHasProAccess } from '../stores/proAccessSlice';
 import { PRO_TOOLS_SCREEN } from './useIsProActive';
 import { proGateShown } from '../services/analytics/analytics';
 import { useGetPro } from './useGetPro';
+import { isJarvisStandaloneRuntime } from '../i18n';
 
 /**
  * One callback for "open the Pro Tools destination", used everywhere the user can
@@ -25,6 +26,10 @@ export function useOpenProTools(): () => void {
   return () => {
     const hasAccess = selectHasProAccess(useAppStore.getState());
     const hasProScreen = getRegisteredScreens().some(s => s.name === PRO_TOOLS_SCREEN);
+    if (isJarvisStandaloneRuntime) {
+      navigation.navigate((hasProScreen ? PRO_TOOLS_SCREEN : 'ProDetail') as any);
+      return;
+    }
     if (hasAccess && hasProScreen) {
       navigation.navigate(PRO_TOOLS_SCREEN as any);
     } else {

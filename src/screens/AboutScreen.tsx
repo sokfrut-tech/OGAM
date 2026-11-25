@@ -13,6 +13,7 @@ import { useFocusTrigger } from '../hooks/useFocusTrigger';
 import { GITHUB_URL } from '../utils/sharePrompt';
 import { withUtm } from '../utils/utm';
 import { appVersion } from '../utils/appVersion';
+import { isJarvisStandaloneRuntime, t } from '../i18n';
 
 const WEDNESDAY_MOBILE_URL = withUtm('https://wednesday.is', 'about');
 
@@ -24,16 +25,16 @@ export const AboutScreen: React.FC = () => {
 
   return (
     <AliveScreen style={styles.container} edges={['top', 'bottom']}>
-      <ScreenHeader title="About" onBack={() => navigation.goBack()} />
+      <ScreenHeader title={t('about.title')} onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* App identity */}
         <View style={styles.heroSection}>
           <Image source={require('../assets/logo.png')} style={staticStyles.appIcon} />
-          <Text style={styles.appName}>Off Grid AI</Text>
-          <Text style={styles.version}>Version {appVersion()}</Text>
+          <Text style={styles.appName}>{t('app.name')}</Text>
+          <Text style={styles.version}>{t('app.version', { version: appVersion() })}</Text>
           <Text style={styles.description}>
-            Local AI that runs entirely on your phone. Your chats and files never leave your device.
+            {t('about.description')}
           </Text>
         </View>
 
@@ -43,20 +44,20 @@ export const AboutScreen: React.FC = () => {
             index={0}
             staggerMs={40}
             trigger={focusTrigger}
-            style={styles.navItem}
+            style={[styles.navItem, isJarvisStandaloneRuntime && styles.navItemLast]}
             onPress={() => Linking.openURL(GITHUB_URL)}
           >
             <View style={styles.navItemIcon}>
               <Icon name="github" size={16} color={colors.textSecondary} />
             </View>
             <View style={styles.navItemContent}>
-              <Text style={styles.navItemTitle}>Open source</Text>
-              <Text style={styles.navItemDesc}>View the source on GitHub</Text>
+              <Text style={styles.navItemTitle}>{t('about.openSource')}</Text>
+              <Text style={styles.navItemDesc}>{t('about.openSourceDesc')}</Text>
             </View>
             <Icon name="external-link" size={14} color={colors.textMuted} />
           </AnimatedListItem>
         {/* X and Slack live once, in Settings > Community (one home per thing; hand test 84). */}
-        {/* Built by Wednesday row */}
+        {isJarvisStandaloneRuntime ? null : (
           <AnimatedListItem
             index={1}
             staggerMs={40}
@@ -73,6 +74,7 @@ export const AboutScreen: React.FC = () => {
             </View>
             <Icon name="external-link" size={14} color={colors.textMuted} />
           </AnimatedListItem>
+        )}
         </View>
       </ScrollView>
 

@@ -45,6 +45,7 @@ import { SCROLL_DEPTH_PROPS } from '../constants/scrollDepth';
 import { ScreenField } from '../components/LivingField';
 import { useGetPro } from '../hooks/useGetPro';
 import { getJarvisAssistantRoleStatus, requestJarvisAssistantRole, type JarvisAssistantRoleStatus } from '../services/jarvisAssistantRole';
+import { isJarvisStandaloneRuntime, t } from '../i18n';
 
 type NavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'SettingsTab'>,
@@ -152,16 +153,16 @@ export const SettingsScreen: React.FC = () => {
   };
 
   const assistantRoleDescription = !assistantRoleStatus
-    ? 'Check Android system-assistant support'
+    ? t('settings.assistant.checkSupport')
     : !assistantRoleStatus.supported
-      ? 'Requires Android 12 or newer'
+      ? t('settings.assistant.requiresAndroid12')
       : !assistantRoleStatus.roleAvailable
-        ? 'Not available on this Android/ColorOS build'
+        ? t('settings.assistant.unavailable')
         : assistantRoleStatus.ready
-          ? 'Jarvis is your default system assistant'
+          ? t('settings.assistant.ready')
           : assistantRoleStatus.roleHeld
-            ? 'Android has not activated the Jarvis service yet'
-            : 'Use Jarvis from your system-assistant gesture';
+            ? t('settings.assistant.notActivated')
+            : t('settings.assistant.gestureHint');
 
   const handleSendFeedback = async () => {
     const { downloadedModels, activeModelId } = useAppStore.getState();
@@ -179,7 +180,8 @@ export const SettingsScreen: React.FC = () => {
       ? `Device: ${deviceInfo.deviceModel} (${deviceInfo.systemName} ${deviceInfo.systemVersion})`
       : 'Device: Unknown';
 
-    const subject = `[Feedback] Off Grid AI v${appVersion()}`;
+    const brandLabel = isJarvisStandaloneRuntime ? 'Jarvis Ai' : 'Off Grid AI';
+    const subject = `[Feedback] ${brandLabel} v${appVersion()}`;
     const body =
       `Hi,\n\n[Describe your feedback or issue here]\n\n` +
         `---\n` +
@@ -236,7 +238,7 @@ export const SettingsScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* The living field behind the tab, resting while the tab is hidden. */}
       <ScreenField />
-      <ScreenHeader title="Settings" variant="tab" />
+      <ScreenHeader title={t('settings.title')} variant="tab" />
       <ScrollView
         {...SCROLL_DEPTH_PROPS}
         style={styles.scrollView}
@@ -273,7 +275,7 @@ export const SettingsScreen: React.FC = () => {
                 </View>
                 <View style={styles.navItemContent}>
                   <Text style={styles.navItemTitle}>
-                    {isRequestingAssistantRole ? 'Opening Android settings…' : assistantRoleStatus?.ready ? 'Jarvis system assistant' : assistantRoleStatus?.roleHeld ? 'Jarvis selected' : 'Set Jarvis as assistant'}
+                    {isRequestingAssistantRole ? t('settings.assistant.opening') : assistantRoleStatus?.ready ? t('settings.assistant.title') : assistantRoleStatus?.roleHeld ? t('settings.assistant.selected') : t('settings.assistant.set')}
                   </Text>
                   <Text style={styles.navItemDesc} numberOfLines={1}>{assistantRoleDescription}</Text>
                 </View>
@@ -283,27 +285,27 @@ export const SettingsScreen: React.FC = () => {
             {[
               {
                 icon: 'sliders',
-                title: 'Model settings',
-                desc: 'Instructions, replies, and speed',
+                title: t('settings.modelSettings'),
+                desc: t('settings.modelSettingsDesc'),
                 screen: 'ModelSettings' as const,
                 testID: 'open-model-settings',
               },
               {
                 // Its own page (Back returns here), showing the same picker as Models → Search.
                 icon: 'search',
-                title: 'Document search',
+                title: t('settings.docSearch'),
                 // What it does for you; the model's name is one tap in, on its own screen.
-                desc: 'How chats find the right part of a file',
+                desc: t('settings.docSearchDesc'),
                 screen: 'SearchModel' as const,
                 testID: 'open-search-model',
               },
               {
                 icon: 'wifi',
-                title: 'Remote servers',
-                desc: 'Your computer, Ollama or LM Studio',
+                title: t('settings.remoteServers'),
+                desc: t('settings.remoteServersDesc'),
                 screen: 'RemoteServers' as const,
               },
-              ...(hasSync
+              ...(hasSync && (!isJarvisStandaloneRuntime || isSyncUnlocked)
                 ? [
                     {
                       icon: 'refresh-cw',
@@ -319,26 +321,26 @@ export const SettingsScreen: React.FC = () => {
               //  { icon: 'search', title: 'Web Search', desc: 'Configure search API key for reliable results', screen: 'WebSearchSettings' as const },
               {
                 icon: 'lock',
-                title: 'Security',
-                desc: 'Passphrase and app lock',
+                title: t('settings.security'),
+                desc: t('settings.securityDesc'),
                 screen: 'SecuritySettings' as const,
               },
               {
                 icon: 'smartphone',
-                title: 'Device information',
-                desc: 'Hardware and compatibility',
+                title: t('settings.deviceInfo'),
+                desc: t('settings.deviceInfoDesc'),
                 screen: 'DeviceInfo' as const,
               },
               {
                 icon: 'hard-drive',
-                title: 'Storage',
-                desc: 'Models and data usage',
+                title: t('settings.storage'),
+                desc: t('settings.storageDesc'),
                 screen: 'StorageSettings' as const,
               },
               {
                 icon: 'cpu',
-                title: 'Engine updates',
-                desc: 'What runs your models',
+                title: t('settings.engineUpdates'),
+                desc: t('settings.engineUpdatesDesc'),
                 screen: 'EngineUpdates' as const,
                 testID: 'open-engine-updates',
               },
@@ -383,13 +385,13 @@ export const SettingsScreen: React.FC = () => {
               onPress={() => getPro('settings')}
               activeOpacity={0.75}
               accessibilityRole="button"
-              accessibilityLabel={`Off Grid AI Pro. ${proStatusLabel}`}
+              accessibilityLabel={`${t('app.proName')}. ${proStatusLabel}`}
             >
               <View style={styles.navItemIcon}>
                 <IconMC name="crown" size={16} color={colors.textSecondary} />
               </View>
               <View style={styles.navItemContent}>
-                <Text style={styles.navItemTitle}>Off Grid AI Pro</Text>
+                <Text style={styles.navItemTitle}>{t('app.proName')}</Text>
                 <Text style={styles.navItemDesc}>{proStatusLabel}</Text>
               </View>
               <Icon name="chevron-right" size={16} color={colors.textMuted} />
@@ -418,9 +420,9 @@ export const SettingsScreen: React.FC = () => {
                 <Icon name="info" size={16} color={colors.textSecondary} />
               </View>
               <View style={styles.navItemContent}>
-                <Text style={styles.navItemTitle}>About</Text>
+                <Text style={styles.navItemTitle}>{t('settings.about')}</Text>
                 <Text style={styles.navItemDesc}>
-                  Version {appVersion()}
+                  {t('app.version', { version: appVersion() })}
                 </Text>
               </View>
               <Icon name="chevron-right" size={16} color={colors.textMuted} />

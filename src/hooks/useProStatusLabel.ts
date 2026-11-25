@@ -6,6 +6,7 @@ import {
   PRO_TIER_META,
   type ProLicenseInfo,
 } from '../services/proLicenseService';
+import { isJarvisStandaloneRuntime } from '../i18n';
 
 /**
  * Label for the Settings "Off Grid AI PRO" row: the upsell line when not Pro, or
@@ -30,7 +31,9 @@ export function useProStatusLabel(): {
   // Drive off the tier's `renews` flag (single source), not a concrete-tier check.
   const meta = info?.tier ? PRO_TIER_META[info.tier] : null;
   const isDevelopmentAccess = __DEV__ && isProActive && !hasSavedProCredential;
-  const proStatusLabel = isDevelopmentAccess
+  const proStatusLabel = isJarvisStandaloneRuntime
+    ? 'Все функции активны'
+    : isDevelopmentAccess
     ? 'Development access'
     : !hasProAccess
     ? 'Unlock premium features'

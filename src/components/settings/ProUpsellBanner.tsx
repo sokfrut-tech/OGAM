@@ -16,6 +16,7 @@ import {
 } from '../../constants';
 import { withUtm } from '../../utils/utm';
 import { getPricingCopy } from '../../utils/proPricing';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 
 interface Props {
   /** Re-trigger the entrance animation when the screen regains focus. */
@@ -41,7 +42,7 @@ export const ProUpsellBanner: React.FC<Props> = ({ trigger, onGetPro }) => {
   const dismiss = useAppStore((s) => s.setProBannerDismissed);
   const pricing = getPricingCopy();
 
-  if (!show) return null;
+  if (isJarvisStandaloneRuntime || !show) return null;
 
   return (
     <AnimatedEntry index={0} staggerMs={40} trigger={trigger}>

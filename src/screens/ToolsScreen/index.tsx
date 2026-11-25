@@ -13,6 +13,7 @@ import { useAppStore } from '../../stores';
 import { useOpenProTools } from '../../hooks/useOpenProTools';
 import type { ThemeColors, ThemeShadows } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { isJarvisStandaloneRuntime, t } from '../../i18n';
 
 
 /**
@@ -47,7 +48,7 @@ export const ToolsScreen: React.FC = () => {
 
   return (
     <AliveScreen style={styles.root} edges={['top', 'bottom']}>
-      <ScreenHeader title="Tools" onBack={() => navigation.goBack()} backTestID="tools-back" />
+      <ScreenHeader title={t('tools.title')} onBack={() => navigation.goBack()} backTestID="tools-back" />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         {/* Pro Tools always sits on top of the listing. */}
@@ -62,8 +63,8 @@ export const ToolsScreen: React.FC = () => {
             <Icon name="package" size={18} color={colors.textSecondary} />
           </View>
           <View style={styles.toolInfo}>
-            <Text style={styles.toolName}>Pro tools</Text>
-            <Text style={styles.toolDescription}>Email, calendar and MCP servers</Text>
+            <Text style={styles.toolName}>{t('tools.proTitle')}</Text>
+            <Text style={styles.toolDescription}>{t('tools.proDesc')}</Text>
           </View>
           <Icon name="chevron-right" size={18} color={colors.textMuted} />
         </TouchableOpacity>
@@ -74,10 +75,12 @@ export const ToolsScreen: React.FC = () => {
             <Icon name="info" size={16} color={colors.textMuted} style={styles.hintIcon} />
             <View style={styles.hintBody}>
               <Text style={[styles.hintText, { color: colors.text }]}>
-                With this many tools on, answers start slower and the model can pick the wrong one. Two or three is plenty for most chats.
+                {isJarvisStandaloneRuntime
+                  ? 'Когда включено слишком много инструментов одновременно, ответы формируются медленнее. Обычно достаточно 2–3 инструментов.'
+                  : 'With this many tools on, answers start slower and the model can pick the wrong one. Two or three is plenty for most chats.'}
               </Text>
               <TouchableOpacity onPress={setToolCountHintDismissed} style={styles.hintDismiss}>
-                <Text style={styles.hintDismissText}>Got it</Text>
+                <Text style={styles.hintDismissText}>{t('common.gotIt')}</Text>
               </TouchableOpacity>
             </View>
           </View>

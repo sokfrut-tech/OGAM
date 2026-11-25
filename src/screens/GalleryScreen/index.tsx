@@ -18,6 +18,7 @@ import { useGalleryActions } from './useGalleryActions';
 import { GalleryGridItem } from './GridItem';
 import { UnderlineTabs } from '../../components/UnderlineTabs';
 import { SCROLL_DEPTH_PROPS } from '../../constants/scrollDepth';
+import { isJarvisStandaloneRuntime, t } from '../../i18n';
 
 type GalleryScreenRouteProp = RouteProp<RootStackParamList, 'Gallery'>;
 
@@ -64,7 +65,11 @@ export const GalleryScreen: React.FC = () => {
     handleCancelGeneration,
   } = useGalleryActions(conversationId);
 
-  const screenTitle = conversationId ? 'Chat Media' : 'Gallery';
+  const screenTitle = conversationId
+    ? isJarvisStandaloneRuntime
+      ? 'Медиа чата'
+      : 'Chat Media'
+    : t('gallery.title');
 
   const renderGridItem = ({
     item,
@@ -174,8 +179,8 @@ export const GalleryScreen: React.FC = () => {
 
       <UnderlineTabs
         tabs={[
-          { key: 'images' as const, label: `Images (${displayImages.length})`, testID: 'gallery-tab-images' },
-          { key: 'videos' as const, label: `Videos (${displayVideos.length})`, testID: 'gallery-tab-videos' },
+          { key: 'images' as const, label: t('gallery.imagesTab', { count: displayImages.length }), testID: 'gallery-tab-images' },
+          { key: 'videos' as const, label: t('gallery.videosTab', { count: displayVideos.length }), testID: 'gallery-tab-videos' },
         ]}
         active={kind}
         onChange={tab => {
@@ -246,7 +251,7 @@ export const GalleryScreen: React.FC = () => {
             {libraryRow ? <View style={styles.videoGroup}>{libraryRow}</View> : null}
             <View style={styles.emptyContainer}>
               <Icon name="video" size={48} color={colors.textMuted} />
-              <Text style={styles.emptyTitle}>No videos in this gallery</Text>
+              <Text style={styles.emptyTitle}>{t('gallery.emptyVideos')}</Text>
             </View>
           </View>
         ) : (

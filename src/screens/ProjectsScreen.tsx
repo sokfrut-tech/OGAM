@@ -21,6 +21,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { ListSearchBar } from '../components/ListSearchBar';
 import { useFocusTrigger } from '../hooks/useFocusTrigger';
 import { useTheme, useThemedStyles } from '../theme';
+import { isJarvisStandaloneRuntime, t } from '../i18n';
 import type { ThemeColors, ThemeShadows } from '../theme';
 import { FONTS, TYPOGRAPHY, SPACING } from '../constants';
 import { formatWhen } from '../utils/localTime';
@@ -167,11 +168,11 @@ export const ProjectsScreen: React.FC = () => {
       {/* The living field behind the tab, resting while the tab is hidden. */}
       <LivingField active={isFocused} />
       <ScreenHeader
-        title="Projects"
+        title={t('projects.title')}
         variant="tab"
         right={
           <Button
-            title="New"
+            title={t('common.new')}
             variant="primary"
             size="small"
             onPress={handleNewProject}
@@ -182,7 +183,9 @@ export const ProjectsScreen: React.FC = () => {
       />
 
       <Text style={styles.subtitle}>
-        Projects group related chats with shared context and instructions.
+        {isJarvisStandaloneRuntime
+          ? 'Проекты объединяют чаты с общим контекстом, базой знаний и инструкциями.'
+          : 'Projects group related chats with shared context and instructions.'}
       </Text>
 
       {projects.length === 0 ? (
@@ -193,16 +196,20 @@ export const ProjectsScreen: React.FC = () => {
             </View>
           </AnimatedEntry>
           <AnimatedEntry index={1} staggerMs={60} trigger={focusTrigger}>
-            <Text style={styles.emptyTitle}>No projects yet</Text>
+            <Text style={styles.emptyTitle}>
+              {isJarvisStandaloneRuntime ? 'Проектов пока нет' : 'No projects yet'}
+            </Text>
           </AnimatedEntry>
           <AnimatedEntry index={2} staggerMs={60} trigger={focusTrigger}>
             <Text style={styles.emptyText}>
-              Keep related chats together, with notes and instructions they all share.
+              {isJarvisStandaloneRuntime
+                ? 'Держите связанные диалоги, документы и инструкции в одном месте.'
+                : 'Keep related chats together, with notes and instructions they all share.'}
             </Text>
           </AnimatedEntry>
           <AnimatedEntry index={3} staggerMs={60} trigger={focusTrigger}>
             <Button
-              title="New project"
+              title={t('projects.newProject')}
               variant="hero"
               size="small"
               icon={<Icon name="plus" size={16} color={colors.onHero} />}

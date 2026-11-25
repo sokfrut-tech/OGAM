@@ -10,6 +10,7 @@ import { TYPOGRAPHY } from '../../constants';
 import Animated, { Easing, withTiming } from 'react-native-reanimated';
 import { getSlot, SLOTS } from '../../bootstrap/slotRegistry';
 import { QuickBadge, type QuickBadgeTone } from './QuickBadge';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 
 const TOOL_WARNING_COLOR = '#F59E0B';
 
@@ -90,16 +91,16 @@ interface QuickSettingsPopoverProps {
 }
 
 function getImageModeBadge(mode: ImageModeState): { label: string; tone: QuickBadgeTone } {
-  if (mode === 'force') return { label: 'ON', tone: 'on' };
+  if (mode === 'force') return { label: isJarvisStandaloneRuntime ? 'ВКЛ' : 'ON', tone: 'on' };
   if (mode === 'disabled' || mode === 'video')
-    return { label: 'OFF', tone: 'off' };
-  return { label: 'Auto', tone: 'off' };
+    return { label: isJarvisStandaloneRuntime ? 'ВЫКЛ' : 'OFF', tone: 'off' };
+  return { label: isJarvisStandaloneRuntime ? 'Авто' : 'Auto', tone: 'off' };
 }
 
 function getToolsStyle(supported: boolean, count: number, colors: any) {
   let iconColor = colors.textMuted;
   let labelColor = colors.textMuted;
-  let badgeLabel = 'N/A';
+  let badgeLabel = isJarvisStandaloneRuntime ? 'Н/Д' : 'N/A';
 
   if (supported) {
     // The icon and badge stay neutral - this row is a utility count, not an
@@ -195,7 +196,7 @@ export const QuickSettingsPopover: React.FC<QuickSettingsPopoverProps> = ({
                   color={imageModelLoaded || imageMode === 'force' ? colors.textSecondary : colors.textMuted}
                 />
                 <Text style={[popoverStyles.rowLabel, { color: colors.text }]}>
-                  Image
+                  {isJarvisStandaloneRuntime ? 'Изображения' : 'Image'}
                 </Text>
                 <QuickBadge
                   testID={imageMode === 'force' ? 'image-mode-force-badge' : undefined}
@@ -224,9 +225,20 @@ export const QuickSettingsPopover: React.FC<QuickSettingsPopoverProps> = ({
                   color={colors.textSecondary}
                 />
                 <Text style={[popoverStyles.rowLabel, { color: colors.text }]}>
-                  Video
+                  {isJarvisStandaloneRuntime ? 'Видео' : 'Video'}
                 </Text>
-                <QuickBadge tone={imageMode === 'video' ? 'on' : 'off'} label={imageMode === 'video' ? 'ON' : 'OFF'} />
+                <QuickBadge
+                  tone={imageMode === 'video' ? 'on' : 'off'}
+                  label={
+                    isJarvisStandaloneRuntime
+                      ? imageMode === 'video'
+                        ? 'ВКЛ'
+                        : 'ВЫКЛ'
+                      : imageMode === 'video'
+                        ? 'ON'
+                        : 'OFF'
+                  }
+                />
               </TouchableOpacity>
 
               {supportsThinking && (
@@ -246,9 +258,20 @@ export const QuickSettingsPopover: React.FC<QuickSettingsPopoverProps> = ({
                   <Text
                     style={[popoverStyles.rowLabel, { color: colors.text }]}
                   >
-                    Thinking
+                    {isJarvisStandaloneRuntime ? 'Рассуждение' : 'Thinking'}
                   </Text>
-                  <QuickBadge tone={thinkingEnabled ? 'on' : 'off'} label={thinkingEnabled ? 'ON' : 'OFF'} />
+                  <QuickBadge
+                    tone={thinkingEnabled ? 'on' : 'off'}
+                    label={
+                      isJarvisStandaloneRuntime
+                        ? thinkingEnabled
+                          ? 'ВКЛ'
+                          : 'ВЫКЛ'
+                        : thinkingEnabled
+                          ? 'ON'
+                          : 'OFF'
+                    }
+                  />
                 </TouchableOpacity>
               )}
 
@@ -269,7 +292,7 @@ export const QuickSettingsPopover: React.FC<QuickSettingsPopoverProps> = ({
                 <Text
                   style={[popoverStyles.rowLabel, { color: tools.labelColor }]}
                 >
-                  Tools
+                  {isJarvisStandaloneRuntime ? 'Инструменты' : 'Tools'}
                 </Text>
                 <QuickBadge tone={showToolsWarning ? 'warn' : 'count'} label={tools.badgeLabel} />
                 <Icon name="chevron-right" size={14} color={colors.textMuted} />
@@ -286,7 +309,7 @@ export const QuickSettingsPopover: React.FC<QuickSettingsPopoverProps> = ({
               >
                 <Icon name="package" size={16} color={colors.textSecondary} />
                 <Text style={[popoverStyles.rowLabel, { color: colors.text }]}>
-                  Pro tools
+                  {isJarvisStandaloneRuntime ? 'Инструменты Pro / MCP' : 'Pro tools'}
                 </Text>
                 {mcpToolCount > 0 && (
                   <QuickBadge tone="count" label={mcpToolCount} />

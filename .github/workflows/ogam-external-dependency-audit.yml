@@ -125,6 +125,8 @@ jobs:
         run: node --experimental-strip-types --test scripts/__tests__/sync-engine-core.node.test.mjs
       - name: Verify standalone open-core lockfile, APK workflow, and Slice 14 runtime contracts
         run: node --experimental-strip-types --test scripts/__tests__/standalone-opencore-build.node.test.mjs
+      - name: Verify Jarvis Russian UI, branding, and open catalog contract
+        run: node --test scripts/__tests__/jarvis-i18n-ru.node.test.mjs
       - name: Generate complete source/config inventory
         run: node scripts/audit-offgrid-imports.mjs --output=ogam-import-audit.json
       - name: Upload audit evidence

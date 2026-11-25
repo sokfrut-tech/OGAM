@@ -28,6 +28,7 @@ import { ignore } from '../services/analytics/values';
 import { useAppStore } from '../stores/appStore';
 import { useRemoteServerStore } from '../stores/remoteServerStore';
 import { useTheme, useThemedStyles } from '../theme';
+import { t } from '../i18n';
 import type { ThemeColors, ThemeShadows } from '../theme';
 import { useGetPro } from '../hooks/useGetPro';
 
@@ -128,11 +129,11 @@ export const AutoSetupScreen: React.FC<Props> = ({
   if (snapshot.phase === 'loading_catalog')
     return (
       <AliveScreen style={styles.container}>
-        {openedFromApp && <ScreenHeader title="Choose models" onBack={navigation.goBack} />}
+        {openedFromApp && <ScreenHeader title={t('onboarding.chooseModels')} onBack={navigation.goBack} />}
         <View style={styles.center}>
           <LoadingDots color={colors.primary} />
           <Text style={styles.secondary}>
-            Finding model choices...
+            {t('onboarding.findingModels')}
           </Text>
         </View>
       </AliveScreen>
@@ -140,21 +141,21 @@ export const AutoSetupScreen: React.FC<Props> = ({
 
   return (
     <AliveScreen style={styles.container}>
-      {openedFromApp && <ScreenHeader title="Choose models" onBack={navigation.goBack} />}
+      {openedFromApp && <ScreenHeader title={t('onboarding.chooseModels')} onBack={navigation.goBack} />}
       <ScrollView
         contentContainerStyle={styles.content}
         testID="auto-setup-screen"
       >
-        <Text style={styles.title}>Choose model downloads.</Text>
+        <Text style={styles.title}>{t('onboarding.chooseDownloads')}</Text>
         <Text style={styles.secondary}>
-          Installed models add no download size.
+          {t('onboarding.installedHint')}
         </Text>
 
         {snapshot.error && (
           <Card style={styles.errorCard}>
             <Text style={styles.error}>{snapshot.error}</Text>
             <Button
-              title="Try Again"
+              title={t('common.retry')}
               onPress={() => {
                 if (snapshot.plans.length)
                   session.start().catch(() => undefined);
@@ -195,7 +196,7 @@ export const AutoSetupScreen: React.FC<Props> = ({
             accessibilityRole="link"
             testID="auto-setup-what-we-share"
           >
-            What we share
+            {t('onboarding.whatWeShare')}
           </Text>
         </View>
 
@@ -247,7 +248,7 @@ export const AutoSetupScreen: React.FC<Props> = ({
                       const installed = snapshot.installedIds.includes(autoSetupDownloadId(item));
                       const needsAction = autoSetupItemNeedsAction(item, snapshot.installedIds);
                       const size = item.kind === 'embedding' && item.sizeBytes === 0
-                        ? 'Included' : formatBytes(item.sizeBytes);
+                        ? t('onboarding.included') : formatBytes(item.sizeBytes);
                       return (
                         <View
                           key={`${plan.tier}:${item.kind}:${item.id}`}

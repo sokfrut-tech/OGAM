@@ -8,6 +8,7 @@ import {
 } from '../../utils/chatStreamHelpers';
 import { Message } from '../../types';
 import { visibleMessages } from '../../utils/visibleMessages';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 export type ChatMessageItem = Message & {
   statusText?: string;
   suppressMessageBubble?: boolean;
@@ -571,6 +572,13 @@ export function getPlaceholderText({
   supportsVision: _supportsVision,
   imageOnly,
 }: PlaceholderTextOptions): string {
+  if (isJarvisStandaloneRuntime) {
+    if (!hasModel) {
+      return isModelLoading ? 'Загрузка модели...' : 'Загрузите модель для начала чата';
+    }
+    if (imageOnly) return 'Опишите изображение';
+    return 'Спросите о чём угодно';
+  }
   if (!hasModel)
     return isModelLoading ? 'Loading model...' : 'Load a model to use chat';
   // One line, one wording for every model (brand: a placeholder fits on one line). Whether a model

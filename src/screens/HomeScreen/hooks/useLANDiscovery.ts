@@ -6,6 +6,7 @@ import { useAppStore } from '../../../stores/appStore';
 import { shouldAutoDiscoverRemoteModels } from '../../../utils/remoteAutoDiscovery';
 import type { HomeScreenNavigationProp } from './types';
 import logger from '../../../utils/logger';
+import { isJarvisStandaloneRuntime } from '../../../i18n';
 
 interface LANDiscoveryParams {
   navigation: HomeScreenNavigationProp;
@@ -34,12 +35,14 @@ export function useLANDiscovery({ navigation, setAlertState }: LANDiscoveryParam
     if (keyServer) {
       const { id, name } = keyServer;
       setAlertState(showAlert(
-        'Off Grid AI Desktop found',
-        `${name} asks for an API key before this phone can use its models.`,
+        isJarvisStandaloneRuntime ? 'Найден локальный сервер' : 'Off Grid AI Desktop found',
+        isJarvisStandaloneRuntime
+          ? `${name} запрашивает API-ключ для доступа к моделям.`
+          : `${name} asks for an API key before this phone can use its models.`,
         [
-          { text: 'Later', style: 'cancel' },
+          { text: isJarvisStandaloneRuntime ? 'Позже' : 'Later', style: 'cancel' },
           {
-            text: 'Enter key', onPress: () => {
+            text: isJarvisStandaloneRuntime ? 'Ввести ключ' : 'Enter key', onPress: () => {
               setAlertState(hideAlert());
               navigation.navigate('RemoteServerEditor', { serverId: id, needsKey: true });
             }
@@ -50,16 +53,22 @@ export function useLANDiscovery({ navigation, setAlertState }: LANDiscoveryParam
     }
 
     const names = newServersToAdd.map(s => s.name).join(', ');
-    const title = newServersToAdd.length === 1
+    const title = isJarvisStandaloneRuntime
+      ? newServersToAdd.length === 1
+        ? 'Найден LLM-сервер'
+        : `Найдено серверов: ${newServersToAdd.length}`
+      : newServersToAdd.length === 1
       ? 'LLM Server Found'
       : `${newServersToAdd.length} LLM Servers Found`;
     setAlertState(showAlert(
       title,
-      `Discovered on your network: ${names}. You can select a model from the model picker.`,
+      isJarvisStandaloneRuntime
+        ? `Найдены в сети: ${names}. Модели доступны в выборе модели.`
+        : `Discovered on your network: ${names}. You can select a model from the model picker.`,
       [
-        { text: 'Dismiss', style: 'cancel' },
+        { text: isJarvisStandaloneRuntime ? 'Закрыть' : 'Dismiss', style: 'cancel' },
         {
-          text: 'View Servers', onPress: () => {
+          text: isJarvisStandaloneRuntime ? 'Открыть серверы' : 'View Servers', onPress: () => {
             setAlertState(hideAlert());
             navigation.navigate('RemoteServers');
           }

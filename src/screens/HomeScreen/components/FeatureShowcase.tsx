@@ -9,6 +9,7 @@ import type { ThemeColors } from '../../../theme';
 import { cardSurface } from '../../../theme/surface';
 import { SPACING, TYPOGRAPHY } from '../../../constants';
 import { boostPromoCopy } from '../../../utils/boostPromo';
+import { isJarvisStandaloneRuntime } from '../../../i18n';
 
 const BOOST_COPY = boostPromoCopy('phone');
 
@@ -77,6 +78,21 @@ const SHOWCASE_GUIDE_TOPIC: Record<string, string> = {
  * What you have not tried comes first.
  */
 export function showcaseFeatures(use: FeatureUse, open: FeatureOpeners, isPro: boolean): ShowcaseFeature[] {
+  if (isJarvisStandaloneRuntime) {
+    const ruFeatures: Array<ShowcaseFeature & { tried: boolean }> = [
+      { key: 'image', icon: 'image', tried: use.imagesMade > 0, title: 'Создавайте изображения на телефоне.', line: 'Генерация картинок локально и без интернета.', onPress: open.image },
+      { key: 'speech', icon: 'mic', tried: use.hasSpeech, title: 'Говорите вместо ввода текста.', line: 'Распознавание речи Whisper прямо на устройстве.', onPress: open.speech },
+      { key: 'voice', icon: 'volume-2', tried: use.hasVoice, title: 'Слушайте ответы вслух (RU TTS).', line: 'Русская офлайн-озвучка ответов ассистента.', onPress: open.voice },
+      { key: 'video', icon: 'film', tried: use.videosMade > 0, title: 'Превратите идею в видеоролик.', line: 'Локальная генерация видео моделями Wan.', onPress: open.video },
+      { key: 'tools', icon: 'sliders', tried: false, title: 'Инструменты ИИ и серверы MCP.', line: 'Поиск, вычисления и свои HTTP MCP-серверы.', onPress: open.tools },
+      { key: 'documents', icon: 'file-text', tried: false, title: 'Вопросы по вашим документам.', line: 'Добавляйте PDF и заметки в базу проекта.', onPress: open.documents },
+      { key: 'desktop', icon: 'server', tried: false, title: 'Локальные серверы Ollama / LM Studio.', line: 'Подключение мощных моделей по Wi-Fi.', onPress: open.desktop },
+    ];
+    return [
+      ...ruFeatures.filter(f => !f.tried),
+      ...ruFeatures.filter(f => f.tried),
+    ].map(({ tried: _tried, ...feature }) => feature);
+  }
   // What you get, in plain words, across the phone, Pro and the Mac app. What this phone does free
   // comes first, so the row reads as discovery before any Pro or Mac card (hand test 82). Copy in
   // Mac's voice: the outcome first, nothing to unlock (Mac, 2026-11-06).
@@ -197,7 +213,9 @@ export const FeatureShowcase: React.FC<{ features: ShowcaseFeature[]; active: bo
 
   return (
     <View style={styles.showcase} testID="feature-showcase">
-      <Text style={styles.kicker}>What you can do</Text>
+      <Text style={styles.kicker}>
+        {isJarvisStandaloneRuntime ? 'Возможности Jarvis Ai' : 'What you can do'}
+      </Text>
       <ScrollView
         ref={scroller}
         horizontal

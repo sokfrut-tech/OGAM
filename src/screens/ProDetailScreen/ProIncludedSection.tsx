@@ -21,6 +21,7 @@ import type { ThemeColors, ThemeShadows } from '../../theme';
 import { SPACING, TYPOGRAPHY } from '../../constants';
 import { cardSurface } from '../../theme/surface';
 import { SectionLabel } from '../../components/SectionLabel';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 
 interface IncludedRow {
   screen: string;
@@ -28,6 +29,15 @@ interface IncludedRow {
   title: string;
   description: string;
 }
+
+const ROWS_RU: IncludedRow[] = [
+  {
+    screen: 'McpServers',
+    icon: 'terminal',
+    title: 'Инструменты ИИ и MCP-серверы',
+    description: 'Управление инструментами и подключение HTTP MCP-серверов в чатах.',
+  },
+];
 
 const ROWS: IncludedRow[] = [
   {
@@ -60,14 +70,18 @@ export const ProIncludedSection: React.FC = () => {
     Clipboard: useHasRegisteredScreen('Clipboard'),
     McpServers: useHasRegisteredScreen('McpServers'),
   };
-  const rows = ROWS.filter(row => registered[row.screen]);
+  const sourceRows = isJarvisStandaloneRuntime ? ROWS_RU : ROWS;
+  const rows = sourceRows.filter(row => registered[row.screen]);
 
   if (rows.length === 0) return null;
 
   return (
     <>
     {/* The label above the card, as every other group (hand test 66 found it inside). */}
-    <SectionLabel title="Included with Pro" style={styles.cardLabel} />
+    <SectionLabel
+      title={isJarvisStandaloneRuntime ? 'Включено в Jarvis Ai Pro' : 'Included with Pro'}
+      style={styles.cardLabel}
+    />
     <View style={styles.card}>
       {rows.map((row, index) => (
         <TouchableOpacity

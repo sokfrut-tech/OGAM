@@ -1,4 +1,5 @@
 import { useSlot, SLOTS } from '../../bootstrap/slotRegistry';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 import { VideoUpsell } from '../models/VideoUpsell';
 import { SearchTab } from './SearchTab';
 import { proGateShown } from '../../services/analytics/analytics';
@@ -317,13 +318,21 @@ export const ModelSelectorModal: React.FC<ModelSelectorModalProps> = ({
       onBackPress={onBackToModels}
       snapPoints={['40%', '75%']}
       title={
-        activeTab === 'video'
-          ? 'VIDEO MODEL'
-          : activeTab === 'search'
-            ? 'SEARCH MODEL'
-            : activeTab === 'image'
-            ? 'IMAGE MODEL'
-            : 'TEXT MODEL'
+        isJarvisStandaloneRuntime
+          ? activeTab === 'video'
+            ? 'ВИДЕОМОДЕЛЬ'
+            : activeTab === 'search'
+              ? 'МОДЕЛЬ ПОИСКА'
+              : activeTab === 'image'
+                ? 'МОДЕЛЬ ИЗОБРАЖЕНИЙ'
+                : 'ТЕКСТОВАЯ МОДЕЛЬ'
+          : activeTab === 'video'
+            ? 'VIDEO MODEL'
+            : activeTab === 'search'
+              ? 'SEARCH MODEL'
+              : activeTab === 'image'
+                ? 'IMAGE MODEL'
+                : 'TEXT MODEL'
       }
     >
       {/* Text-model loading now shows an inline spinner ON the selected row (TextTab → ModelRow),

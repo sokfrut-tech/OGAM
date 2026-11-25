@@ -80,6 +80,9 @@ export const MODEL_ORGS = [
   { key: 'HuggingFaceTB', label: 'HuggingFace' },
   { key: 'nvidia', label: 'NVIDIA' },
   { key: 'LiquidAI', label: 'Liquid AI' },
+  { key: 'dphn', label: 'Dolphin' },
+  { key: 'NousResearch', label: 'Nous Research' },
+  { key: 'IlyaGusev', label: 'Saiga (RU)' },
 ];
 
 // Quantization levels and their properties

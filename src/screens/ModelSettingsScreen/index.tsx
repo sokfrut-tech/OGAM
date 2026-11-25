@@ -33,6 +33,7 @@ import { AliveScreen } from '../../components/AliveScreen';
 import { SectionLabel } from '../../components/SectionLabel';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { BoostPromoCard } from '../../components/BoostPromoCard';
+import { t } from '../../i18n';
 
 type SettingsTab = 'general' | 'text' | 'image' | 'voice';
 
@@ -57,10 +58,10 @@ export const ModelSettingsScreen: React.FC = () => {
   const { modelName: sttModelName, isRemote: isRemoteTranscription } =
     useTranscriptionModelSetting();
   const tabs: UnderlineTab<SettingsTab>[] = [
-    { key: 'general', label: 'General', testID: 'model-settings-tab-general' },
-    { key: 'text', label: 'Text', testID: 'model-settings-tab-text' },
-    { key: 'image', label: VideoSettings ? 'Image & video' : 'Image', testID: 'model-settings-tab-image' },
-    { key: 'voice', label: 'Voice', testID: 'model-settings-tab-voice' },
+    { key: 'general', label: t('modelSettings.tab.general'), testID: 'model-settings-tab-general' },
+    { key: 'text', label: t('modelSettings.tab.text'), testID: 'model-settings-tab-text' },
+    { key: 'image', label: VideoSettings ? t('modelSettings.tab.imageVideo') : t('modelSettings.tab.image'), testID: 'model-settings-tab-image' },
+    { key: 'voice', label: t('modelSettings.tab.voice'), testID: 'model-settings-tab-voice' },
   ];
 
   const handleReset = () => {
@@ -86,12 +87,12 @@ export const ModelSettingsScreen: React.FC = () => {
   return (
     <AliveScreen style={styles.container}>
       <ScreenHeader
-        title="Model settings"
+        title={t('modelSettings.title')}
         onBack={() => navigation.goBack()}
         right={
           // In the header, away from the foot of the page where a tab bar sits on other screens.
           <Button
-            title="Reset"
+            title={t('common.reset')}
             variant="ghost"
             size="small"
             onPress={handleReset}
@@ -132,7 +133,7 @@ export const ModelSettingsScreen: React.FC = () => {
         {tab === 'image' && (
           <>
             {/* Labelled like the Video card under it, so the tab reads as two named groups. */}
-            {VideoSettings ? <SectionLabel title="Image" /> : null}
+            {VideoSettings ? <SectionLabel title={t('modelSettings.imageSection')} /> : null}
             <ImageGenerationSection />
             {VideoSettings && <VideoSettings alwaysOpen />}
           </>

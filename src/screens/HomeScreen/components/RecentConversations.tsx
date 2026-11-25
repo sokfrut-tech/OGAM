@@ -10,6 +10,7 @@ import { createStyles } from '../styles';
 import { Conversation } from '../../../types';
 import { formatWhen } from '../../../utils/localTime';
 import { chatTitle } from '../../../utils/chatTitle';
+import { isJarvisStandaloneRuntime, t } from '../../../i18n';
 
 const formatDate = (dateStr: string): string => formatWhen(dateStr);
 
@@ -49,10 +50,10 @@ export const RecentConversations: React.FC<Props> = ({
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent</Text>
+        <Text style={styles.sectionTitle}>{isJarvisStandaloneRuntime ? 'Недавние' : 'Recent'}</Text>
         <TouchableOpacity onPress={onSeeAll} testID="conversation-list-button">
           <Text style={styles.seeAll}>
-            See all{typeof totalCount === 'number' ? ` (${totalCount})` : ''}
+            {t('home.seeAll')}{typeof totalCount === 'number' ? ` (${totalCount})` : ''}
           </Text>
         </TouchableOpacity>
       </View>

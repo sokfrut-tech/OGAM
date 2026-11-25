@@ -20,6 +20,7 @@ import { useAuthStore } from '../stores';
 import { authService } from '../services';
 import { PassphraseSetupScreen } from './PassphraseSetupScreen';
 import { AliveScreen } from '../components/AliveScreen';
+import { isJarvisStandaloneRuntime, t } from '../i18n';
 
 export const SecuritySettingsScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -37,12 +38,14 @@ export const SecuritySettingsScreen: React.FC = () => {
   const handleTogglePassphrase = async () => {
     if (authEnabled) {
       setAlertState(showAlert(
-        'Disable Passphrase Lock',
-        'Are you sure you want to disable passphrase protection?',
+        isJarvisStandaloneRuntime ? 'Отключить пароль' : 'Disable Passphrase Lock',
+        isJarvisStandaloneRuntime
+          ? 'Вы уверены, что хотите отключить защиту паролем?'
+          : 'Are you sure you want to disable passphrase protection?',
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Disable',
+            text: isJarvisStandaloneRuntime ? 'Отключить' : 'Disable',
             style: 'destructive',
             onPress: () => {
               setAlertState(hideAlert());
@@ -66,15 +69,21 @@ export const SecuritySettingsScreen: React.FC = () => {
 
   return (
     <AliveScreen style={styles.container}>
-      <ScreenHeader title="Security" onBack={() => navigation.goBack()} />
+      <ScreenHeader title={t('settings.security')} onBack={() => navigation.goBack()} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        <SectionLabel title="App lock" />
+        <SectionLabel title={t('settings.appLock')} />
         <Card style={styles.section}>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Passphrase lock</Text>
-              <Text style={styles.settingHint}>Ask for your passphrase when the app opens.</Text>
+              <Text style={styles.settingLabel}>
+                {isJarvisStandaloneRuntime ? 'Защита паролем' : 'Passphrase lock'}
+              </Text>
+              <Text style={styles.settingHint}>
+                {isJarvisStandaloneRuntime
+                  ? 'Запрашивать пароль при открытии приложения.'
+                  : 'Ask for your passphrase when the app opens.'}
+              </Text>
             </View>
             <AppSwitch
               value={authEnabled}
@@ -84,7 +93,7 @@ export const SecuritySettingsScreen: React.FC = () => {
 
           {authEnabled && (
             <Button
-              title="Change passphrase"
+              title={t('settings.changePassphrase')}
               variant="secondary"
               size="small"
               onPress={handleChangePassphrase}

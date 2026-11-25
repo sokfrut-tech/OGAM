@@ -57,6 +57,7 @@ import { useGetPro } from '../../hooks/useGetPro';
 import { boostPromoVisible } from '../../utils/boostPromo';
 import { boostPromo } from '../../services/analytics/analytics';
 import { useOpenBoost } from '../../hooks/useOpenBoost';
+import { isJarvisStandaloneRuntime, t } from '../../i18n';
 
 /** The private cloud offer is one of Home's cards: counted shown with Home, like the Models card with Models. */
 const BoostShownOnFocus: React.FC<{ shown: boolean }> = ({ shown }) => {
@@ -198,7 +199,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       videosMade: generatedVideos.length,
       hasVoice: (modelCounts.voice ?? 0) > 0,
       hasSpeech: (modelCounts.speech ?? 0) > 0,
-      showBoost: homeBoostShown,
+      showBoost: isJarvisStandaloneRuntime ? false : homeBoostShown,
     },
     {
       image: () => (downloadedImageModels.length > 0 ? startNewChat() : presentModelSheet('image')),
@@ -213,7 +214,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       vault: () => navigation.navigate('Vault' as never),
       pro: () => getPro('home-showcase'),
       explain: topicId => navigation.navigate('GuideTopic', { id: topicId }),
-      desktop: () => { Linking.openURL(withUtm(OFF_GRID_DESKTOP_URL, 'home-showcase')).catch(() => {}); },
+      desktop: () => {
+        if (isJarvisStandaloneRuntime) {
+          navigation.navigate('RemoteServers');
+          return;
+        }
+        Linking.openURL(withUtm(OFF_GRID_DESKTOP_URL, 'home-showcase')).catch(() => {});
+      },
       boost: openBoost,
     },
     isProActive,
@@ -282,7 +289,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   accessible={false}
                   testID="home-app-logo"
                 />
-                <Text style={styles.title} accessibilityRole="header" numberOfLines={1}>Off Grid AI</Text>
+                <Text style={styles.title} accessibilityRole="header" numberOfLines={1}>
+                  {isJarvisStandaloneRuntime ? 'Jarvis Ai' : 'Off Grid AI'}
+                </Text>
               </View>
               <View style={styles.headerActions}>
                 {/* What it does for you: every feature, and an Ask box (Mac, 2026-11-17).
@@ -303,7 +312,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   onPress={() => getPro('home-crown')}
                   style={styles.crownButton}
                   accessibilityRole="button"
-                  accessibilityLabel="Open Off Grid AI Pro"
+                  accessibilityLabel={isJarvisStandaloneRuntime ? 'Открыть Jarvis Ai Pro' : 'Open Off Grid AI Pro'}
                 >
                   <IconMC name="crown" size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
@@ -315,11 +324,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               {/* The brand's promise, word for word (brand_tone_voice: never "nothing leaves your device"). Balanced
                   breaks keep a last word from sitting alone on Android. */}
               <Text style={styles.subtitle} textBreakStrategy="balanced">
-                Your chats and files never leave your device.
+                {t('home.subtitle')}
               </Text>
               {activeTextModelId || activeImageModelId || remoteLabels.video || videoLabel ? (
                 <Button
-                  title="New chat"
+                  title={t('home.newChat')}
                   variant="hero"
                   size="small"
                   icon={<Icon name="plus" size={16} color={colors.onHero} />}
@@ -354,12 +363,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <Card style={styles.setupCard} testID="setup-card">
               <Text style={styles.setupText}>
                 {downloadedModels.length > 0 || remoteTextModels.length > 0
-                  ? 'Select a text, image, or video model to start'
-                  : 'Choose a model here or on your network.'}
+                  ? t('home.setupSelect')
+                  : t('home.setupBrowse')}
               </Text>
               <View style={styles.setupActions}>
                 <Button
-                  title="Add Remote Server"
+                  title={t('home.addRemoteServer')}
                   variant="outline"
                   size="small"
                   onPress={() => navigation.navigate('RemoteServers')}
@@ -368,8 +377,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 <Button
                   title={
                     downloadedModels.length > 0 || remoteTextModels.length > 0
-                      ? 'Select Model'
-                      : 'Browse Models'
+                      ? t('home.selectModel')
+                      : t('home.browseModels')
                   }
                   variant="outline"
                   size="small"
@@ -423,78 +432,89 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               >
                 <Icon name="grid" size={18} color={colors.textSecondary} />
                 <View style={styles.galleryCardInfo}>
-                  <Text style={styles.galleryCardTitle}>Gallery</Text>
+                  <Text style={styles.galleryCardTitle}>{t('gallery.title')}</Text>
                   <Text style={styles.galleryCardMeta}>
-                    {generatedImages.length} images · {generatedVideos.length}{' '}
-                    videos
+                    {isJarvisStandaloneRuntime
+                      ? `Изображений: ${generatedImages.length} · Видео: ${generatedVideos.length}`
+                      : `${generatedImages.length} images · ${generatedVideos.length} videos`}
                   </Text>
                 </View>
                 <Icon name="chevron-right" size={16} color={colors.textMuted} />
               </AnimatedPressable>
-              {/* Notes is Pro: a row like its neighbours; without Pro the crown says why it opens the upgrade page. */}
-              <AnimatedPressable
-                style={styles.galleryCard}
-                onPress={() =>
-                  notesUnlocked
-                    ? navigation.navigate('Notes' as never)
-                    : getPro('home-notes')
-                }
-                hapticType="selection"
-                testID="home-notes-card"
-                accessibilityRole="button"
-                accessibilityLabel={notesUnlocked ? 'Notes' : 'Notes, part of Off Grid AI Pro'}
-              >
-                <Icon name="file-text" size={18} color={colors.textSecondary} />
-                <View style={styles.galleryCardInfo}>
-                  <Text style={styles.galleryCardTitle}>Notes</Text>
-                  <Text style={styles.galleryCardMeta} numberOfLines={1}>Write privately, with your model's help.</Text>
-                </View>
-                {notesUnlocked ? null : (
-                  <IconMC name="crown" size={14} color={colors.textMuted} />
-                )}
-                <Icon name="chevron-right" size={16} color={colors.textMuted} />
-              </AnimatedPressable>
-              {/* Vault is Pro: the same row as Notes; without Pro the crown says why it opens the upgrade page. */}
-              <AnimatedPressable
-                style={styles.galleryCard}
-                onPress={() =>
-                  vaultUnlocked
-                    ? navigation.navigate('Vault' as never)
-                    : getPro('home-vault')
-                }
-                hapticType="selection"
-                testID="home-vault-card"
-                accessibilityRole="button"
-                accessibilityLabel={vaultUnlocked ? 'Vault' : 'Vault, part of Off Grid AI Pro'}
-              >
-                <Icon name="lock" size={18} color={colors.textSecondary} />
-                <View style={styles.galleryCardInfo}>
-                  <Text style={styles.galleryCardTitle}>Vault</Text>
-                  <Text style={styles.galleryCardMeta} numberOfLines={1}>Your passwords, sealed on this phone.</Text>
-                </View>
-                {vaultUnlocked ? null : (
-                  <IconMC name="crown" size={14} color={colors.textMuted} />
-                )}
-                <Icon name="chevron-right" size={16} color={colors.textMuted} />
-              </AnimatedPressable>
+              {/* Notes is Pro: a row like its neighbours; hidden in standalone builds unless registered. */}
+              {(!isJarvisStandaloneRuntime || notesUnlocked) ? (
+                <AnimatedPressable
+                  style={styles.galleryCard}
+                  onPress={() =>
+                    notesUnlocked
+                      ? navigation.navigate('Notes' as never)
+                      : getPro('home-notes')
+                  }
+                  hapticType="selection"
+                  testID="home-notes-card"
+                  accessibilityRole="button"
+                  accessibilityLabel={notesUnlocked ? 'Notes' : 'Notes, part of Off Grid AI Pro'}
+                >
+                  <Icon name="file-text" size={18} color={colors.textSecondary} />
+                  <View style={styles.galleryCardInfo}>
+                    <Text style={styles.galleryCardTitle}>Notes</Text>
+                    <Text style={styles.galleryCardMeta} numberOfLines={1}>Write privately, with your model's help.</Text>
+                  </View>
+                  {notesUnlocked ? null : (
+                    <IconMC name="crown" size={14} color={colors.textMuted} />
+                  )}
+                  <Icon name="chevron-right" size={16} color={colors.textMuted} />
+                </AnimatedPressable>
+              ) : null}
+              {/* Vault is Pro: hidden in standalone builds unless registered. */}
+              {(!isJarvisStandaloneRuntime || vaultUnlocked) ? (
+                <AnimatedPressable
+                  style={styles.galleryCard}
+                  onPress={() =>
+                    vaultUnlocked
+                      ? navigation.navigate('Vault' as never)
+                      : getPro('home-vault')
+                  }
+                  hapticType="selection"
+                  testID="home-vault-card"
+                  accessibilityRole="button"
+                  accessibilityLabel={vaultUnlocked ? 'Vault' : 'Vault, part of Off Grid AI Pro'}
+                >
+                  <Icon name="lock" size={18} color={colors.textSecondary} />
+                  <View style={styles.galleryCardInfo}>
+                    <Text style={styles.galleryCardTitle}>Vault</Text>
+                    <Text style={styles.galleryCardMeta} numberOfLines={1}>Your passwords, sealed on this phone.</Text>
+                  </View>
+                  {vaultUnlocked ? null : (
+                    <IconMC name="crown" size={14} color={colors.textMuted} />
+                  )}
+                  <Icon name="chevron-right" size={16} color={colors.textMuted} />
+                </AnimatedPressable>
+              ) : null}
               {/* A row like its neighbours, not a row with a button in it (design philosophy: rhythm). */}
               <AnimatedPressable
                 style={styles.galleryCard}
                 onPress={() =>
                   openSupportEmail({
-                    subject: '[Idea] Off Grid AI Mobile',
-                    body: 'Hi,\n\nI would like to see this in Off Grid AI Mobile:\n\n',
+                    subject: isJarvisStandaloneRuntime ? '[Идея] Jarvis Ai' : '[Idea] Off Grid AI Mobile',
+                    body: isJarvisStandaloneRuntime
+                      ? 'Здравствуйте,\n\nХотелось бы видеть в Jarvis Ai:\n\n'
+                      : 'Hi,\n\nI would like to see this in Off Grid AI Mobile:\n\n',
                   })
                 }
                 hapticType="selection"
                 testID="home-support-email"
                 accessibilityRole="button"
-                accessibilityLabel="What should we build next? Write to us."
+                accessibilityLabel={isJarvisStandaloneRuntime ? 'Что добавить дальше? Напишите нам.' : 'What should we build next? Write to us.'}
               >
                 <Icon name="message-square" size={18} color={colors.textSecondary} />
                 <View style={styles.galleryCardInfo}>
-                  <Text style={styles.galleryCardTitle}>What should we build next?</Text>
-                  <Text style={styles.galleryCardMeta} numberOfLines={1}>Tell us, and it may be in the next update.</Text>
+                  <Text style={styles.galleryCardTitle}>
+                    {isJarvisStandaloneRuntime ? 'Что добавить в Jarvis Ai?' : 'What should we build next?'}
+                  </Text>
+                  <Text style={styles.galleryCardMeta} numberOfLines={1}>
+                    {isJarvisStandaloneRuntime ? 'Напишите идею для следующего обновления.' : 'Tell us, and it may be in the next update.'}
+                  </Text>
                 </View>
                 <Icon name="mail" size={16} color={colors.textMuted} />
               </AnimatedPressable>

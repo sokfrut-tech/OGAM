@@ -31,6 +31,7 @@ import { ProUnlockModal } from './ProUnlockModal';
 import type { RootStackParamList } from '../../navigation/types';
 import { proPaywallViewed, proPurchased } from '../../services/analytics/analytics';
 import { AliveScreen } from '../../components/AliveScreen';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 
 // Off Grid AI Pro is the ambient intelligence layer across desktop + phone, not a
 // mobile feature list. These pillars mirror the early-access page framing.
@@ -113,7 +114,7 @@ export const ProDetailScreen: React.FC = () => {
 
   useEffect(() => {
     // "Have a key?" lands here to enter the key: the paywall was already counted when the sheet opened.
-    if (!hasProAccess && !unlockOnArrival) proPaywallViewed();
+    if (!hasProAccess && !unlockOnArrival && !isJarvisStandaloneRuntime) proPaywallViewed();
     // Once per visit: a paywall view is the screen opening, not every access change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -124,6 +125,109 @@ export const ProDetailScreen: React.FC = () => {
     proPurchased();
     loadProFeatures(true).catch(() => {});
   };
+
+  if (isJarvisStandaloneRuntime) {
+    const ruModules = [
+      {
+        key: 'mcp',
+        icon: 'terminal',
+        title: 'Инструменты и MCP-серверы',
+        desc: 'Управление встроенными инструментами ИИ и подключение своих HTTP MCP-серверов',
+        onPress: () => navigation.navigate('McpServers' as any),
+      },
+      {
+        key: 'voice',
+        icon: 'volume-2',
+        title: 'Голос и озвучка (RU TTS)',
+        desc: 'Настройка русской офлайн-озвучки ответов через системный Android TextToSpeech',
+        onPress: () =>
+          navigation.navigate('Main', {
+            screen: 'ModelsTab',
+            params: { initialTab: 'voice' },
+          }),
+      },
+      {
+        key: 'video',
+        icon: 'film',
+        title: 'Генерация видео (Wan 2.1)',
+        desc: 'Загрузка моделей Wan и локальное создание видеороликов на телефоне',
+        onPress: () =>
+          navigation.navigate('Main', {
+            screen: 'ModelsTab',
+            params: { initialTab: 'video' },
+          }),
+      },
+      {
+        key: 'models',
+        icon: 'cpu',
+        title: 'Модели для обучения (без цензуры и RU)',
+        desc: 'Dolphin 3.0, Dolphin 2.9.3, Hermes 3, Saiga Nemo 12B, Saiga Llama 3, Qwen 2.5',
+        onPress: () =>
+          navigation.navigate('Main', {
+            screen: 'ModelsTab',
+            params: { initialTab: 'text' },
+          }),
+      },
+    ];
+
+    return (
+      <AliveScreen style={styles.container} edges={['top', 'bottom']}>
+        <ScreenHeader
+          title="Jarvis Ai Pro"
+          onBack={() => {
+            if (navigation.canGoBack()) navigation.goBack();
+            else navigation.replace('Main', { screen: 'HomeTab' });
+          }}
+          right={
+            <View style={styles.proActiveBadge}>
+              <Icon name="check" size={12} color={colors.primary} />
+              <Text style={styles.proActiveBadgeText}>Активен</Text>
+            </View>
+          }
+        />
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.hero}>
+            <Text style={styles.heroTitle}>Jarvis Ai Pro</Text>
+            <Text style={styles.heroPrimary}>Все инструменты открыты.</Text>
+            <Text style={styles.heroSubtitle}>
+              Русская офлайн-озвучка (Android TTS), генерация видео (Wan), инструменты,
+              MCP-серверы и открытые GGUF-модели работают на вашем устройстве без подписок,
+              ключей и сторонних сайтов.
+            </Text>
+          </View>
+
+          <ProIncludedSection />
+
+          <View style={styles.pillarsSection}>
+            <Text style={styles.sectionLabel}>ЛОКАЛЬНЫЕ МОДУЛИ</Text>
+            {ruModules.map(item => (
+              <TouchableOpacity
+                key={item.key}
+                style={styles.desktopRow}
+                onPress={item.onPress}
+                accessibilityRole="button"
+                accessibilityLabel={item.title}
+                testID={`jarvis-pro-detail-${item.key}`}
+              >
+                <View style={styles.desktopIconWrap}>
+                  <Icon name={item.icon} size={18} color={colors.primary} />
+                </View>
+                <View style={styles.desktopText}>
+                  <Text style={styles.desktopTitle}>{item.title}</Text>
+                  <Text style={styles.desktopDesc}>{item.desc}</Text>
+                </View>
+                <Icon name="chevron-right" size={16} color={colors.primary} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </AliveScreen>
+    );
+  }
 
   return (
     <AliveScreen style={styles.container} edges={['top', 'bottom']}>

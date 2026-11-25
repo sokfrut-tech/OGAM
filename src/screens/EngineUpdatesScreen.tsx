@@ -18,14 +18,23 @@ import {
 } from '../services/enginePacks';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { SectionLabel } from '../components/SectionLabel';
+import { isJarvisStandaloneRuntime, t } from '../i18n';
 
-const CHECK_RESULT: Record<EngineCheckOutcome, string> = {
-  staged: 'A newer engine is ready. It switches on the next time you open Off Grid AI.',
-  current: 'You have the newest engine.',
-  failed: 'Could not check right now. Check your connection and try again.',
-  off: 'Turn on engine updates to check.',
-  unsupported: '',
-};
+const CHECK_RESULT: Record<EngineCheckOutcome, string> = isJarvisStandaloneRuntime
+  ? {
+      staged: 'Доступен более новый движок. Он включится при следующем запуске Jarvis Ai.',
+      current: 'Установлена актуальная версия движка.',
+      failed: 'Не удалось проверить обновления. Проверьте сеть и попробуйте снова.',
+      off: 'Включите автообновление движка для проверки.',
+      unsupported: '',
+    }
+  : {
+      staged: 'A newer engine is ready. It switches on the next time you open Off Grid AI.',
+      current: 'You have the newest engine.',
+      failed: 'Could not check right now. Check your connection and try again.',
+      off: 'Turn on engine updates to check.',
+      unsupported: '',
+    };
 
 function engineName(info: EngineUpdateInfo): string {
   const build = info.llamaBuild ? `llama.cpp b${info.llamaBuild}` : 'llama.cpp';
@@ -33,8 +42,9 @@ function engineName(info: EngineUpdateInfo): string {
 }
 
 function lastChecked(at: number | null): string {
-  if (!at) return 'Not checked yet';
-  return `Last checked ${new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(at))}`;
+  if (!at) return isJarvisStandaloneRuntime ? 'Ещё не проверялось' : 'Not checked yet';
+  const prefix = isJarvisStandaloneRuntime ? 'Последняя проверка' : 'Last checked';
+  return `${prefix} ${new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(at))}`;
 }
 
 /** Settings → Engine updates: whether Off Grid AI takes newer engines without an app update. */
@@ -65,17 +75,20 @@ export const EngineUpdatesScreen: React.FC = () => {
 
   return (
     <AliveScreen style={styles.container} edges={['top']}>
-      <ScreenHeader title="Engine updates" onBack={() => navigation.goBack()} />
+      <ScreenHeader title={t('settings.engineUpdates')} onBack={() => navigation.goBack()} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {info && overTheAir ? (
           <Card style={styles.section}>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Automatic engine updates</Text>
+                <Text style={styles.settingLabel}>
+                  {isJarvisStandaloneRuntime ? 'Автообновление движка' : 'Automatic engine updates'}
+                </Text>
                 <Text style={styles.settingHint}>
-                  Off Grid AI gets faster engines and support for new models without an app update. They download in
-                  the background and switch on the next time you open the app.
+                  {isJarvisStandaloneRuntime
+                    ? 'Jarvis Ai загружает свежие сборки движка для ускорения и поддержки новых моделей без переустановки APK.'
+                    : 'Off Grid AI gets faster engines and support for new models without an app update. They download in the background and switch on the next time you open the app.'}
                 </Text>
               </View>
               <AppSwitch
@@ -87,7 +100,11 @@ export const EngineUpdatesScreen: React.FC = () => {
             </View>
             {!enabled ? (
               <Text style={styles.status} testID="engine-updates-off">
-                {packInUse
+                {isJarvisStandaloneRuntime
+                  ? packInUse
+                    ? 'Автообновление отключено. Текущий загруженный движок остаётся активным.'
+                    : 'Автообновление отключено. Новые пакеты не скачиваются.'
+                  : packInUse
                   ? 'Engine updates are off. Nothing new downloads or installs. The engine update you already have stays in use.'
                   : 'Engine updates are off. Nothing downloads or installs until you turn this back on.'}
               </Text>
@@ -97,17 +114,23 @@ export const EngineUpdatesScreen: React.FC = () => {
 
         {info ? (
           <>
-          <SectionLabel title="Running now" />
+          <SectionLabel title={t('settings.runningNow')} />
           <Card style={styles.section}>
             <Text style={styles.settingLabel} testID="engine-running">{engineName(info)}</Text>
             <Text style={styles.settingHint} testID="engine-source">
-              {packInUse ? 'Engine update, installed without an app update' : 'Built into this version of the app'}
+              {isJarvisStandaloneRuntime
+                ? packInUse
+                  ? 'Обновлённый пакет движка'
+                  : 'Встроен в текущую версию Jarvis Ai'
+                : packInUse
+                ? 'Engine update, installed without an app update'
+                : 'Built into this version of the app'}
             </Text>
             {overTheAir ? (
               <>
                 <Text style={styles.settingHint} testID="engine-last-check">{lastChecked(info.lastCheck)}</Text>
                 <Button
-                  title={checking ? 'Checking...' : 'Check now'}
+                  title={checking ? t('settings.checking') : t('settings.checkNow')}
                   variant="primary"
                   size="medium"
                   onPress={checkNow}

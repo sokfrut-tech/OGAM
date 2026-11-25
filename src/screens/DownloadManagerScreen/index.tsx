@@ -14,19 +14,20 @@ import { isQueuedStatus, isDownloadingStatus, isFailedStatus, type DownloadStatu
 import { UnderlineTabs, type UnderlineTab } from '../../components/UnderlineTabs';
 import { AliveScreen } from '../../components/AliveScreen';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { t } from '../../i18n';
 
 type FilterType = 'all' | 'text' | 'documents' | 'image' | 'video' | 'voice' | 'transcription';
 
 // The Models tabs, the same names in the same order, so a model sits under the same tab in both places
 // (hand test 91: Downloads had Vision and no Documents). Vision models are Text models, as on Models.
 const FILTERS: { id: FilterType; label: string }[] = [
-  { id: 'all',           label: 'All' },
-  { id: 'text',          label: 'Text' },
-  { id: 'documents',     label: 'Documents' },
-  { id: 'image',         label: 'Image' },
-  { id: 'video',         label: 'Video' },
-  { id: 'voice',         label: 'Voice' },
-  { id: 'transcription', label: 'Speech' },
+  { id: 'all',           label: t('common.all') },
+  { id: 'text',          label: t('models.tab.text') },
+  { id: 'documents',     label: t('models.tab.documents') },
+  { id: 'image',         label: t('models.tab.image') },
+  { id: 'video',         label: t('models.tab.video') },
+  { id: 'voice',         label: t('models.tab.voice') },
+  { id: 'transcription', label: t('models.tab.speech') },
 ];
 
 const FILTER_TABS: UnderlineTab<FilterType>[] = FILTERS.map(f => ({ key: f.id, label: f.label, testID: `downloads-filter-${f.id}` }));
@@ -84,7 +85,7 @@ export const DownloadManagerScreen: React.FC = () => {
 
   return (
     <AliveScreen style={styles.container} testID="downloaded-models-screen">
-      <ScreenHeader title="Downloads" onBack={() => navigation.goBack()} backTestID="back-button" />
+      <ScreenHeader title={t('downloads.title')} onBack={() => navigation.goBack()} backTestID="back-button" />
 
       <FlatList
         {...LIST_CLIPPING_PROPS}

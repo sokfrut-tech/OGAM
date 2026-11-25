@@ -10,15 +10,16 @@ import { createStyles } from './ModelCard.styles';
 import { huggingFaceService } from '../services/huggingface';
 import { ModelCredibility } from '../types';
 import { triggerHaptic } from '../utils/haptics';
+import { isJarvisStandaloneRuntime } from '../i18n';
 
 const OFF_GRID_LOGO = require('../assets/logo.png');
 
-/** The app's own mark beside a model Off Grid AI made: small, no words on the row. */
+/** The app's own mark beside a model: small, no words on the row. */
 export const MadeByOffGrid: React.FC = () => (
   <Image
     source={OFF_GRID_LOGO}
     style={markStyles.mark}
-    accessibilityLabel="Made by Off Grid AI"
+    accessibilityLabel={isJarvisStandaloneRuntime ? 'Собрано Jarvis Ai' : 'Made by Off Grid AI'}
     accessibilityRole="image"
     testID="made-by-off-grid"
   />

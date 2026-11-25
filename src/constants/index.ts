@@ -67,6 +67,10 @@ export const OFFICIAL_MODEL_AUTHORS: Record<string, string> = {
   XHToken: 'iFLYTEK',
   InternScience: 'Shanghai AI Lab',
   RecursiveSI: 'Recursive',
+  dphn: 'Dolphin',
+  cognitivecomputations: 'Cognitive Computations',
+  NousResearch: 'Nous Research',
+  IlyaGusev: 'Saiga (RU)',
 };
 
 // Verified quantizers - trusted community members who quantize models
