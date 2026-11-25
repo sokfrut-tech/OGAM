@@ -24,7 +24,7 @@ import {
   memoryWarningVictims,
   freesIdleSpeechForGeneration,
   type Resident,
-} from '@offgrid/models';
+} from '../../utils/modelResidencyPolicy';
 import { computeBudgetMB } from './budget';
 import { LoadPolicy } from '../memoryBudget';
 import {

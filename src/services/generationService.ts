@@ -6,7 +6,7 @@ import { activeModelService } from './activeModelService';
 import { remoteServerManager } from './remoteServerManager';
 import { useAppStore, useChatStore, useRemoteServerStore } from '../stores';
 import { Message, GenerationMeta, MediaAttachment } from '../types';
-import type { MediaStyleKind } from '@offgrid/models';
+import type { MediaStyleKind } from '../constants/mediaStyles';
 
 /** A turn's picture and clip styles, fixed when it was sent. */
 export type MediaStyleIds = Partial<Record<MediaStyleKind, string>>;
@@ -40,7 +40,7 @@ import {
   takeNextQueued,
   type ChatQueueHold,
   type ChatQueueSignal,
-} from '@offgrid/sync';
+} from '../utils/chatQueue';
 
 const SHARE_PROMPT_DELAY_MS = 1500;
 type StreamChunk = string | { content?: string; reasoningContent?: string };

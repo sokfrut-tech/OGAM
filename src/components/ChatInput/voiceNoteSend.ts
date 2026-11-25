@@ -58,6 +58,9 @@ export interface VoiceNoteHandlerDeps {
   getPendingAttachments: () => MediaAttachment[];
   /** Whether the app is in Audio interface mode. */
   isAudioMode: boolean;
+  /** One-shot system-assistant turn; auto-send is allowed only with an empty composer. */
+  autoSendVoiceInput?: boolean;
+  onAssistantVoiceInputConsumed?: () => void;
   /** Current image mode passed through to onSend. */
   imageMode: ImageModeState;
   onSend: (
@@ -99,6 +102,7 @@ export function buildVoiceNoteHandlers(deps: VoiceNoteHandlerDeps) {
     deps.onSend(text, attachments, deps.imageMode, deps.getAssistantEnabled?.());
     deps.onAssistantConsumed?.();
     deps.clearAttachments();
+    if (deps.autoSendVoiceInput) deps.onAssistantVoiceInputConsumed?.();
   };
 
   const isStandalone = (): boolean =>
@@ -114,9 +118,19 @@ export function buildVoiceNoteHandlers(deps: VoiceNoteHandlerDeps) {
   // the bug). Appending (never auto-sending) means dictating over existing text
   // extends it, and a first dictation fills an empty composer. A blank transcript
   // produces nothing to append and is dropped.
+  const consumeAssistantVoiceInput = () => {
+    if (deps.autoSendVoiceInput) deps.onAssistantVoiceInputConsumed?.();
+  };
+
   const onTranscript = (text: string) => {
     if (!text.trim()) return;
-    deps.appendTranscript(text);
+    if (deps.autoSendVoiceInput && isStandalone()) {
+      sendVoiceNote(text);
+    } else {
+      // Never send a pre-existing draft or attachment as part of a voice invocation.
+      deps.appendTranscript(text);
+      consumeAssistantVoiceInput();
+    }
   };
 
   const onAudioAttachment = (audio: AudioInfo) => {
@@ -133,11 +147,22 @@ export function buildVoiceNoteHandlers(deps: VoiceNoteHandlerDeps) {
     }
   };
 
-  const onAutoSend = deps.isAudioMode
+  const onAutoSend = deps.isAudioMode || deps.autoSendVoiceInput
     ? (
         text: string,
         audio: { uri: string; format: 'wav' | 'mp3'; durationSeconds: number },
-      ) => sendVoiceNote(text, buildVoiceAttachment(audio))
+      ) => {
+        if (deps.isAudioMode) {
+          sendVoiceNote(text, buildVoiceAttachment(audio));
+        } else if (isStandalone()) {
+          // The system assistant sends recognized text only; regular Audio Mode may
+          // preserve its audio attachment for multimodal models.
+          sendVoiceNote(text);
+        } else {
+          deps.appendTranscript(text);
+          consumeAssistantVoiceInput();
+        }
+      }
     : undefined;
 
   return { onTranscript, onAudioAttachment, onAutoSend };

@@ -27,11 +27,11 @@ import { setupChatScreen } from '../../harness/chatHarness';
 // Real navigation: the app's own NavigationContainer and routes (chatHarness navigation: 'real').
 jest.unmock('@react-navigation/native');
 
-/** Real Tools-screen gesture: the switch handler TOGGLES, so flipping the three default-ON tools
- *  turns them OFF — the turn then runs the tool-FREE pipeline (the plain chat turn of the device
- *  report; the tool loop renders an inline "_(No response)_" bubble instead of this card). */
+/** Real Tools-screen gesture: turn OFF the three default-ON tools so the turn runs the
+ *  tool-FREE pipeline (the plain chat turn of the device report; the tool loop renders an
+ *  inline "_(No response)_" bubble instead of this card). */
 function disableDefaultToolsViaUI(h: Awaited<ReturnType<typeof setupChatScreen>>) {
-  for (const id of ['web_search', 'read_url', 'search_knowledge_base']) h.enableToolViaUI(id);
+  for (const id of ['web_search', 'read_url', 'search_knowledge_base']) h.enableToolViaUI(id, false);
 }
 
 describe('stale text failure card cleared on a NEW attempt (rendered) — device IMG 00:23', () => {

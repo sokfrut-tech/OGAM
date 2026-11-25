@@ -2,12 +2,14 @@ import { Buffer } from 'buffer';
 import {
   createTxtRecord,
   isDialableAddress,
-  type DeviceInfo,
-} from '@offgrid/sync';
+} from '../../src/utils/syncDiscoveryCore';
+import type {
+  DeviceInfo,
+  RnTcpModule,
+} from '../../src/types/syncContracts';
 
 /** A plausible LAN address for an advertised peer. Anything but loopback, which is refused on purpose. */
 export const ADVERTISED_LAN_ADDRESS = '192.168.1.50';
-import type { RnTcpModule } from '@offgrid/sync/rn';
 
 type Handler = (...args: unknown[]) => void;
 

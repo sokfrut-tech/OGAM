@@ -1,5 +1,5 @@
 import { DownloadedModel, ModelFile } from '../types';
-import type { MobileLiteRTCatalogEntry } from '@offgrid/models';
+import type { MobileLiteRTCatalogEntry } from '../types/modelCatalog';
 import { fileExceedsBudget } from './memoryBudget';
 import { registerBundledCatalog, useWithRemoteCatalog, withRemoteCatalog } from '../stores/modelCatalogStore';
 

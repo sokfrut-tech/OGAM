@@ -7,8 +7,8 @@
  * discovery/orchestrator behavior under test is the package's real code.
  */
 import { buildDiscovery } from '../../../src/services/sync/discovery';
-import { createTxtRecord } from '@offgrid/sync';
-import type { RnZeroconf } from '@offgrid/sync/rn-discovery';
+import { createTxtRecord } from '../../../src/utils/syncDiscoveryCore';
+import type { RnZeroconf } from '../../../src/types/syncContracts';
 
 type Handler = (arg: any) => void;
 

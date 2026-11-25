@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, View } from 'react-native';
-import type { MediaStyleKind } from '@offgrid/models';
+import type { MediaStyleKind } from '../../constants/mediaStyles';
 import { TouchableOpacity } from '../Touchable';
 import { useTheme, useThemedStyles } from '../../theme';
 import type { ThemeColors, ThemeShadows } from '../../theme';

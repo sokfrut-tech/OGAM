@@ -7,7 +7,7 @@
  * keeps working unchanged.
  */
 
-import type { MobileWhisperCatalogModel } from '@offgrid/models';
+import type { MobileWhisperCatalogModel } from '../types/modelCatalog';
 import { registerBundledCatalog, withRemoteCatalog } from '../stores/modelCatalogStore';
 import { qwenAsrCardFor } from './qwenAsrModel';
 

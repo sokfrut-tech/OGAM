@@ -5,7 +5,7 @@ import {
   CHUNK_SIZE,
   checksumFromSha512Hex,
   IncrementalChecksum,
-} from '@offgrid/sync';
+} from '../../utils/syncChecksumCore';
 import logger from '../../utils/logger';
 
 type StreamingHashModule = {

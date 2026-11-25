@@ -21,6 +21,7 @@ interface UseVoiceInputParams {
   onAudioAttachment?: (audio: { uri: string; format: 'wav' | 'mp3'; durationSeconds?: number; transcription?: string }) => void;
   /** Called in Audio Mode to auto-send. Includes audio info so caller can build attachment atomically. */
   onAutoSend?: (text: string, audio: { uri: string; format: 'wav' | 'mp3'; durationSeconds: number }) => void;
+  onAssistantVoiceInputConsumed?: () => void;
 }
 
 /** Stop the recorder and produce the note the person MEANT - dead air cut from both ends. The one
@@ -127,7 +128,7 @@ function useTurnResultOwnership(
   };
 }
 
-export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onAudioAttachment, onAutoSend }: UseVoiceInputParams) {
+export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onAudioAttachment, onAutoSend, onAssistantVoiceInputConsumed }: UseVoiceInputParams) {
   const recordingConversationIdRef = useRef<string | null>(null);
   const turnResult = useTurnResultOwnership(conversationId, recordingConversationIdRef);
   const onTranscriptRef = useRef(onTranscript);
@@ -136,6 +137,8 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
   onAudioAttachmentRef.current = onAudioAttachment;
   const onAutoSendRef = useRef(onAutoSend);
   onAutoSendRef.current = onAutoSend;
+  const onAssistantVoiceInputConsumedRef = useRef(onAssistantVoiceInputConsumed);
+  onAssistantVoiceInputConsumedRef.current = onAssistantVoiceInputConsumed;
   const downloadedModelId = useWhisperStore(state => state.downloadedModelId);
   const transcriptionLanguage = useWhisperStore(state => state.transcriptionLanguage);
   const remoteTranscriptionAvailable = useRemoteTranscriptionAvailable();
@@ -160,6 +163,16 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
 
   const ensureWhisper = createWhisperReadiness(downloadedModelId, remoteTranscriptionAvailable);
 
+  // A failed start must return the session to idle as well as clear Jarvis's one-shot flag.
+  // Otherwise the state machine remains in listen with no microphone actually open.
+  const settleFailedCaptureStart = () => {
+    if (voiceSession.current().state === 'listen') {
+      voiceSession.dispatch('turnCaptured');
+      voiceSession.dispatch('dictationFinished');
+    }
+    onAssistantVoiceInputConsumedRef.current?.();
+  };
+
   const {
     isRecording: isWhisperRecording,
     isModelLoading,
@@ -176,6 +189,10 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
     // The capture closed itself (whisper.rn's length cap). The session must leave "listening", or every
     // later tap is refused. Dictation ends as a stop ends it; voice mode gets no reply from this, so it
     // ends the session the way an empty turn does instead of handing the floor to an assistant.
+    onCaptureSettled: hasTranscript => {
+      if (!hasTranscript) onAssistantVoiceInputConsumedRef.current?.();
+    },
+    onCaptureStartFailed: settleFailedCaptureStart,
     onCaptureEnded: () => {
       logger.log('[TURN] capture ended by itself');
       if (isInAudioInterfaceMode()) {
@@ -194,6 +211,8 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
 
   // voiceAvailable: direct audio OR whisper downloaded
   const voiceAvailable = supportsDirectAudio() || !!downloadedModelId || remoteTranscriptionAvailable;
+  const voiceAvailableRef = useRef(voiceAvailable);
+  voiceAvailableRef.current = voiceAvailable;
 
   useVoiceSessionDriver({
     // Hands-free auto-arm is voice-mode only (a global setting leaves the session in `listen`, so
@@ -236,6 +255,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
         const msg = err instanceof Error ? err.message : 'Recording failed';
         logger.error('[Voice] Direct audio recording error:', err);
         setDirectError(msg);
+        onAssistantVoiceInputConsumedRef.current?.();
       }
       return;
     }
@@ -250,6 +270,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
         const msg = err instanceof Error ? err.message : 'Recording failed';
         logger.error('[Voice] Audio mode recording error:', err);
         setDirectError(msg);
+        onAssistantVoiceInputConsumedRef.current?.();
       }
       return;
     }
@@ -263,6 +284,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
   const reportNothingHeard = (message: string, strikes: number) => {
     for (let i = 0; i < strikes; i++) voiceSession.dispatch('nothingHeard');
     setDirectError(message);
+    onAssistantVoiceInputConsumedRef.current?.();
     setTimeout(() => setDirectError(null), 3000);
   };
 
@@ -303,14 +325,17 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
         // (llama) model's hold-to-talk has. Transcribe the recording and drop the text into the composer
         // for the user to review/edit/send; do NOT build a voice-note attachment (that was the litert-only
         // divergence). The temp recording file is transient there.
-        const autoSend = !!onAutoSendRef.current && isInAudioInterfaceMode();
+        const autoSend = isInAudioInterfaceMode() && !!onAutoSendRef.current;
         const { whisperReady, transcript } = await transcribeRecordedFile(
           path,
           autoSend ? '[Voice] transcription error:' : '[Voice] chat-mode dictation transcription error:',
         );
         // NEVER dispatch an empty transcript — that misroutes to the text model.
         const outcome = resolveTranscription(whisperReady, transcript);
-        if (!stillOwned()) turnResult.drop();
+        if (!stillOwned()) {
+          turnResult.drop();
+          onAssistantVoiceInputConsumedRef.current?.();
+        }
         // Nothing to send. Hands-free must NOT re-open the mic: on device that spun - record, hear the
         // room, transcribe to nothing, arm again - three turns in eight seconds with no output. Two
         // verdicts end the session; a person tapping the mic resumes it.
@@ -322,6 +347,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
     } catch (err) {
       setIsDirectRecording(false);
       logger.error('[Voice] Failed to stop direct recording:', err);
+      onAssistantVoiceInputConsumedRef.current?.();
     }
   };
 
@@ -350,6 +376,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
       const outcome = resolveTranscription(whisperReady, transcript);
       if (!stillOwned()) {
         turnResult.drop();
+        onAssistantVoiceInputConsumedRef.current?.();
       } else if (!outcome.dispatch) {
         reportNothingHeard(outcome.message, 1);
       } else if (onAutoSendRef.current) {
@@ -362,6 +389,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
       setIsAudioModeRecording(false);
       setIsTranscribingFile(false);
       logger.error('[Voice] Failed to stop audio mode recording:', err);
+      onAssistantVoiceInputConsumedRef.current?.();
     }
   };
 
@@ -412,6 +440,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
       // A user cancellation ends the manual turn. A replay cancellation is
       // different: replayStarted already owns the floor and replayEnded returns it.
       if (!isReplayCancellation) voiceSession.dispatch('dictationFinished');
+      onAssistantVoiceInputConsumedRef.current?.();
     }
   };
 
@@ -429,6 +458,9 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
   cancelRef.current = cancelRecording;
   useEffect(() => {
     return recordingController.registerHandlers({
+      canStart: options => options?.requiresTranscript
+        ? !!downloadedModelId || remoteTranscriptionAvailable
+        : voiceAvailableRef.current,
       start: () => startRef.current(),
       stop: () => {
         // In hands-free there was no tap to start, so the stop button means STOP THE SESSION - and a

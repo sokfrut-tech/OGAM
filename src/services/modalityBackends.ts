@@ -2,15 +2,15 @@ import { useAppStore } from '../stores/appStore';
 
 /**
  * Where each modality runs on this phone, in the words people see: the NPU, the GPU or the CPU.
- * Modality names follow the shared backend policy (@offgrid/models BackendModality).
+ * Modality names follow the OGAM-owned backend policy.
  */
-import type { ModalityPlacement } from '@offgrid/models';
+import type { ModalityPlacement } from '../utils/mobileRuntimePolicy';
 import type { ModalityName, ProcessorPlace } from '../types';
 
 export type { ModalityName, ProcessorPlace };
 
-/** The shared result shape (@offgrid/models backend-policy), the same on Off Grid Desktop. */
-export type { ModalityPlacement } from '@offgrid/models';
+/** The shared result shape from OGAM backend policy. */
+export type { ModalityPlacement } from '../utils/mobileRuntimePolicy';
 
 export function savedPlace(modality: ModalityName): ProcessorPlace | undefined {
   return useAppStore.getState().settings.modalityBackends?.[modality];

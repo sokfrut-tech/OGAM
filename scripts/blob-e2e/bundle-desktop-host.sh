@@ -16,8 +16,7 @@ cd "$desktop"
 npx esbuild pro/main/sync/blob-channel-host.ts \
   --bundle --platform=node --format=cjs --log-level=warning \
   --outfile="$out/desktop-blob-host.cjs"
-node -e "
-  const {buildSync}=require('esbuild');
-  buildSync({stdin:{contents:\"export * from '@offgrid/sync'\",resolveDir:process.cwd(),loader:'ts'},bundle:true,platform:'node',format:'cjs',outfile:'$out/offgrid-sync.cjs',logLevel:'warning'});
-"
+npx esbuild "$here/../../src/utils/syncChecksumCore.ts" \
+  --bundle --platform=node --format=cjs --log-level=warning \
+  --outfile="$out/offgrid-sync.cjs"
 echo "$out"

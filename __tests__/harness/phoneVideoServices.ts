@@ -78,7 +78,7 @@ export async function bootPhoneVideo(options: {
   });
   const storage = require('@react-native-async-storage/async-storage');
   if (!options.relaunch) await storage.clear();
-  const { CATALOG } = require('@offgrid/models');
+  const { CATALOG } = require('../../src/utils/modelCatalogCore');
   if (options.keptPack) {
     const { videoModelDirectory } = require('../../src/services/videoModelFiles');
     const entry = CATALOG.find((model: { id: string }) => model.id === options.keptPack);

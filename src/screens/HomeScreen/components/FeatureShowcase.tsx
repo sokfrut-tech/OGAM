@@ -8,7 +8,7 @@ import { useTheme, useThemedStyles } from '../../../theme';
 import type { ThemeColors } from '../../../theme';
 import { cardSurface } from '../../../theme/surface';
 import { SPACING, TYPOGRAPHY } from '../../../constants';
-import { boostPromoCopy } from '@offgrid/models';
+import { boostPromoCopy } from '../../../utils/boostPromo';
 
 const BOOST_COPY = boostPromoCopy('phone');
 

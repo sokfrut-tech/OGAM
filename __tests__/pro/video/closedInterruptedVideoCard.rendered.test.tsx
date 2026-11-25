@@ -13,7 +13,7 @@
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
-import { CATALOG } from '@offgrid/models';
+import { CATALOG } from '../../../src/utils/modelCatalogCore';
 import { ModelFailureCard } from '../../../src/components/ModelFailureCard';
 import { useModelFailureStore } from '../../../src/stores/modelFailureStore';
 import { useAppStore } from '../../../src/stores';

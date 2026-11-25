@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { View, Text } from 'react-native';
-import { splitCitations } from '@offgrid/rag/documents';
+import { splitCitations } from '../../../utils/ragDocumentsCore';
 import { ThinkingIndicator } from '../../ThinkingIndicator';
 import { MarkdownText } from '../../MarkdownText';
 import { BlinkingCursor } from './BlinkingCursor';

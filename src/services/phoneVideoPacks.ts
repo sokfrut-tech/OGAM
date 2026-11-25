@@ -1,5 +1,7 @@
 import { Platform } from 'react-native';
-import { CATALOG, isVideoWeightAvailableOn, videoArchitecture, videoModelDefaults, videoPackError, videoTakesStartImage, type ModelEntry } from '@offgrid/models';
+import { CATALOG } from '../utils/modelCatalogCore';
+import type { ModelEntry } from '../types/modelCatalog';
+import { isVideoWeightAvailableOn, videoArchitecture, videoModelDefaults, videoPackError, videoTakesStartImage } from '../utils/videoPackPolicy';
 
 /** Light and Turbo builds: offered on 11 GB+ phones, below the packs' desktop minimum. */
 const LIGHT_BUILDS_ON_11GB = new Set([

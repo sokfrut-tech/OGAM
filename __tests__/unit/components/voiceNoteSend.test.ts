@@ -175,6 +175,109 @@ describe('buildVoiceNoteHandlers.onTranscript (Chat-mode dictation)', () => {
   });
 });
 
+  it('system-assistant dictation auto-sends only when the composer is empty', () => {
+    const onSend = jest.fn();
+    const appendTranscript = jest.fn();
+    const clearAttachments = jest.fn();
+    const consumed = jest.fn();
+    const { onTranscript } = buildVoiceNoteHandlers({
+      getComposerText: () => '',
+      getPendingAttachments: () => [],
+      isAudioMode: false,
+      autoSendVoiceInput: true,
+      onAssistantVoiceInputConsumed: consumed,
+      imageMode: 'auto',
+      onSend,
+      addAudioAttachment: jest.fn(),
+      clearAttachments,
+      appendTranscript,
+      onHaptic: jest.fn(),
+    });
+
+    onTranscript('open the project');
+
+    expect(onSend).toHaveBeenCalledWith('open the project', [], 'auto', undefined);
+    expect(appendTranscript).not.toHaveBeenCalled();
+    expect(clearAttachments).toHaveBeenCalledTimes(1);
+    expect(consumed).toHaveBeenCalledTimes(1);
+  });
+
+  it('system-assistant dictation preserves a pre-existing draft and appends instead of auto-sending', () => {
+    const onSend = jest.fn();
+    const appendTranscript = jest.fn();
+    const consumed = jest.fn();
+    const { onTranscript } = buildVoiceNoteHandlers({
+      getComposerText: () => 'keep my draft',
+      getPendingAttachments: () => [],
+      isAudioMode: false,
+      autoSendVoiceInput: true,
+      onAssistantVoiceInputConsumed: consumed,
+      imageMode: 'auto',
+      onSend,
+      addAudioAttachment: jest.fn(),
+      clearAttachments: jest.fn(),
+      appendTranscript,
+      onHaptic: jest.fn(),
+    });
+
+    onTranscript('add this spoken phrase');
+
+    expect(onSend).not.toHaveBeenCalled();
+    expect(appendTranscript).toHaveBeenCalledWith('add this spoken phrase');
+    expect(consumed).toHaveBeenCalledTimes(1);
+  });
+
+  it('assistant auto-send path in Chat mode sends text without attaching the temporary audio file', () => {
+    const onSend = jest.fn();
+    const appendTranscript = jest.fn();
+    const consumed = jest.fn();
+    const { onAutoSend } = buildVoiceNoteHandlers({
+      getComposerText: () => '',
+      getPendingAttachments: () => [],
+      isAudioMode: false,
+      autoSendVoiceInput: true,
+      onAssistantVoiceInputConsumed: consumed,
+      imageMode: 'auto',
+      onSend,
+      addAudioAttachment: jest.fn(),
+      clearAttachments: jest.fn(),
+      appendTranscript,
+      onHaptic: jest.fn(),
+    });
+
+    expect(onAutoSend).toBeDefined();
+    onAutoSend!('turn on the lights', { uri: '/tmp/assistant.wav', format: 'wav', durationSeconds: 2 });
+
+    expect(onSend).toHaveBeenCalledWith('turn on the lights', [], 'auto', undefined);
+    expect(appendTranscript).not.toHaveBeenCalled();
+    expect(consumed).toHaveBeenCalledTimes(1);
+  });
+
+  it('system-assistant dictation preserves pending attachments and appends instead of auto-sending', () => {
+    const onSend = jest.fn();
+    const appendTranscript = jest.fn();
+    const consumed = jest.fn();
+    const { onTranscript } = buildVoiceNoteHandlers({
+      getComposerText: () => '',
+      getPendingAttachments: () => [imgAttachment],
+      isAudioMode: false,
+      autoSendVoiceInput: true,
+      onAssistantVoiceInputConsumed: consumed,
+      imageMode: 'auto',
+      onSend,
+      addAudioAttachment: jest.fn(),
+      clearAttachments: jest.fn(),
+      appendTranscript,
+      onHaptic: jest.fn(),
+    });
+
+    onTranscript('describe this image');
+
+    expect(onSend).not.toHaveBeenCalled();
+    expect(appendTranscript).toHaveBeenCalledWith('describe this image');
+    expect(consumed).toHaveBeenCalledTimes(1);
+  });
+
 describe('buildVoiceNoteHandlers.onAutoSend (Audio mode)', () => {
   it('is defined in audio mode and sends through the same path', () => {
     const onSend = jest.fn();

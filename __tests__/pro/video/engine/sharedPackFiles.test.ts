@@ -19,7 +19,7 @@ it('offers and fetches only the files the phone does not have: the shared encode
   const phone = await bootPhoneVideo();
   await phone.installPack(WAN);
   // Read after boot: the harness loads the app's modules fresh.
-  const { CATALOG } = require('@offgrid/models');
+  const { CATALOG } = require('../../../../src/utils/modelCatalogCore');
   const light = CATALOG.find((model: { id: string }) => model.id === LIGHT);
   const encoder = light.files.find((file: { name: string }) => file.name === ENCODER);
   const whole = light.files.reduce((sum: number, file: { sizeBytes?: number }) => sum + (file.sizeBytes ?? 0), 0);

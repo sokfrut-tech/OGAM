@@ -14,9 +14,9 @@ import type { ToolCall, ToolResult, ToolErrorCategory } from './types';
 import {
   boundToolResult,
   MAX_TOOL_RESULT_CHARS,
-} from '@offgrid/models';
+} from '../../utils/toolResultBudget';
 
-export { MAX_TOOL_RESULT_CHARS } from '@offgrid/models';
+export { MAX_TOOL_RESULT_CHARS } from '../../utils/toolResultBudget';
 
 /** Best-effort classification of a failure from its message (one place this lives). */
 export function classifyToolError(err: unknown): ToolErrorCategory {

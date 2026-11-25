@@ -73,7 +73,7 @@ async function launch(
     // finished download left there is put back, file by file, at its real size.
     if (options.installedModel) {
       const { videoModelDirectory } = require('../../../src/services/videoModelFiles');
-      const entry = require('@offgrid/models').CATALOG.find((model: { id: string }) => model.id === MODEL.id);
+      const entry = require('../../../src/utils/modelCatalogCore').CATALOG.find((model: { id: string }) => model.id === MODEL.id);
       for (const file of entry.files) boundary.fs!.seedFile(`${videoModelDirectory(MODEL.id)}/${file.name}`, file.sizeBytes);
     }
     for (const file of options.keptFiles ?? []) boundary.fs!.seedFile(file.path, file.size);
@@ -466,7 +466,7 @@ it('a video model download carries on after the app restarts while Android keeps
     !first.boundary.fs!.listFiles(folder).some(path => String(row.modelKey ?? '').endsWith(`/${path.split('/').pop()}`)));
   await first.rtl.waitFor(() => expect(underWay()).toHaveLength(1));
   const stillRunning = underWay();
-  const entry = require('@offgrid/models').CATALOG.find((model: { id: string }) => model.id === MODEL.id);
+  const entry = require('../../../src/utils/modelCatalogCore').CATALOG.find((model: { id: string }) => model.id === MODEL.id);
   const sizeOf = (path: string) => entry.files.find((file: { name: string }) => path.endsWith(`/${file.name}`)).sizeBytes;
   const keptFiles = first.boundary.fs!.listFiles(folder).map(path => ({ path, size: sizeOf(path) }));
   first.view.unmount();

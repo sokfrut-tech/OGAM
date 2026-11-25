@@ -8,7 +8,7 @@
 import React from 'react';
 import { Alert, Linking } from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { projectPersonalMeshActivationFailure } from '@offgrid/sync';
+import { projectPersonalMeshActivationFailure } from '../../../src/utils/proEntitlementCore';
 import { useAppStore } from '../../../src/stores/appStore';
 import {
   OFF_GRID_DESKTOP_BENEFIT,

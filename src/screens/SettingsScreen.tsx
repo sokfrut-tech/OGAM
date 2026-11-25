@@ -5,6 +5,8 @@ import {
   Text,
   ScrollView,
   Alert,
+  Platform,
+  AppState,
 } from 'react-native';
 import { TouchableOpacity } from '../components/Touchable';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,7 +22,6 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { createStyles } from './SettingsScreen.styles';
 import { SettingsAppearanceRow } from './SettingsAppearanceRow';
 import { SettingsCommunitySections } from './SettingsCommunitySections';
-import { SettingsAnalyticsSection } from './SettingsAnalyticsSection';
 import { AnimatedEntry } from '../components/AnimatedEntry';
 import { AnimatedListItem } from '../components/AnimatedListItem';
 import { MadeWithLove } from '../components/MadeWithLove';
@@ -43,6 +44,7 @@ import { openSupportEmail } from '../utils/supportEmail';
 import { SCROLL_DEPTH_PROPS } from '../constants/scrollDepth';
 import { ScreenField } from '../components/LivingField';
 import { useGetPro } from '../hooks/useGetPro';
+import { getJarvisAssistantRoleStatus, requestJarvisAssistantRole, type JarvisAssistantRoleStatus } from '../services/jarvisAssistantRole';
 
 type NavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'SettingsTab'>,
@@ -84,6 +86,8 @@ export const SettingsScreen: React.FC = () => {
   const setShowSyncStatusBar = useAppStore(s => s.setShowSyncStatusBar);
   const [showDebugLogs, setShowDebugLogs] = useState(false);
   const [isSeedingDemo, setIsSeedingDemo] = useState(false);
+  const [assistantRoleStatus, setAssistantRoleStatus] = useState<JarvisAssistantRoleStatus | null>(null);
+  const [isRequestingAssistantRole, setIsRequestingAssistantRole] = useState(false);
   const deviceInfo = useAppStore(s => s.deviceInfo);
   // Hidden once the user dismisses it, or once Pro is active (the upsell makes no
   // sense to a paid user). hasRegisteredPro only flips true after RC verification
@@ -96,6 +100,68 @@ export const SettingsScreen: React.FC = () => {
   useEffect(() => {
     completeChecklistStep('exploredSettings');
   }, [completeChecklistStep]);
+
+  // Refresh after returning from Android's RoleManager dialog or app Settings.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    let mounted = true;
+    const refreshAssistantRole = async () => {
+      try {
+        const status = await getJarvisAssistantRoleStatus();
+        if (mounted) setAssistantRoleStatus(status);
+      } catch {
+        if (mounted) setAssistantRoleStatus(null);
+      }
+    };
+    void refreshAssistantRole();
+    const appState = AppState.addEventListener('change', next => {
+      if (next === 'active') void refreshAssistantRole();
+    });
+    const navigationFocus = navigation.addListener('focus', () => {
+      void refreshAssistantRole();
+    });
+    return () => {
+      mounted = false;
+      appState.remove();
+      navigationFocus();
+    };
+  }, [navigation]);
+
+  const handleSetJarvisAssistant = async () => {
+    if (isRequestingAssistantRole) return;
+    setIsRequestingAssistantRole(true);
+    try {
+      const status = await requestJarvisAssistantRole();
+      setAssistantRoleStatus(status);
+      if (!status.supported) {
+        Alert.alert('Jarvis system assistant', 'System-assistant integration requires Android 12 or newer. Voice dictation inside OGAM remains available on supported Android versions.');
+      } else if (!status.roleAvailable) {
+        Alert.alert('Jarvis system assistant', 'This Android/ColorOS build does not currently expose the system assistant role to OGAM.');
+      } else if (status.ready) {
+        Alert.alert('Jarvis enabled', 'Jarvis is now selected as the system assistant.');
+      } else if (status.roleHeld) {
+        Alert.alert('Jarvis selected', 'Android granted Jarvis the assistant role. The system service has not reported itself active yet; return to Settings later to refresh its status.');
+      } else {
+        Alert.alert('Jarvis not selected', 'Android did not activate Jarvis as the default assistant. You can try again or choose it in system Default apps settings.');
+      }
+    } catch (error) {
+      Alert.alert('Could not open assistant selection', error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsRequestingAssistantRole(false);
+    }
+  };
+
+  const assistantRoleDescription = !assistantRoleStatus
+    ? 'Check Android system-assistant support'
+    : !assistantRoleStatus.supported
+      ? 'Requires Android 12 or newer'
+      : !assistantRoleStatus.roleAvailable
+        ? 'Not available on this Android/ColorOS build'
+        : assistantRoleStatus.ready
+          ? 'Jarvis is your default system assistant'
+          : assistantRoleStatus.roleHeld
+            ? 'Android has not activated the Jarvis service yet'
+            : 'Use Jarvis from your system-assistant gesture';
 
   const handleSendFeedback = async () => {
     const { downloadedModels, activeModelId } = useAppStore.getState();
@@ -192,6 +258,28 @@ export const SettingsScreen: React.FC = () => {
               themeMode={themeMode}
               onSelect={setThemeMode}
             />
+            {Platform.OS === 'android' ? (
+              <TouchableOpacity
+                style={styles.navItem}
+                onPress={handleSetJarvisAssistant}
+                disabled={isRequestingAssistantRole || assistantRoleStatus?.supported === false || assistantRoleStatus?.roleAvailable === false || assistantRoleStatus?.roleHeld === true}
+                testID="set-jarvis-system-assistant"
+                accessibilityRole="button"
+                accessibilityLabel={`Jarvis system assistant. ${assistantRoleDescription}`}
+                accessibilityState={{ disabled: isRequestingAssistantRole, busy: isRequestingAssistantRole }}
+              >
+                <View style={styles.navItemIcon}>
+                  <Icon name="mic" size={16} color={colors.textSecondary} />
+                </View>
+                <View style={styles.navItemContent}>
+                  <Text style={styles.navItemTitle}>
+                    {isRequestingAssistantRole ? 'Opening Android settings…' : assistantRoleStatus?.ready ? 'Jarvis system assistant' : assistantRoleStatus?.roleHeld ? 'Jarvis selected' : 'Set Jarvis as assistant'}
+                  </Text>
+                  <Text style={styles.navItemDesc} numberOfLines={1}>{assistantRoleDescription}</Text>
+                </View>
+                <Icon name={assistantRoleStatus?.ready ? 'check' : 'chevron-right'} size={16} color={assistantRoleStatus?.ready ? colors.primary : colors.textMuted} />
+              </TouchableOpacity>
+            ) : null}
             {[
               {
                 icon: 'sliders',
@@ -316,14 +404,6 @@ export const SettingsScreen: React.FC = () => {
           onSendFeedback={handleSendFeedback}
         />
 
-
-        {/* Analytics: opt-in consent, what is shared, Report a problem */}
-        <SettingsAnalyticsSection
-          focusTrigger={focusTrigger}
-          styles={styles}
-          colors={colors}
-          onWhatWeShare={() => navigation.navigate('AnalyticsInfo')}
-        />
 
         {/* About */}
         <AnimatedEntry index={9} staggerMs={40} trigger={focusTrigger}>

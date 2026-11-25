@@ -11,7 +11,7 @@ import {
   type CatalogCache,
   type CatalogFetch,
   type MobileCatalogSections,
-} from '@offgrid/models';
+} from '../utils/remoteCatalogCore';
 import logger from '../utils/logger';
 
 /**

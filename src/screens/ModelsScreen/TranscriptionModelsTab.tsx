@@ -30,7 +30,7 @@ import type { ThemeColors, ThemeShadows } from '../../theme';
 import { TYPOGRAPHY, SPACING } from '../../constants';
 import { useWhisperStore, useAppStore } from '../../stores';
 import { useSttDownloadState } from '../../hooks/useSttDownloadState';
-import type { MobileWhisperCatalogModel } from '@offgrid/models';
+import type { MobileWhisperCatalogModel } from '../../types/modelCatalog';
 import { WHISPER_MODELS } from '../../services';
 import { addCatalogEntry, useWithRemoteCatalog } from '../../stores/modelCatalogStore';
 import { searchWhisperModels } from '../../services/huggingFaceModelBrowser';

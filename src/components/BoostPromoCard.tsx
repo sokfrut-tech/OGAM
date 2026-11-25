@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import { BOOST_PROMO, boostPromoCopy, boostPromoLink, boostPromoVisible, type BoostPromoSurface } from '@offgrid/models';
+import { BOOST_PROMO, boostPromoCopy, boostPromoLink, boostPromoVisible, type BoostPromoSurface } from '../utils/boostPromo';
 import { useTheme, useThemedStyles } from '../theme';
 import type { ThemeColors } from '../theme';
 import { cardSurface } from '../theme/surface';

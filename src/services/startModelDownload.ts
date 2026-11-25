@@ -1,7 +1,7 @@
 import { isClassifierModel } from './classifierModel';
 import { modelManager } from './modelManager';
 import RNFS from 'react-native-fs';
-import { mtpHeadForPrimaryFile } from '@offgrid/models';
+import { mtpHeadForPrimaryFile } from '../utils/mtpHeadsCore';
 import { mmProjLocalName, downloadCompanionFile } from './modelManager/download';
 import { backgroundDownloadService } from './backgroundDownloadService';
 import { useDownloadStore, isActiveStatus } from '../stores/downloadStore';

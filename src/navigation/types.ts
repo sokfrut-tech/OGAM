@@ -7,7 +7,7 @@ export type RootStackParamList = {
   AnalyticsInfo: undefined;
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
   // Former ChatsStack
-  Chat: { conversationId?: string; projectId?: string };
+  Chat: { conversationId?: string; projectId?: string; startVoice?: boolean };
   // Former ProjectsStack
   ProjectDetail: { projectId: string };
   ProjectEdit: { projectId?: string };
@@ -28,6 +28,8 @@ export type RootStackParamList = {
   RemoteServerEditor: { serverId?: string; needsKey?: boolean } | undefined;
   DeviceInfo: undefined;
   StorageSettings: undefined;
+  LocalModels: undefined;
+  ImageGen: undefined;
   SearchModel: undefined;
   SecuritySettings: undefined;
   EngineUpdates: undefined;

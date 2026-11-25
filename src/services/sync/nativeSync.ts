@@ -6,25 +6,25 @@
 import { Platform } from 'react-native';
 import TcpSocket from 'react-native-tcp-socket';
 import Zeroconf from 'react-native-zeroconf';
-import {
-  OFFGRID_SYNC_PORT,
-  type DeviceInfo,
-  type DiscoveryScanSnapshot,
-  type DiscoveredDevice,
-  type PairingPersistence,
-  type PairedDevice,
-  type PairingAttemptSnapshot,
-  type MembershipRevocationPersistence,
-  type MembershipRevocationSnapshot,
-  type Message,
-  type DeviceCap,
-  type SyncDiscoverabilityHealthInput,
-  type SyncEngineOptions,
-  type PeerLink,
-  type PeerLinkEvent,
-} from '@offgrid/sync';
-import type { RnTcpModule } from '@offgrid/sync/rn';
-import type { RnZeroconf } from '@offgrid/sync/rn-discovery';
+import { OFFGRID_SYNC_PORT } from '../../utils/syncEntityCore';
+import type {
+  DeviceInfo,
+  DiscoveryScanSnapshot,
+  DiscoveredDevice,
+  PairingPersistence,
+  PairedDevice,
+  PairingAttemptSnapshot,
+  MembershipRevocationPersistence,
+  MembershipRevocationSnapshot,
+  SyncProtocolMessage as Message,
+  DeviceCap,
+  SyncDiscoverabilityHealthInput,
+  SyncEngineOptions,
+  PeerLink,
+  PeerLinkEvent,
+  RnTcpModule,
+  RnZeroconf,
+} from '../../types/syncContracts';
 import { buildSyncEngine } from './engine';
 import { buildDiscovery } from './discovery';
 import { IosProximityAdapter } from './nativeProximity';

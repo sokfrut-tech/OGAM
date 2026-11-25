@@ -1,6 +1,6 @@
 import { videoModelsDirectory } from '../videoModelFiles';
 import RNFS from 'react-native-fs';
-import { splitGgufPartNames } from '@offgrid/models';
+import { splitGgufPartNames } from '../../utils/ggufSplitFiles';
 import logger from '../../utils/logger';
 import { getMmProjFileSize } from '../../utils/modelHelpers';
 import { DownloadedModel, ModelFile, BackgroundDownloadInfo, ONNXImageModel, PersistedDownloadInfo } from '../../types';
@@ -20,7 +20,7 @@ import {
   loadDownloadedModels,
   loadDownloadedImageModels,
 } from './storage';
-import type { TransferredModelManifest } from '@offgrid/sync';
+import type { TransferredModelManifest } from '../../types/syncContracts';
 import { registerTransferredModelFile } from './transferAdmission';
 import {
   performBackgroundDownload,

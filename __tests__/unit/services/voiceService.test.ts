@@ -6,7 +6,7 @@
  */
 
 import { Platform, PermissionsAndroid } from 'react-native';
-import { voiceService } from '../../../src/services/voiceService';
+import { voiceService, getVoiceRecognitionLocale } from '../../../src/services/voiceService';
 import type { VoiceEventCallbacks } from '../../../src/services/voiceService';
 
 // Get the Voice mock and augment missing methods
@@ -25,6 +25,16 @@ if (!Voice.getSpeechRecognitionServices) {
 if (!Voice.onSpeechPartialResults) {
   Voice.onSpeechPartialResults = null;
 }
+
+describe('speech recognition locale', () => {
+  it('uses Russian speech recognition for the Russian app locale', () => {
+    expect(getVoiceRecognitionLocale('ru')).toBe('ru-RU');
+  });
+
+  it('uses English speech recognition for the English app locale', () => {
+    expect(getVoiceRecognitionLocale('en')).toBe('en-US');
+  });
+});
 
 describe('VoiceService', () => {
   const originalPlatformOS = Platform.OS;
@@ -214,7 +224,7 @@ describe('VoiceService', () => {
       await voiceService.startListening();
 
       expect(Voice.isAvailable).toHaveBeenCalled(); // from initialize
-      expect(Voice.start).toHaveBeenCalledWith('en-US');
+      expect(Voice.start).toHaveBeenCalledWith(getVoiceRecognitionLocale());
     });
 
     it('throws when Voice.start fails', async () => {
@@ -233,7 +243,7 @@ describe('VoiceService', () => {
       await voiceService.startListening();
 
       expect(Voice.isAvailable).toHaveBeenCalled();
-      expect(Voice.start).toHaveBeenCalledWith('en-US');
+      expect(Voice.start).toHaveBeenCalledWith(getVoiceRecognitionLocale());
     });
   });
 

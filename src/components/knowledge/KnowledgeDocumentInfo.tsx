@@ -7,7 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import type { DocumentProgress, StoredDocument } from '@offgrid/rag/documents';
+import type { DocumentProgress, StoredDocument } from '../../utils/ragDocumentsCore';
 import { useThemedStyles } from '../../theme';
 import type { ThemeColors } from '../../theme';
 import { SPACING, TYPOGRAPHY } from '../../constants';

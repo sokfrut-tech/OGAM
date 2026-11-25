@@ -68,7 +68,7 @@ it('a clip the phone stopped with the app is shown interrupted, and Retry makes 
 
 it('a video model download carries on after a restart: kept files stay, none is downloaded twice', async () => {
   const first = await bootPhoneVideo();
-  const { CATALOG } = require('@offgrid/models');
+  const { CATALOG } = require('../../../../src/utils/modelCatalogCore');
   const model = CATALOG.find((entry: { id: string }) => entry.id === WAN);
   const { videoModelDirectory } = require('../../../../src/services/videoModelFiles');
   const directory = videoModelDirectory(WAN);

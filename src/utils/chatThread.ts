@@ -1,4 +1,4 @@
-// A chat as a thread of versions (chat-thread.ts in @offgrid/sync, the rule every surface shares).
+// A chat as a thread of versions (OGAM-owned rules in ./chatThreadCore.ts).
 // Each message follows a parent; messages with the same parent are versions of each other, and the
 // latest-chosen one is shown. Retrying, resending or editing adds a version and deletes nothing.
 import {
@@ -6,7 +6,7 @@ import {
   chatThread,
   neighbourVersion,
   parentOfVersion,
-} from '@offgrid/sync';
+} from './chatThreadCore';
 import type { Message } from '../types';
 
 const threadRows = (messages: readonly Message[]) =>

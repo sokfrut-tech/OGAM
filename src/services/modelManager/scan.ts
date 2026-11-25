@@ -1,4 +1,5 @@
-import { isCompanionFile, splitGgufPartNames } from '@offgrid/models';
+import { isCompanionFile } from '../../utils/modelCompanionFiles';
+import { splitGgufPartNames } from '../../utils/ggufSplitFiles';
 import { getSDImageModels, getSDImagePackFiles, isSDImageWeight } from '../huggingFaceModelBrowser';
 import RNFS from 'react-native-fs';
 import { statFile } from '../../utils/fileStat';

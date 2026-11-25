@@ -6,7 +6,7 @@
  */
 
 import { getIpAddress, isEmulator } from 'react-native-device-info';
-import { readGatewayComputerId } from '@offgrid/sync';
+import { readGatewayComputerId } from '../utils/chatSyncPrimitives';
 import { isPrivateIPv4, isIPv6 } from '../utils/network';
 import logger from '../utils/logger';
 

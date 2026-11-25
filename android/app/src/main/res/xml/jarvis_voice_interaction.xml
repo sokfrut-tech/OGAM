@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ requires this metadata field to be non-empty but ignores its component value.
+  The VoiceInteractionService itself is disabled below API 31 because OGAM does not yet
+  ship a local legacy RecognitionService for Android 7–11.
+-->
+<voice-interaction-service
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:sessionService="ai.offgridmobile.voice.JarvisVoiceInteractionSessionService"
+    android:recognitionService="ai.offgridmobile/ai.offgridmobile.voice.JarvisVoiceInteractionService"
+    android:supportsAssist="true"
+    android:supportsLocalInteraction="false" />

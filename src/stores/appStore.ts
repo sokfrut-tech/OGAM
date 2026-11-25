@@ -1,22 +1,24 @@
-import type { ImageParameterStore } from '@offgrid/models';
+import type { ImageParameterStore } from '../utils/imageParameterCore';
 import type { ModalityName, ProcessorPlace } from '../types';
 import { videoModelDisplayName } from '../utils/modelHelpers';
 import type {
   ModelEntry,
   VideoGenerationRequestContract,
-} from '@offgrid/models';
+} from '../types/modelCatalog';
 import type { VideoModel } from '../services/videoModelFiles';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
-import type { RecordProvenance } from '@offgrid/sync';
+import type { RecordProvenance } from '../types/syncContracts';
 import {
   DEFAULT_SILENCE_AFTER_SPEECH_MS,
   DEFAULT_SPEAKER_DRAIN_MS,
-} from '@offgrid/speech';
-import { DEFAULT_MAX_TOOL_CALLS, MOBILE_MTP_DRAFT_TOKENS, REASONING_BUDGET_AUTO } from '@offgrid/models';
+} from '../utils/voiceTurnSettings';
+import { MOBILE_MTP_DRAFT_TOKENS } from '../utils/modelCapabilityRules';
+import { DEFAULT_MAX_TOOL_CALLS } from '../utils/toolLoopBudget';
+import { REASONING_BUDGET_AUTO } from '../utils/reasoningBudget';
 import { APP_CONFIG } from '../constants';
 import type { ChatGroupBy, ChatSortBy } from '../utils/chatGrouping';
 import { createHydrationGatedStorage } from '../utils/hydrationGatedStorage';

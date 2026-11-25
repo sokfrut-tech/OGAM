@@ -1,0 +1,3 @@
+<resources>
+    <bool name="jarvis_voice_interaction_enabled">true</bool>
+</resources>

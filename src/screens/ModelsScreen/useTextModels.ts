@@ -4,7 +4,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 import { showAlert, hideAlert, AlertState } from '../../components/CustomAlert';
-import { CATALOG, type MobileTextCatalogModel } from '@offgrid/models';
+import { CATALOG, type MobileTextCatalogModel } from '../../utils/modelCatalogCore';
 import { RECOMMENDED_MODELS, TRENDING_FAMILIES, MODEL_ORGS } from '../../constants';
 import { useWithRemoteCatalog } from '../../stores/modelCatalogStore';
 import { useAppStore } from '../../stores';

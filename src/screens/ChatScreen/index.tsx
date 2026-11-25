@@ -1,7 +1,7 @@
 import { videoModelDisplayName } from '../../utils/modelHelpers';
 import { useAppStore } from '../../stores/appStore';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Keyboard, Platform } from 'react-native';
+import { FlatList, Keyboard, Platform, InteractionManager } from 'react-native';
 // Edge-to-edge-aware KeyboardAvoidingView. RN's own version leaves a residual
 // padding band on Android under edge-to-edge (adjustResize is a no-op there);
 // this one reconciles the keyboard frame against the navigation-bar inset.
@@ -9,7 +9,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { scrollToContentEnd } from './scrollToContentEnd';
 import { useUiModeStore } from '../../stores/uiModeStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import {
@@ -49,6 +49,7 @@ import { useChatStore } from '../../stores';
 import { useIsFocused } from '@react-navigation/native';
 import { LivingField } from '../../components/LivingField';
 import { useGetPro } from '../../hooks/useGetPro';
+import { recordingController } from '../../services/recordingController';
 
 function countConversationImages(messages: Message[] | undefined): number {
   return (messages || []).reduce(
@@ -62,11 +63,66 @@ export const ChatScreen: React.FC = () => {
   const isNearBottomRef = React.useRef(true);
   const rootNavigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Chat'>>();
   const { colors } = useTheme();
   const getPro = useGetPro();
   const styles = useThemedStyles(createStyles);
   const isFocused = useIsFocused();
   const chat = useChatScreen();
+  const [assistantVoiceInputPending, setAssistantVoiceInputPending] = useState(false);
+
+  // Android's system-assistant service enters through offgrid://assistant/voice.
+  // Reuse the exact same ChatInput/Whisper/Qwen recorder as a manual mic press;
+  // recordingController checks that a real input backend is available first.
+  const setChatAlertState = chat.setAlertState;
+
+  // Convert the Android intent into a one-shot assistant turn. Set the flag
+  // before starting capture so ChatInput can distinguish Jarvis from normal dictation.
+  useEffect(() => {
+    if (!route.params?.startVoice) return;
+    rootNavigation.setParams({ startVoice: undefined });
+    // A system invocation must not bypass first-run setup.
+    if (!useAppStore.getState().hasCompletedOnboarding) {
+      rootNavigation.reset({ index: 0, routes: [{ name: 'Onboarding' }] });
+      return;
+    }
+    setAssistantVoiceInputPending(true);
+  }, [route.params?.startVoice, rootNavigation]);
+
+  useEffect(() => {
+    if (!assistantVoiceInputPending) return;
+    // Wait until ChatInput has mounted and registered its single recording controller.
+    // If no speech backend exists, explain the exact next action instead of opening an empty mic.
+    let cancelled = false;
+    const interaction = InteractionManager.runAfterInteractions(() => {
+      if (cancelled) return;
+      const result = recordingController.start({ requiresTranscript: true });
+      if (result === 'unavailable' || result === 'no-recorder') {
+        setAssistantVoiceInputPending(false);
+        setChatAlertState(showAlert(
+          'Voice model needed',
+          'Jarvis is ready, but this device has no available speech recognizer yet. Download a Whisper or Qwen speech-to-text model first.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            {
+              text: 'Open speech models',
+              onPress: () => rootNavigation.navigate('Main', {
+                screen: 'ModelsTab',
+                params: { initialTab: 'transcription' },
+              }),
+            },
+          ],
+        ));
+      } else if (result !== 'started') {
+        // A turn was already in progress; never replace or duplicate it.
+        setAssistantVoiceInputPending(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+      interaction.cancel();
+    };
+  }, [assistantVoiceInputPending, rootNavigation, setChatAlertState]);
   // Counted once per change to the chat, not on every render: opening a sheet re-renders this screen.
   const activeMessages = chat.activeConversation?.messages;
   const imageCount = useMemo(() => countConversationImages(activeMessages), [activeMessages]);
@@ -379,6 +435,8 @@ export const ChatScreen: React.FC = () => {
         <ChatMessageArea
           assistantSelected={assistantSelected}
           onAssistantSelectedChange={setAssistantSelected}
+          assistantVoiceInput={assistantVoiceInputPending}
+          onAssistantVoiceInputConsumed={() => setAssistantVoiceInputPending(false)}
           flatListRef={flatListRef}
           isNearBottomRef={isNearBottomRef}
           chat={chat}

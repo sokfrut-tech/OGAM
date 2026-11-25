@@ -3,7 +3,7 @@
 // (services/documents), exactly like documents attached to a chat. Nothing here reads text.
 
 import RNFS from 'react-native-fs';
-import type { DocumentSource } from '@offgrid/rag/documents';
+import type { DocumentSource } from '../../utils/ragDocumentsCore';
 import { ragDatabase, type KnowledgeDocument } from './database';
 import { documentService } from '../documentService';
 import { writePastedNote } from './pastedNote';

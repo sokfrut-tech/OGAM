@@ -5,6 +5,8 @@ import { transcriptionResidentSizeMB } from '../services/whisperModels';
 import { modelResidencyManager } from '../services/modelResidency';
 import logger from '../utils/logger';
 import { createHydrationGatedStorage } from '../utils/hydrationGatedStorage';
+import { locale } from '../i18n';
+import { defaultTranscriptionLanguage } from '../utils/defaultTranscriptionLanguage';
 
 /**
  * Outcome of a whisper load, so callers can tell WHY it didn't load:
@@ -86,7 +88,9 @@ export const useWhisperStore = create<WhisperState>()(
       isModelLoading: false,
       isModelLoaded: false,
       error: null,
-      transcriptionLanguage: 'en',
+      // Fresh installs follow the selected app locale. Existing persisted preferences are
+      // intentionally preserved by Zustand hydration; do not overwrite a person's prior choice.
+      transcriptionLanguage: defaultTranscriptionLanguage(locale),
 
       downloadModel: async (modelId: string) => {
         setProgress(set, modelId, 0);

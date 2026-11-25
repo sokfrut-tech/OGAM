@@ -8,13 +8,13 @@ import { Buffer } from 'buffer';
 import type {
   DeviceInfo,
   DiscoveredDevice,
+  DiscoveryService,
+  SyncConnection,
   SyncDiscoveryHealthSnapshot,
   SyncHealthFact,
-  SyncConnection,
   SyncTransportHealthSnapshot,
   TransportBridge,
-} from '@offgrid/sync';
-import type { DiscoveryService } from '@offgrid/sync';
+} from '../../types/syncContracts';
 
 const PEER_FOUND_EVENT = 'SyncProximityPeerFound';
 const PEER_LOST_EVENT = 'SyncProximityPeerLost';

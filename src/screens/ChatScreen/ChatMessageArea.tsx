@@ -47,6 +47,9 @@ import { useGetPro } from '../../hooks/useGetPro';
 export type ChatMessageAreaProps = {
   assistantSelected: boolean;
   onAssistantSelectedChange: (selected: boolean) => void;
+  /** One-shot voice request entered through Android's system assistant. */
+  assistantVoiceInput?: boolean;
+  onAssistantVoiceInputConsumed?: () => void;
   flatListRef: React.RefObject<FlatList | null>;
   isNearBottomRef: React.MutableRefObject<boolean>;
   chat: ReturnType<typeof useChatScreen>;
@@ -191,6 +194,8 @@ const CHAT_LIST_KEEP_POSITION = { minIndexForVisible: 0 } as const;
 export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
   assistantSelected,
   onAssistantSelectedChange,
+  assistantVoiceInput = false,
+  onAssistantVoiceInputConsumed,
   flatListRef,
   isNearBottomRef,
   chat,
@@ -531,6 +536,8 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
         <ChatInput
           assistantSelected={assistantSelected}
           onAssistantSelectedChange={onAssistantSelectedChange}
+          assistantVoiceInput={assistantVoiceInput}
+          onAssistantVoiceInputConsumed={onAssistantVoiceInputConsumed}
           onSend={chat.handleSend}
           onStop={chat.handleStop}
           disabled={!chat.hasActiveModel}

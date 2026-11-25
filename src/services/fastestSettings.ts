@@ -9,7 +9,7 @@ import {
   type BackendBenchResult,
   type MobileBackend,
   type MobileDevice,
-} from '@offgrid/models';
+} from '../utils/mobileRuntimePolicy';
 import logger from '../utils/logger';
 import { useAppStore } from '../stores/appStore';
 import type { InferenceBackend } from '../types';

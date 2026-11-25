@@ -11,7 +11,7 @@ import {
   type DocumentSource,
   type DocumentTurnStatus,
   type FoundPassage,
-} from '@offgrid/rag/documents';
+} from '../../utils/ragDocumentsCore';
 import { useChatStore } from '../../stores/chatStore';
 import type { DocumentCitation, MediaAttachment, Message } from '../../types';
 import { attachmentSource } from './conversation';

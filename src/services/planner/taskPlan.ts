@@ -1,0 +1,154 @@
+/**
+ * Declarative task plans for Jarvis.
+ *
+ * The model may propose this graph, but it cannot execute it. A deterministic
+ * scheduler checks dependencies and resolves every skill against the installed
+ * skill registry before an execution broker can claim a step.
+ */
+
+export type TaskPlanStatus = 'draft' | 'ready' | 'running' | 'paused' | 'awaiting-approval' | 'completed' | 'failed' | 'cancelled';
+export type TaskStepStatus = 'pending' | 'running' | 'awaiting-approval' | 'completed' | 'failed' | 'skipped' | 'cancelled';
+
+export interface TaskPlanStep {
+  id: string;
+  title: string;
+  description: string;
+  skillId: string;
+  input: Record<string, unknown>;
+  dependsOn: string[];
+}
+
+export interface TaskPlan {
+  id: string;
+  version: 1;
+  title: string;
+  objective: string;
+  status: TaskPlanStatus;
+  steps: TaskPlanStep[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaskPlanValidation {
+  valid: boolean;
+  errors: string[];
+  topologicalOrder: string[];
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+function visit(
+  id: string,
+  byId: Map<string, TaskPlanStep>,
+  temporary: Set<string>,
+  permanent: Set<string>,
+  order: string[],
+): boolean {
+  if (permanent.has(id)) return true;
+  if (temporary.has(id)) return false;
+  temporary.add(id);
+  const step = byId.get(id);
+  if (!step) return false;
+  for (const dependency of step.dependsOn) {
+    if (!visit(dependency, byId, temporary, permanent, order)) return false;
+  }
+  temporary.delete(id);
+  permanent.add(id);
+  order.push(id);
+  return true;
+}
+
+/** Validate the complete plan graph before it is shown as executable. */
+export function validateTaskPlan(value: unknown): TaskPlanValidation {
+  const errors: string[] = [];
+  if (!isRecord(value)) {
+    return { valid: false, errors: ['Plan must be an object.'], topologicalOrder: [] };
+  }
+
+  if (typeof value.id !== 'string' || !value.id.trim()) errors.push('Plan id is required.');
+  if (value.version !== 1) errors.push('Unsupported plan version.');
+  if (typeof value.title !== 'string' || !value.title.trim() || value.title.length > 120) {
+    errors.push('Plan title must contain 1 to 120 characters.');
+  }
+  if (typeof value.objective !== 'string' || !value.objective.trim() || value.objective.length > 2000) {
+    errors.push('Plan objective must contain 1 to 2000 characters.');
+  }
+  if (!Array.isArray(value.steps) || value.steps.length < 1 || value.steps.length > 50) {
+    errors.push('Plan must contain between 1 and 50 steps.');
+    return { valid: false, errors, topologicalOrder: [] };
+  }
+
+  const byId = new Map<string, TaskPlanStep>();
+  for (const candidate of value.steps) {
+    if (!isRecord(candidate)) {
+      errors.push('Every plan step must be an object.');
+      continue;
+    }
+    const step = candidate as unknown as TaskPlanStep;
+    if (typeof step.id !== 'string' || !step.id.trim()) {
+      errors.push('Every step requires an id.');
+      continue;
+    }
+    if (byId.has(step.id)) errors.push(`Duplicate step id: ${step.id}.`);
+    if (typeof step.title !== 'string' || !step.title.trim() || step.title.length > 120) {
+      errors.push(`Invalid title for step: ${step.id}.`);
+    }
+    if (typeof step.description !== 'string' || step.description.length > 2000) {
+      errors.push(`Invalid description for step: ${step.id}.`);
+    }
+    if (typeof step.skillId !== 'string' || !step.skillId.trim()) {
+      errors.push(`Missing skill id for step: ${step.id}.`);
+    }
+    if (!isRecord(step.input)) errors.push(`Input for step ${step.id} must be an object.`);
+    if (!Array.isArray(step.dependsOn) || step.dependsOn.some(dep => typeof dep !== 'string')) {
+      errors.push(`Dependencies for step ${step.id} must be a string array.`);
+    }
+    byId.set(step.id, step);
+  }
+
+  for (const step of byId.values()) {
+    if (!Array.isArray(step.dependsOn) || step.dependsOn.some(dep => typeof dep !== 'string')) {
+      continue;
+    }
+    const unique = new Set(step.dependsOn);
+    if (unique.size !== step.dependsOn.length) {
+      errors.push(`Duplicate dependencies for step: ${step.id}.`);
+    }
+    for (const dependency of step.dependsOn) {
+      if (!byId.has(dependency)) errors.push(`Unknown dependency ${dependency} in step ${step.id}.`);
+      if (dependency === step.id) errors.push(`Step cannot depend on itself: ${step.id}.`);
+    }
+  }
+
+  if (errors.length > 0) return { valid: false, errors, topologicalOrder: [] };
+
+  const order: string[] = [];
+  const permanent = new Set<string>();
+  const temporary = new Set<string>();
+  for (const id of byId.keys()) {
+    if (!visit(id, byId, temporary, permanent, order)) {
+      errors.push('Plan dependencies contain a cycle.');
+      break;
+    }
+  }
+
+  return { valid: errors.length === 0, errors, topologicalOrder: errors.length === 0 ? order : [] };
+}
+
+/**
+ * Return currently runnable steps in stable plan order. Completion is supplied
+ * by the execution ledger; merely asking for readiness never changes state.
+ */
+export function getReadyTaskSteps(
+  plan: TaskPlan,
+  completedStepIds: readonly string[],
+): TaskPlanStep[] {
+  if (plan.status !== 'ready' && plan.status !== 'running') return [];
+  const completed = new Set(completedStepIds);
+  const validation = validateTaskPlan(plan);
+  if (!validation.valid) return [];
+  return validation.topologicalOrder
+    .map(id => plan.steps.find(step => step.id === id)!)
+    .filter(step => !completed.has(step.id) && step.dependsOn.every(id => completed.has(id)));
+}

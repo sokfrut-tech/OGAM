@@ -2,7 +2,7 @@
 // Documents sheet.
 
 import { create } from 'zustand';
-import type { DocumentProgress } from '@offgrid/rag/documents';
+import type { DocumentProgress } from '../../utils/ragDocumentsCore';
 
 interface DocumentProgressState {
   byId: Record<string, DocumentProgress>;

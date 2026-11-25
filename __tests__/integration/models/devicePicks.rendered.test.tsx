@@ -72,7 +72,7 @@ describe('Fast, Balanced and Best on the Models screen', () => {
     const React = require('react');
     const { render, fireEvent, waitFor, within, act } = requireRTL();
     await clearStorage();
-    const { CATALOG } = require('@offgrid/models');
+    const { CATALOG } = require('../../../src/utils/modelCatalogCore');
     const fastEntry = CATALOG.find((e: { name: string }) => e.name === 'LFM2.5 8B A1B');
     const primary = fastEntry.files.find((f: { role?: string }) => f.role === 'primary');
     const { ModelsScreen } = require('../../../src/screens/ModelsScreen');

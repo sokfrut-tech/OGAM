@@ -2,14 +2,17 @@
 // package's RN TCP adapter, fed our injected byte codec. The actual socket module
 // (react-native-tcp-socket) is passed in by the caller (see nativeSync.ts) so this wiring stays
 // pure and unit-testable with an in-memory socket module — the package never imports RN.
-import { MultiTransportBridge, SyncEngine } from '@offgrid/sync';
+import {
+  MultiTransportBridge,
+  RnTcpTransport,
+  SyncEngine,
+} from '../../utils/syncEngineCore';
 import type {
-  SyncEngineOptions,
   DeviceInfo,
+  RnTcpModule,
+  SyncEngineOptions,
   TransportRoute,
-} from '@offgrid/sync';
-import { RnTcpTransport } from '@offgrid/sync/rn';
-import type { RnTcpModule } from '@offgrid/sync/rn';
+} from '../../types/syncContracts';
 import { rnByteCodec } from './byteCodec';
 
 export interface BuildSyncEngineArgs {

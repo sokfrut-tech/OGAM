@@ -80,6 +80,9 @@ interface ChatInputProps {
   onAssistantEnableTools?: () => boolean;
   assistantSelected?: boolean;
   onAssistantSelectedChange?: (selected: boolean) => void;
+  /** One-shot Android system-assistant invocation; not used for ordinary Chat dictation. */
+  assistantVoiceInput?: boolean;
+  onAssistantVoiceInputConsumed?: () => void;
 }
 
 const IMAGE_MODE_CYCLE: ImageModeState[] = ['auto', 'force', 'disabled'];
@@ -194,6 +197,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onAssistantEnableTools,
   assistantSelected,
   onAssistantSelectedChange,
+  assistantVoiceInput = false,
+  onAssistantVoiceInputConsumed,
 }) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -270,6 +275,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     getComposerText: () => message,
     getPendingAttachments: () => attachmentsRef.current,
     isAudioMode,
+    autoSendVoiceInput: assistantVoiceInput,
+    onAssistantVoiceInputConsumed,
     imageMode,
     onSend,
     getAssistantEnabled: () => assistantEnabled,
@@ -305,6 +312,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     onTranscript: voiceHandlers.onTranscript,
     onAudioAttachment: voiceHandlers.onAudioAttachment,
     onAutoSend: voiceHandlers.onAutoSend,
+    onAssistantVoiceInputConsumed,
   });  // The mic takes Stop's place when a reply ends; a late Stop tap must not start recording.
   const { start: startRecordingAfterStop, resting: micResting } = useStopTapGuard(isGenerating, startRecording);
 

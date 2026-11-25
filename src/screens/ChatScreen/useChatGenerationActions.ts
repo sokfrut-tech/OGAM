@@ -1,5 +1,5 @@
 import { videoSeam } from '../../bootstrap/videoSeam';
-import { mediaStyle } from '@offgrid/models';
+import { mediaStyle } from '../../constants/mediaStyles';
 import { adoptDraftStyles, chatStyleId } from '../../stores/mediaStyleStore';
 import type { MediaStyleIds } from '../../services/generationService';
 /* eslint-disable max-lines -- cohesive generation-action orchestrator (send/regenerate/dispatch/route share the same GenerationDeps + session state); splitting it would scatter tightly-coupled turn logic. */
@@ -55,7 +55,7 @@ import logger from '../../utils/logger';
 import { featureUsed, messageSent, track } from '../../services/analytics/analytics';
 import { deleteChatImages, imagesNotDeletedAlert } from '../../services/chatImageCleanup';
 import { ModelReadyOutcome, ensureReadyOrAlert } from './modelReadiness';
-import { describeTurnStatus } from '@offgrid/rag/documents';
+import { describeTurnStatus } from '../../utils/ragDocumentsCore';
 import {
   prepareTurnDocuments,
   turnSources,

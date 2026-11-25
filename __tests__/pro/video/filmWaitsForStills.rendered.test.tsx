@@ -31,7 +31,7 @@ afterEach(() => {
 /** An sd.cpp image pack as a finished download leaves it: every file of a catalog pack on disk, and its record. */
 function placeSdImagePack(boundary: NativeBoundary): void {
   const { getSDImageModels } = require('../../../src/services/huggingFaceModelBrowser');
-  const { sdImagePackFor } = require('@offgrid/models');
+  const { sdImagePackFor } = require('../../../src/utils/sdImagePackPolicy');
   const template = getSDImageModels().find(
     (model: { fileName: string; huggingFaceFiles?: unknown[] }) => sdImagePackFor(model.fileName) && model.huggingFaceFiles?.length,
   );

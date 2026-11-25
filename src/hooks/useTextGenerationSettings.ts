@@ -10,7 +10,7 @@ import {
   MAX_MAX_TOOL_CALLS,
   MIN_MAX_TOOL_CALLS,
   normalizeMaxToolCalls,
-} from '@offgrid/models';
+} from '../utils/toolLoopBudget';
 
 export interface NumericSettingModel {
   key: string;

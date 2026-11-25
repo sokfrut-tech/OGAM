@@ -20,7 +20,7 @@ import { analyticsBuildAllowed, createAnalyticsClient, type AnalyticsClient } fr
 import { scrubExceptionProperties } from './scrub';
 import { markForeground, markStageEnded, markStageStarted, takeUncleanExit } from './uncleanExit';
 import { maybePromptAfterFailure, maybePromptAfterFirstChat } from './consentPrompt';
-import type { BoostPromoSurface } from '@offgrid/models';
+import type { BoostPromoSurface } from '../../utils/boostPromo';
 import { SessionTally, type ScrollBucket, type SummaryCounter } from './sessionTally';
 import { countScribe, setInteractionSink, setScreenSink, type ScribeAct, type ScribeOrigin } from './interactions';
 import {

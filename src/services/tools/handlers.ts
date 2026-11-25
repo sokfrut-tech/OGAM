@@ -1,13 +1,14 @@
 import { videoSeam } from '../../bootstrap/videoSeam';
 import { Platform } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
-import { describeTurnStatus } from '@offgrid/rag/documents';
+import { describeTurnStatus } from '../../utils/ragDocumentsCore';
 import { ToolCall, ToolResult } from './types';
 import { useDocumentTurnStatusStore } from '../documents/progressStore';
 import type * as DocumentChatTurn from '../documents/chatTurn';
 import logger from '../../utils/logger';
 import { featureUsed } from '../analytics/analytics';
 import { toolFeature } from '../analytics/values';
+import { validateBuiltInToolInvocation } from '../skills/toolContracts';
 
 function makeResult(
   call: ToolCall,
@@ -27,10 +28,24 @@ function requireString(call: ToolCall, param: string): string | null {
   return (val && typeof val === 'string' && val.trim()) ? val.trim() : null;
 }
 
-export async function executeToolCall(call: ToolCall): Promise<ToolResult> {
+export async function executeToolCall(
+  call: ToolCall,
+  enabledToolIds: readonly string[] = [],
+): Promise<ToolResult> {
   const start = Date.now();
-  featureUsed(toolFeature(call.name));
   try {
+    const validation = validateBuiltInToolInvocation(
+      call.name,
+      call.arguments,
+      enabledToolIds,
+    );
+    if (!validation.valid) {
+      throw new Error(`Tool call rejected: ${validation.errors.join(' ')}`);
+    }
+    if (validation.requiresApproval) {
+      throw new Error('This tool requires explicit user approval before execution.');
+    }
+    featureUsed(toolFeature(call.name));
     const content = await dispatchTool(call);
     return makeResult(call, start, { content });
   } catch (error: any) {

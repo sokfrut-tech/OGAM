@@ -6,7 +6,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { GUIDE_FLOWS, GUIDE_NOT_SUPPORTED, guideFlowLabels } from '@offgrid/models';
+import { GUIDE_FLOWS, GUIDE_NOT_SUPPORTED, guideFlowLabels } from '../../src/utils/guideCore';
 
 const ROOT = path.join(__dirname, '..', '..');
 const SKIP = new Set(['node_modules', '__tests__', 'docs', 'e2e', 'build', 'Pods']);

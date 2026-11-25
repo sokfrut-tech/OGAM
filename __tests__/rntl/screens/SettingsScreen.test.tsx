@@ -123,13 +123,14 @@ describe('SettingsScreen', () => {
     expect(getByText('Appearance')).toBeTruthy();
   });
 
-  it('renders the Analytics section with both consent toggles off by default', () => {
-    const { getByText, getByLabelText } = renderSettings();
-    expect(getByText('Analytics')).toBeTruthy();
-    expect(Boolean(getByLabelText('Anonymous stats').props.on ?? getByLabelText('Anonymous stats').props.value)).toBe(false);
-    expect(Boolean(getByLabelText('Crash reports').props.on ?? getByLabelText('Crash reports').props.value)).toBe(false);
-    expect(getByText('What we share')).toBeTruthy();
-    expect(getByText('Report a problem')).toBeTruthy();
+  it('omits the removed Analytics section and consent toggles for local-only privacy', () => {
+    const { queryByText, queryByLabelText, queryByTestId } = renderSettings();
+    expect(queryByTestId('settings-analytics')).toBeNull();
+    expect(queryByText('Analytics')).toBeNull();
+    expect(queryByLabelText('Anonymous stats')).toBeNull();
+    expect(queryByLabelText('Crash reports')).toBeNull();
+    expect(queryByText('What we share')).toBeNull();
+    expect(queryByText('Report a problem')).toBeNull();
   });
 
   it('renders about section text', () => {

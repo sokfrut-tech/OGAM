@@ -1,7 +1,10 @@
 package ai.offgridmobile
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import ai.offgridmobile.voice.JarvisAssistantBridgeActivity
+import ai.offgridmobile.voice.JarvisAssistantLaunchGuard
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import com.facebook.react.ReactActivity
@@ -24,7 +27,37 @@ class MainActivity : ReactActivity() {
   override fun createReactActivityDelegate(): ReactActivityDelegate =
       DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
 
+  /**
+   * Protect every ACTION_VIEW spelling that React Navigation can resolve to the Jarvis
+   * assistant route. Do not compare Uri.path alone: the JS router normalizes trailing and
+   * repeated slashes, and accepts percent-encoded static path characters.
+   */
+  private fun isJarvisAssistantIntent(intent: Intent?): Boolean {
+    return intent?.action == Intent.ACTION_VIEW &&
+      JarvisAssistantLaunchGuard.matchesAssistantVoiceRoute(intent.dataString)
+  }
+
+  private fun acceptJarvisAssistantIntent(intent: Intent): Boolean {
+    if (!isJarvisAssistantIntent(intent)) return true
+    val token = intent.getStringExtra(JarvisAssistantBridgeActivity.EXTRA_LAUNCH_TOKEN)
+    if (!JarvisAssistantLaunchGuard.consume(token)) return false
+    intent.removeExtra(JarvisAssistantBridgeActivity.EXTRA_LAUNCH_TOKEN)
+    return true
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    // An explicit VIEW intent is not trusted just because it targets our exported launcher.
+    // Only the non-exported bridge can mint the one-time in-process token.
+    if (!acceptJarvisAssistantIntent(intent)) return
+    super.onNewIntent(intent)
+    setIntent(intent)
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
+    if (isJarvisAssistantIntent(intent) && !acceptJarvisAssistantIntent(intent)) {
+      // Strip an untrusted assistant URI before React Native Linking reads the initial URL.
+      setIntent(Intent(this, MainActivity::class.java).apply { action = Intent.ACTION_MAIN })
+    }
     // Switch from SplashTheme back to AppTheme once React Native loads
     setTheme(R.style.AppTheme)
     // Edge-to-edge (required for API 35+) with fully transparent system bars and

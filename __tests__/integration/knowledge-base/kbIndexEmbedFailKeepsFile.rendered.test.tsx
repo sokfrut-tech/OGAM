@@ -36,7 +36,7 @@ describe('KB index when the embedding model fails (rendered)', () => {
       name: 'search_knowledge_base',
       arguments: { query: 'quarterly revenue eastern region' },
       context: { projectId: kb.project.id },
-    });
+    }, ['search_knowledge_base']);
     expect(result.content).toContain('revenue grew in the eastern region');
   });
 });

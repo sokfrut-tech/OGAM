@@ -7,24 +7,24 @@ import { Platform } from 'react-native';
 import {
   CompositeDiscoveryService,
   DiscoveryOrchestrator,
-} from '@offgrid/sync';
+  RnDiscovery,
+} from '../../utils/syncDiscoveryCore';
 import type {
   DeviceInfo,
   DiscoveryScanSnapshot,
   DiscoveredDevice,
   DiscoverySource,
-  SyncEngine,
-} from '@offgrid/sync';
-import { RnDiscovery } from '@offgrid/sync/rn-discovery';
+  RnZeroconf,
+  SyncEngineLike,
+} from '../../types/syncContracts';
 import logger from '../../utils/logger';
-import type { RnZeroconf } from '@offgrid/sync/rn-discovery';
 
 export interface BuildDiscoveryArgs {
   /** react-native-zeroconf instance (or an in-memory fake in tests). */
   zeroconf: RnZeroconf;
   /** The SyncEngine — the orchestrator reads isPaired() and drives reconnect(). */
-  engine: Pick<SyncEngine, 'isPaired' | 'reconnect'> &
-    Partial<Pick<SyncEngine, 'retryMembershipRevocation'>>;
+  engine: Pick<SyncEngineLike, 'isPaired' | 'reconnect'> &
+    Partial<Pick<SyncEngineLike, 'retryMembershipRevocation'>>;
   localDevice: DeviceInfo;
   getSharedSecret: (deviceId: string) => string | undefined;
   /** Authenticated endpoints saved by the host for an immediate startup reconnect. */
@@ -44,6 +44,7 @@ export interface BuildDiscoveryArgs {
   onReconnectFailed?: (device: DeviceInfo, error: Error) => void;
   /** Pair an UNSAVED discovered device silently when it belongs to this licence. */
   admitSilently?: (device: DiscoveredDevice) => Promise<void>;
+  onSilentJoinSettled?: (device: DiscoveredDevice, error?: unknown) => void;
   /** Advertise on start. Absent means yes, so an existing install does not go hidden on upgrade. */
   discoverable?: boolean;
   /** Browse on start. Absent means yes. */
@@ -87,6 +88,7 @@ export function buildDiscovery(
       (deviceId => args.getSharedSecret(deviceId) !== undefined),
     getMembershipId: args.getMembershipId,
     ...(args.admitSilently ? { admitSilently: args.admitSilently } : {}),
+    ...(args.onSilentJoinSettled ? { onSilentJoinSettled: args.onSilentJoinSettled } : {}),
     onDiscovered: args.onDiscovered,
     onLost: args.onLost,
     onDiscoveryStateChanged: args.onDiscoveryStateChanged,

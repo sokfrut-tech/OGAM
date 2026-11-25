@@ -66,7 +66,7 @@ describe('what a project chat may read', () => {
       name: 'search_knowledge_base',
       arguments: { query: 'zenland capital' },
       context: { projectId: 'client-a' },
-    });
+    }, ['search_knowledge_base']);
 
     expect(result.content).toMatch(/Quixotic City/);
     expect(result.content).not.toMatch(/SECRET FROM CLIENT B/);
@@ -82,7 +82,7 @@ describe('the search_knowledge_base tool when there is nothing to give the model
       name: 'search_knowledge_base',
       arguments: { query: 'quarterly banana ledger audit' },
       context: { projectId: 'project-with-no-files' },
-    });
+    }, ['search_knowledge_base']);
 
     // An empty knowledge base is not an error. A tool error makes the model apologise for a broken tool
     // instead of simply answering from what it knows.
@@ -98,7 +98,7 @@ describe('the search_knowledge_base tool when there is nothing to give the model
       name: 'search_knowledge_base',
       arguments: { query: 'zenland capital' },
       context: {},
-    });
+    }, ['search_knowledge_base']);
 
     // Told in prose, not handed a tool error: an error makes the model apologise for a broken tool, while
     // an empty result would let it tell the user their documents are missing.

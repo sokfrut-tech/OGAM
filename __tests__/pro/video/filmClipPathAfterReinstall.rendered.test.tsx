@@ -85,7 +85,7 @@ it('a clip saved before an update still joins into a film that plays', async () 
     boundary.setRam({ platform: 'ios', totalBytes: 12 * GB, availBytes: 5.9 * GB });
     for (const file of files) boundary.fs!.seedFile(file.path, file.size);
     const { videoModelDirectory } = require('../../../src/services/videoModelFiles');
-    const entry = require('@offgrid/models').CATALOG.find((model: { id: string }) => model.id === VIDEO.id);
+    const entry = require('../../../src/utils/modelCatalogCore').CATALOG.find((model: { id: string }) => model.id === VIDEO.id);
     for (const file of entry.files) boundary.fs!.seedFile(`${videoModelDirectory(VIDEO.id)}/${file.name}`, file.sizeBytes);
     engine = installNativeVideoEngine(boundary);
   } });

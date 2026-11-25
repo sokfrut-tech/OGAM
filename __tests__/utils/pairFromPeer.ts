@@ -2,8 +2,8 @@ import { waitFor, type RenderAPI } from '@testing-library/react-native';
 import {
   PAIRING_CODE_ALPHABET,
   PAIRING_CODE_LENGTH,
-  type DeviceInfo,
-} from '@offgrid/sync';
+} from '../../src/utils/syncDiscoveryCore';
+import type { DeviceInfo } from '../../src/types/syncContracts';
 
 /**
  * Pair a fake peer with this phone the way a real one does.

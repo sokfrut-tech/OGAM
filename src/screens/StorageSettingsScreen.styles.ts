@@ -74,6 +74,7 @@ export const createStyles = (colors: ThemeColors, _shadows: ThemeShadows) => ({
     fontFamily: FONTS.mono,
     color: colors.textSecondary,
   },
+  permissionInfo: { flex: 1 },
   infoRow: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Alert, Platform } from 'react-native';
 import { useAppStore } from '../stores';
-import { setImageParameterOverride } from '@offgrid/models';
+import { setImageParameterOverride } from '../utils/imageParameterCore';
 import { mobileImageParameterDefaults, mobileImageSizeLimit, resolveMobileImageParameters } from '../services/imageParameterPolicy';
 import { localDreamGeneratorService } from '../services/localDreamGenerator';
 

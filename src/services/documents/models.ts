@@ -2,7 +2,7 @@
 // indexes documents with), or the embedding model the person chose instead. Vectors are normalised so the shared ranking can
 // compare them by dot product. The phone has no reranker; keyword + vector ranking answers.
 
-import type { EmbedPort } from '@offgrid/rag/documents';
+import type { EmbedPort } from '../../utils/ragDocumentsCore';
 import { embeddingService } from '../rag/embedding';
 
 function normalise(vector: number[]): number[] {

@@ -6,7 +6,7 @@ import { backgroundDownloadService } from './backgroundDownloadService';
 import * as whisperModelFiles from './whisperModelFiles';
 import { WHISPER_MODELS, findTranscriptionModel } from './whisperModels';
 import { withRemoteCatalog } from '../stores/modelCatalogStore';
-import type { MobileWhisperCatalogModel } from '@offgrid/models';
+import type { MobileWhisperCatalogModel } from '../types/modelCatalog';
 import { failureDetails } from '../utils/downloadErrors';
 
 /** One file of a transcription model download: Whisper has one, Qwen3-ASR two. */

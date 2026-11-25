@@ -3,8 +3,8 @@ import {
   BLOB_FRAME_BYTES,
   BLOB_TOKEN_TTL_MS,
   blobKeyBase64,
-  type BlobEndpoint,
-} from '@offgrid/sync';
+} from '../../../src/utils/syncChecksumCore';
+import type { BlobEndpoint } from '../../../src/types/syncContracts';
 import { NativeEventBus } from '../../utils/nativeEventBus';
 import {
   createNativeBlobChannel,

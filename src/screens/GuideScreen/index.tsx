@@ -36,7 +36,7 @@ import {
   guideGrounding,
   guideStarterAnswer,
   guideTurnsToSend,
-} from '@offgrid/models';
+} from '../../utils/guideCore';
 import { AliveScreen } from '../../components/AliveScreen';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { UnderlineTabs } from '../../components/UnderlineTabs';

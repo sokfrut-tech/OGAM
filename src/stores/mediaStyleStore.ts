@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { MediaStyleKind } from '@offgrid/models';
+import type { MediaStyleKind } from '../constants/mediaStyles';
 import { createHydrationGatedStorage } from '../utils/hydrationGatedStorage';
 
 type ChatStyles = Partial<Record<MediaStyleKind, string>>;

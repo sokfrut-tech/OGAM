@@ -3,7 +3,7 @@ import { View, Text } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { useTheme, useThemedStyles } from '../../theme';
 import type { ThemeColors, ThemeShadows } from '../../theme';
-import { formatFileSize } from '@offgrid/models';
+import { formatFileSize } from '../../utils/formatFileSize';
 import { TYPOGRAPHY, SPACING } from '../../constants';
 import { AnimatedPressable } from '../AnimatedPressable';
 import type { PickSlot } from '../../services/devicePicks';

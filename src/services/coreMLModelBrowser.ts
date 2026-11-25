@@ -1,4 +1,4 @@
-import type { MobileCoreMLCatalogRepo } from '@offgrid/models';
+import type { MobileCoreMLCatalogRepo } from '../types/modelCatalog';
 import logger from '../utils/logger';
 import { registerBundledCatalog, withRemoteCatalog } from '../stores/modelCatalogStore';
 interface CoreMLModelFile {

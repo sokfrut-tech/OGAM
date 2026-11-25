@@ -1,4 +1,4 @@
-import type { ChatStreamPreview } from '@offgrid/sync';
+import type { ChatStreamPreview } from '../../../src/utils/chatStreamHelpers';
 import { useRemoteChatStreamStore } from '../../../src/stores/remoteChatStreamStore';
 
 /**

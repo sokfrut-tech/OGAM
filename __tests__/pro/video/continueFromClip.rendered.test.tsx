@@ -67,7 +67,7 @@ it('Extend uses a model on this phone that starts from a picture with no questio
   const { view, rtl } = app;
   await makeClipInChat(app, CLIP);
   // What a finished download leaves on the phone: Wan 2.2 Turbo, installed but not the model in use.
-  const { CATALOG } = require('@offgrid/models');
+  const { CATALOG } = require('../../../src/utils/modelCatalogCore');
   const turbo = CATALOG.find((model: { id: string }) => model.id === 'hum-ma/Wan2.2-TI2V-5B-Turbo-GGUF');
   const { useAppStore } = require('../../../src/stores');
   rtl.act(() => {

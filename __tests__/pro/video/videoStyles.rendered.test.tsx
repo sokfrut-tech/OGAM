@@ -15,7 +15,7 @@ import { closeStudioApp, launchStudioApp, type StudioApp } from '../../harness/v
 
 afterEach(() => closeStudioApp(), 90_000);
 
-const { mediaStyle } = require('@offgrid/models');
+const { mediaStyle } = require('../../../src/constants/mediaStyles');
 const CINEMATIC = mediaStyle('video', 'cinematic').words;
 const NATURE = mediaStyle('video', 'nature').words;
 

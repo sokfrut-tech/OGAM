@@ -1,7 +1,7 @@
 import RNFS from 'react-native-fs';
 import { guessStyle, HFImageModel } from '../../services/huggingFaceModelBrowser';
 import { ModelInfo, ImageModelRecommendation, SoCInfo } from '../../types';
-import { mtpHeadForModel } from '@offgrid/models';
+import { mtpHeadForModel } from '../../utils/mtpHeadsCore';
 import { ImageModelDescriptor, ModelTypeFilter } from './types';
 import { imageBackendLabel } from '../../utils/imageBackend';
 import { looksLikeVisionModel } from '../../utils/visionModel';

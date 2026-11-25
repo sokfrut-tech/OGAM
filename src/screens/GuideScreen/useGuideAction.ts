@@ -5,7 +5,7 @@
 import { Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GUIDE_LINKS } from '@offgrid/models';
+import { GUIDE_LINKS } from '../../utils/guideCore';
 import type { RootStackParamList } from '../../navigation/types';
 import { useAppStore } from '../../stores';
 import { selectHasProAccess } from '../../stores/proAccessSlice';
@@ -86,7 +86,7 @@ export function useGuideAction(): (topic: MobileGuideTopic) => GuideAction | nul
   return topic => {
     if (topic.open) {
       const open = topic.open;
-      const locked = topic.pro && !hasPro;
+      const locked = Boolean(topic.pro && !hasPro);
       return {
         label: locked ? 'Get Pro' : OPEN_LABEL[open],
         icon: locked ? 'lock' : 'arrow-right',

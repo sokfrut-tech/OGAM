@@ -23,7 +23,8 @@ import { generateWithToolsImpl } from './llmToolGeneration';
 import type { ToolCall } from './tools/types';
 import type { MultimodalSupport, LLMPerformanceSettings, LLMPerformanceStats } from './llmTypes';
 import logger from '../utils/logger';
-import { stateCacheBudgetMb, MOBILE_BACKEND_ROWS, splitGgufPartNames, type MobileBackend } from '@offgrid/models';
+import { stateCacheBudgetMb, MOBILE_BACKEND_ROWS, type MobileBackend } from '../utils/mobileRuntimePolicy';
+import { splitGgufPartNames } from '../utils/ggufSplitFiles';
 import { saveKvSession, loadKvSession } from './kvSessionStore';
 import { readModelFileType } from './modelHeader';
 import { installedMtpHeadPath } from './mtpHeads';
@@ -434,19 +435,30 @@ class LLMService {
     return { lastTruncated: end === 'token-limit', lastEndedEarly: end === 'ended-early' };
   }
   getLoadedModelPath(): string | null { return this.currentModelPath; }
-  async generateResponse(messages: Message[], options?: { onStream?: StreamCallback; onComplete?: CompleteCallback; disableThinking?: boolean; maxTokens?: number }): Promise<string> {
+  async generateResponse(messages: Message[], options?: { onStream?: StreamCallback; onComplete?: CompleteCallback; disableThinking?: boolean; maxTokens?: number; rawPrompt?: string; prefillText?: string }): Promise<string> {
     const { onStream, onComplete, ...opts } = options ?? {};
+    if (opts.rawPrompt !== undefined && !opts.rawPrompt.trim()) {
+      throw new Error('Raw prompt must not be empty');
+    }
+    if (opts.rawPrompt !== undefined && opts.prefillText !== undefined) {
+      throw new Error('Raw prompt and chat prefill cannot be used together');
+    }
+    if (opts.prefillText !== undefined && messages[messages.length - 1]?.role !== 'assistant') {
+      throw new Error('Chat prefill requires the last message to be an assistant prefix');
+    }
     const ctx = this.stopAware(this.usableContext());
     if (this.isGenerating) throw new Error('Generation already in progress');
     this.isGenerating = true;
     this.stopRequested = false;
     const completionWork = this.trackNativeWork((async () => {
-      const managed = await this.manageContextWindow(messages);
-      const usable = await this.dropMissingImageAttachments(managed);
+      // Raw mode sends the caller's prompt string directly to llama.rn. It never converts
+      // messages, adds the app system prompt, or wraps the text in a chat template.
+      const managed = opts.rawPrompt !== undefined ? [] : await this.manageContextWindow(messages);
+      const usable = opts.rawPrompt !== undefined ? [] : await this.dropMissingImageAttachments(managed);
       const hasImages = usable.some(m => modelImageAttachments(m.attachments).length > 0);
       if (hasImages && !this.multimodalInitialized) logger.warn('[LLM] Images attached but multimodal not initialized - falling back to text-only');
-      logger.log('[LLM] Generation mode:', this.hasVisionInputs(usable) ? 'VISION' : 'TEXT-ONLY');
-      const oaiMessages = this.convertToOAIMessages(usable);
+      logger.log('[LLM] Generation mode:', opts.rawPrompt !== undefined ? 'RAW' : this.hasVisionInputs(usable) ? 'VISION' : 'TEXT-ONLY');
+      const oaiMessages = opts.rawPrompt !== undefined ? undefined : this.convertToOAIMessages(usable);
       const { settings } = useAppStore.getState();
       const startTime = Date.now();
       let firstTokenMs = 0, tokenCount = 0, firstReceived = false;
@@ -458,9 +470,24 @@ class LLMService {
       const thinkingOn = this.isThinkingEnabled() && !opts?.disableThinking;
       // A utility caller may need more room than the chat setting (a model that thinks before a rewrite).
       const completionSettings = opts?.maxTokens ? { ...settings, maxTokens: opts.maxTokens } : settings;
-      const completionParams = { messages: oaiMessages, ...buildCompletionParams(completionSettings, { disableCtxShift: this.shouldDisableCtxShift() }), ...buildThinkingCompletionParams(thinkingOn, this.isGemma4Model(), settings.reasoningBudget) };
+      const completionParams = {
+        ...(opts.rawPrompt !== undefined
+          ? { prompt: opts.rawPrompt, force_pure_content: true }
+          : {
+              messages: oaiMessages,
+              ...(opts.prefillText !== undefined ? { prefill_text: opts.prefillText } : {}),
+            }),
+        ...buildCompletionParams(completionSettings, { disableCtxShift: this.shouldDisableCtxShift() }),
+        ...buildThinkingCompletionParams(thinkingOn, this.isGemma4Model(), settings.reasoningBudget),
+      };
       logger.log(`[LLM][THINKING] thinkingSupported=${this.thinkingSupported}, thinkingEnabled=${useAppStore.getState().settings.thinkingEnabled}, isThinkingEnabled=${this.isThinkingEnabled()}, enable_thinking=${(completionParams as any).enable_thinking}, reasoning_format=${(completionParams as any).reasoning_format}`);
-      logger.log(`[WIRE-LLAMA-PARAMS] ${JSON.stringify({ model: this.currentModelPath, params: { ...completionParams, messages: undefined } })}`); // [WIRE] settings→native params (temp/thinking/etc), messages elided
+      const loggedParams = {
+        ...completionParams,
+        messages: undefined,
+        ...(opts.rawPrompt !== undefined ? { prompt: `[redacted ${opts.rawPrompt.length} chars]` } : {}),
+        ...(opts.prefillText !== undefined ? { prefill_text: `[redacted ${opts.prefillText.length} chars]` } : {}),
+      };
+      logger.log(`[WIRE-LLAMA-PARAMS] ${JSON.stringify({ model: this.currentModelPath, params: loggedParams })}`); // [WIRE] content-bearing prompts are redacted
       const completionResult = await safeCompletion(ctx, () => ctx.completion(completionParams, (data: any) => {
         if (__wire.length < 500) __wire.push({ token: data.token, content: data.content, reasoning_content: data.reasoning_content, tool_calls: data.tool_calls }); // [WIRE]
         if (!this.isGenerating || !data.token) return;
@@ -493,6 +520,21 @@ class LLMService {
     })());
     this.activeCompletionPromise = completionWork.then(() => { }, () => { });
     try { return await completionWork; } finally { this.isGenerating = false; this.activeCompletionPromise = null; }
+  }
+  /** Generate from a caller-owned prompt exactly as supplied, with no app/system prompt or chat template. */
+  async generateRawPrompt(
+    prompt: string,
+    options?: { onStream?: StreamCallback; onComplete?: CompleteCallback; disableThinking?: boolean; maxTokens?: number },
+  ): Promise<string> {
+    return this.generateResponse([], { ...options, rawPrompt: prompt });
+  }
+  /** Continue an assistant prefix using llama.rn's native chat prefill parser. */
+  async generatePrefillResponse(
+    messages: Message[],
+    prefillText: string,
+    options?: { onStream?: StreamCallback; onComplete?: CompleteCallback; disableThinking?: boolean; maxTokens?: number },
+  ): Promise<string> {
+    return this.generateResponse(messages, { ...options, prefillText });
   }
   async generateResponseWithTools(messages: Message[], options: { tools: any[]; onStream?: StreamCallback; onComplete?: CompleteCallback }): Promise<{ fullResponse: string; toolCalls: ToolCall[]; interrupted?: boolean }> {
     if (this.releasingContext) throw new Error('No model loaded');
