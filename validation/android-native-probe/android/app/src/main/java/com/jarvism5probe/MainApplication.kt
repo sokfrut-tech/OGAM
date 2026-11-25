@@ -1,4 +1,4 @@
-package com.jarvism3probe
+package com.jarvism5probe
 
 import android.app.Application
 import com.facebook.react.PackageList

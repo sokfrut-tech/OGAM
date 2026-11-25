@@ -1,0 +1,31 @@
+name: Jarvis Memory M5 Hardening Validation
+
+on:
+  push:
+    branches:
+      - feature/jarvis-step-1-memory-m5-hardening-2026-11-25
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jarvis-m5-focused-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-validation:
+    name: Focused M1-M5 TypeScript, Jest and SQLite security checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+
+      - name: Run isolated M5 TypeScript, Jest and fault-injection SQLite checks
+        run: bash .ci/run-jarvis-memory-m5.sh
