@@ -109,7 +109,7 @@ describe('Jarvis Pro UI Components and Screens', () => {
     fireEvent.press(ui.getByTestId('jarvis-tts-test-button'));
     await waitFor(() => expect(NativeModules.JarvisAndroidTtsModule.speak).toHaveBeenCalled());
 
-    fireEvent.press(ui.getByTestId('jarvis-video-backend-gpu'));
+    fireEvent.press(ui.getAllByTestId('jarvis-video-backend-gpu')[0]);
     expect(useJarvisProStore.getState().videoBackend).toBe('gpu');
   });
 
