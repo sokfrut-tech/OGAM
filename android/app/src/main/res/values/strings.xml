@@ -2,5 +2,5 @@
     <string name="app_name">Джарвис AI</string>
     <string name="process_text_action_label">Скопировать в Джарвис AI</string>
     <string name="improve_text_action_label">Улучшить</string>
-    <string name="jarvis_assistant_name">Jarvis</string>
+    <string name="jarvis_assistant_name">Джарвис</string>
 </resources>
