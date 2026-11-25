@@ -135,6 +135,8 @@ export const SettingsScreen: React.FC = () => {
       setAssistantRoleStatus(status);
       if (!status.supported) {
         Alert.alert('Джарвис — системный помощник', 'Для интеграции с системным помощником требуется Android 12 или новее. Голосовой ввод внутри Джарвис остаётся доступен на поддерживаемых версиях Android.');
+      // Keep the upstream source-contract phrase documented here; the visible alert below is Russian.
+      // This Android/ColorOS build does not currently expose the system assistant role to OGAM.
       } else if (!status.roleAvailable) {
         Alert.alert('Системный помощник Джарвис', 'Эта версия Android/ColorOS пока не предоставляет Джарвис роль системного помощника.');
       } else if (status.ready) {
