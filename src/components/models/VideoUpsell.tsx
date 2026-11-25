@@ -5,11 +5,15 @@ import { Button } from '../Button';
 import { useTheme, useThemedStyles } from '../../theme';
 import type { ThemeColors } from '../../theme';
 import { TYPOGRAPHY, SPACING } from '../../constants';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 
 /** Shown wherever video would appear when Pro is not active. Saved videos still play. */
 export const VideoUpsell: React.FC<{ onGetPro: () => void }> = ({ onGetPro }) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  if (isJarvisStandaloneRuntime) {
+    return null;
+  }
   return (
     <View style={styles.container} testID="video-upsell">
       <View style={styles.iconCircle}>

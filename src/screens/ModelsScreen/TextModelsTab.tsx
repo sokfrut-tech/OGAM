@@ -176,7 +176,13 @@ const ModelDetailView: React.FC<DetailProps> = ({
   // Every file this phone can run, best first for this phone (the recommended quant leads). A vision
   // file's projector downloads and loads with it, so the fit counts both, as the picks and load check do.
   const runnableFiles = modelFiles
-    .filter(f => f.size > 0 && !fileExceedsBudget(downloadBytes(f), ramGB, textModelBudget()) && (filterState.quant === 'all' || f.name.includes(filterState.quant)))
+    .filter(
+      f =>
+        f.size > 0 &&
+        (isJarvisStandaloneRuntime ||
+          !fileExceedsBudget(downloadBytes(f), ramGB, textModelBudget())) &&
+        (filterState.quant === 'all' || f.name.includes(filterState.quant)),
+    )
     .sort((a, b) => {
       if (selectedModel.id === LITERT_PARENT_ID) return a.size - b.size; // curated: small-first
       // Tier: the preferred download quant (Q4_0 on Android CPU/NPU, else Q4_K_M) → GPU/NPU
@@ -237,7 +243,10 @@ const ModelDetailView: React.FC<DetailProps> = ({
           bytesPerSecond: s.progress.bytesPerSecond,
         } : undefined}
         isRepairingVision={s.repairingVision}
-        isCompatible={!fileExceedsBudget(downloadBytes(item), ramGB, textModelBudget())} testID={`file-card-${index}`}
+        isCompatible={
+          isJarvisStandaloneRuntime ||
+          !fileExceedsBudget(downloadBytes(item), ramGB, textModelBudget())
+        } testID={`file-card-${index}`}
         // "Runs well" is the default and goes unsaid; only a tight fit is worth a word on the card.
         sizeLabel={sizeLabelOf(item)}
         facts={modelFitTier(downloadBytes(item), ramGB, textModelBudget()) === 'tight' ? [fitLabel('tight')] : undefined}
@@ -350,7 +359,9 @@ interface ModelListItemProps {
 }
 /** A model card as a row of the grouped list: no box of its own (the group draws the surface). */
 const ModelListItem: React.FC<ModelListItemProps> = ({ item, index, focusTrigger, isDownloaded, isActive, isTrending, onPress, onDownload, rowStyle }) => {
-  const { isCompatible, incompatibleReason } = getTextModelCompatibility(item);
+  const { isCompatible, incompatibleReason } = isJarvisStandaloneRuntime
+    ? { isCompatible: true, incompatibleReason: undefined }
+    : getTextModelCompatibility(item);
   const isLiteRTParent = item.id === LITERT_PARENT_ID;
   const recommended = isLiteRTParent ? LITERT_PARENT_RECOMMENDED : undefined;
   // Aggregate ALL in-flight entries for this model (main+mmproj / grouped LiteRT) into

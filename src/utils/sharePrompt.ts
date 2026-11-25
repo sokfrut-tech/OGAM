@@ -1,6 +1,7 @@
 import { Linking, Platform } from 'react-native';
 import InAppReview from 'react-native-in-app-review';
 import { getInstallerPackageName } from 'react-native-device-info';
+import { isJarvisStandaloneRuntime } from '../i18n';
 
 // Star button (Settings) points at the mobile repo specifically.
 const GITHUB_URL = 'https://github.com/off-grid-ai/mobile';
@@ -98,7 +99,7 @@ export function maybeScheduleSharePrompt(opts: {
   delayMs: number;
 }): void {
   const { variant, count, hasEngaged, delayMs } = opts;
-  if (hasEngaged || shownThisSession || count < 2) return;
+  if (isJarvisStandaloneRuntime || hasEngaged || shownThisSession || count < 2) return;
   shownThisSession = true;
   setTimeout(() => emitSharePrompt(variant), delayMs);
 }

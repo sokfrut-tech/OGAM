@@ -12,6 +12,7 @@ import {
   OFF_GRID_DESKTOP_URL,
 } from '../../constants';
 import { withUtm } from '../../utils/utm';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 
 interface VoiceModelsUpsellProps {
   /** Navigates to the Pro detail screen. */
@@ -26,6 +27,9 @@ interface VoiceModelsUpsellProps {
 export const VoiceModelsUpsell: React.FC<VoiceModelsUpsellProps> = ({ onGetPro }) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  if (isJarvisStandaloneRuntime) {
+    return null;
+  }
 
   return (
     <View style={styles.container} testID="voice-models-upsell">

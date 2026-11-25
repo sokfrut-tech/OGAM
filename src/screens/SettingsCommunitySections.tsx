@@ -42,6 +42,9 @@ type CommunityRow = {
 export const SettingsCommunitySections: React.FC<
   SettingsCommunitySectionsProps
 > = ({ focusTrigger, styles, colors, onSendFeedback }) => {
+  if (isJarvisStandaloneRuntime) {
+    return null;
+  }
   const storeName = Platform.OS === 'ios' ? 'Rate on the App Store' : 'Rate on Google Play';
   const rows: CommunityRow[] = isJarvisStandaloneRuntime
     ? [

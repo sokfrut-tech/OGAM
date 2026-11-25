@@ -202,7 +202,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       showBoost: isJarvisStandaloneRuntime ? false : homeBoostShown,
     },
     {
-      image: () => (downloadedImageModels.length > 0 ? startNewChat() : presentModelSheet('image')),
+      image: () =>
+        isJarvisStandaloneRuntime
+          ? navigation.navigate('ImageGen')
+          : downloadedImageModels.length > 0
+            ? startNewChat()
+            : presentModelSheet('image'),
       video: () => ((modelCounts.video ?? 0) > 0 ? startNewChat() : presentModelSheet('video')),
       voice: () => presentModelSheet('voice'),
       speech: () => presentModelSheet('speech'),
@@ -270,7 +275,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View testID="home-screen" style={styles.scrollView}>
         <ScreenField />
-        <BoostShownOnFocus shown={homeBoostShown} />
+        {isJarvisStandaloneRuntime ? null : <BoostShownOnFocus shown={homeBoostShown} />}
         <Animated.ScrollView
           ref={scrollRef}
           {...SCROLL_DEPTH_PROPS}
@@ -422,6 +427,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   }
                 />
               ) : null}
+              {isJarvisStandaloneRuntime ? (
+                <AnimatedPressable
+                  style={styles.galleryCard}
+                  onPress={() => navigation.navigate('ImageGen')}
+                  hapticType="selection"
+                  testID="home-image-gen-card"
+                  accessibilityRole="button"
+                  accessibilityLabel="Генератор изображений"
+                >
+                  <Icon name="image" size={18} color={colors.textSecondary} />
+                  <View style={styles.galleryCardInfo}>
+                    <Text style={styles.galleryCardTitle}>Генератор изображений</Text>
+                    <Text style={styles.galleryCardMeta} numberOfLines={1}>
+                      Создание картинок с переводом промптов на русском
+                    </Text>
+                  </View>
+                  <Icon name="chevron-right" size={16} color={colors.textMuted} />
+                </AnimatedPressable>
+              ) : null}
               <AnimatedPressable
                 style={styles.galleryCard}
                 onPress={() => navigation.navigate('Gallery')}
@@ -492,10 +516,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 </AnimatedPressable>
               ) : null}
               {/* A row like its neighbours, not a row with a button in it (design philosophy: rhythm). */}
-              <AnimatedPressable
-                style={styles.galleryCard}
-                onPress={() =>
-                  openSupportEmail({
+              {isJarvisStandaloneRuntime ? null : (
+                <AnimatedPressable
+                  style={styles.galleryCard}
+                  onPress={() =>
+                    openSupportEmail({
                     subject: isJarvisStandaloneRuntime ? '[Идея] Jarvis Ai' : '[Idea] Off Grid AI Mobile',
                     body: isJarvisStandaloneRuntime
                       ? 'Здравствуйте,\n\nХотелось бы видеть в Jarvis Ai:\n\n'
@@ -518,6 +543,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 </View>
                 <Icon name="mail" size={16} color={colors.textMuted} />
               </AnimatedPressable>
+              )}
             </ListGroup>
           </AnimatedEntry>
 

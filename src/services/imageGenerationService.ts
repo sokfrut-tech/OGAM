@@ -30,6 +30,13 @@ import {
   ActiveImageModel,
   RunGenerationOptions,
 } from './imageGenerationTypes';
+import { isJarvisStandaloneRuntime } from '../i18n';
+import { getActiveEngineService, isRemoteTextModelActive } from './engines';
+import {
+  hasCyrillic,
+  prepareMediaPromptForEngine,
+  stripRussianMediaCommand,
+} from './jarvisPro/russianPromptBridge';
 import { featureUsed, generationStarted, type ModelFacts } from './analytics/analytics';
 import { imageModelFacts, REMOTE_MODEL_FACTS } from './analytics/modelFacts';
 
@@ -206,16 +213,37 @@ class ImageGenerationService {
     job: ImageJob,
     params: GenerateImageParams,
   ): Promise<string> {
-    if (params.promptIsFinal) {
-      return params.styleWords ? `${params.prompt.trim()}, ${params.styleWords}` : params.prompt;
+    let candidate = params.prompt;
+    if (!params.promptIsFinal) {
+      const enhanced = await enhanceImagePrompt(
+        params,
+        status => this._setEnhancementState(job, params, status),
+        () => !this.isLive(job),
+      );
+      candidate = enhanced;
     }
-    const prompt = await enhanceImagePrompt(
-      params,
-      status => this._setEnhancementState(job, params, status),
-      () => !this.isLive(job),
-    );
+    if (isJarvisStandaloneRuntime && hasCyrillic(candidate)) {
+      const cleanSubject = stripRussianMediaCommand(candidate);
+      const llmReady =
+        isRemoteTextModelActive() ||
+        (getActiveEngineService()?.isModelLoaded() ?? false);
+      let llmTranslated: string | null = null;
+      if (llmReady) {
+        try {
+          llmTranslated = await enhanceImagePrompt(
+            { ...params, prompt: cleanSubject },
+            status => this._setEnhancementState(job, params, status),
+            () => !this.isLive(job),
+            true,
+          );
+        } catch {
+          llmTranslated = null;
+        }
+      }
+      candidate = prepareMediaPromptForEngine(cleanSubject, llmTranslated);
+    }
     // The style goes on last: the enhancer rewrites the person's words, never the style's.
-    return params.styleWords ? `${prompt.trim()}, ${params.styleWords}` : prompt;
+    return params.styleWords ? `${candidate.trim()}, ${params.styleWords}` : candidate;
   }
 
   private async _ensureImageModelLoaded(
@@ -473,11 +501,28 @@ class ImageGenerationService {
     }
     const { settings, activeImageModelId, downloadedImageModels } =
       useAppStore.getState();
-    const activeImageModel = downloadedImageModels.find(
-      m => m.id === activeImageModelId,
+    let resolvedImageModelId = activeImageModelId;
+    let activeImageModel = downloadedImageModels.find(
+      m => m.id === resolvedImageModelId,
     );
+    if (
+      !activeImageModel &&
+      isJarvisStandaloneRuntime &&
+      downloadedImageModels.length > 0
+    ) {
+      activeImageModel = downloadedImageModels[0];
+      resolvedImageModelId = activeImageModel.id;
+      useAppStore.getState().setActiveImageModelId(resolvedImageModelId);
+    }
     const shouldEnhance = settings.enhanceImagePrompts && !params.promptIsFinal;
-    if (!activeImageModel) return this.failFor(job, 'No image model selected');
+    if (!activeImageModel) {
+      return this.failFor(
+        job,
+        isJarvisStandaloneRuntime
+          ? 'Сначала скачайте модель изображений во вкладке «Модели → Изображения».'
+          : 'No image model selected',
+      );
+    }
 
     const messageId = params.conversationId ? generateId() : null;
 
@@ -532,7 +577,7 @@ class ImageGenerationService {
 
     const loaded = await this._ensureImageModelLoaded(
       job,
-      activeImageModelId,
+      resolvedImageModelId,
       activeImageModel,
       { desiredThreads: settings.imageThreads ?? 4, override: opts?.override },
     );

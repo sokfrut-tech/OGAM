@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 import { AlertState } from '../../components/CustomAlert';
 import { useAppStore } from '../../stores';
 import { useDownloadStore } from '../../stores/downloadStore';
@@ -62,7 +63,7 @@ export function useImageModels(setAlertState: (s: AlertState) => void) {
   // The recommendation arrives after mount; it reads the person's latest choice, not the mount-time one.
   const userChangedBackendFilterRef = useRef(false);
   useEffect(() => { userChangedBackendFilterRef.current = userChangedBackendFilter; }, [userChangedBackendFilter]);
-  const [showRecommendedOnly, setShowRecommendedOnly] = useState(true);
+  const [showRecommendedOnly, setShowRecommendedOnly] = useState(!isJarvisStandaloneRuntime);
   const [showRecHint, setShowRecHint] = useState(true);
 
   const {
@@ -100,7 +101,12 @@ export function useImageModels(setAlertState: (s: AlertState) => void) {
         }))]);
       } else {
         const socInfo = await hardwareService.getSoCInfo();
-        setAvailableHFModels([...getOfferedSDImageModels(), ...await fetchAvailableModels(forceRefresh, { skipQnn: !socInfo.hasNPU })]);
+        setAvailableHFModels([
+          ...getOfferedSDImageModels(),
+          ...(await fetchAvailableModels(forceRefresh, {
+            skipQnn: isJarvisStandaloneRuntime ? false : !socInfo.hasNPU,
+          })),
+        ]);
       }
     } catch (error: any) {
       setHfModelsError(error?.message || 'Failed to fetch models');
@@ -172,7 +178,7 @@ export function useImageModels(setAlertState: (s: AlertState) => void) {
     hardwareService.getImageModelRecommendation().then(rec => {
       if (cancelled) return;
       setImageRec(rec);
-      if (!userChangedBackendFilterRef.current && Platform.OS !== 'ios') {
+      if (!isJarvisStandaloneRuntime && !userChangedBackendFilterRef.current && Platform.OS !== 'ios') {
         let filter: 'qnn' | 'mnn' | 'all';
         if (rec.recommendedBackend === 'qnn') filter = 'qnn';
         else if (rec.recommendedBackend === 'mnn') filter = 'mnn';
@@ -226,7 +232,9 @@ export function useImageModels(setAlertState: (s: AlertState) => void) {
   }, [allHFModels, sdSearchModels, userChangedBackendFilter, backendFilter, styleFilter, sdVersionFilter, imageSearchQuery, imageRec, isRecommendedModel, showRecommendedOnly]);
 
   const hasActiveImageFilters = backendFilter !== 'all' || styleFilter !== 'all' || sdVersionFilter !== 'all';
-  const imageRecommendation = imageRec?.bannerText ?? 'Loading recommendation...';
+  const imageRecommendation =
+    imageRec?.bannerText ??
+    (isJarvisStandaloneRuntime ? 'Загрузка рекомендаций...' : 'Loading recommendation...');
 
   const handleDownloadImageModel = (modelInfo: ImageModelDescriptor) =>
     downloadImageModel(modelInfo, makeDeps());

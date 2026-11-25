@@ -65,6 +65,7 @@ import { useDocumentTurnStatusStore } from '../../services/documents/progressSto
 import { shownMessages } from '../../utils/chatThread';
 import { hasSearchableKnowledge, toolsForTurn } from '../../services/documents/searchableKnowledge';
 import { resolveSystemPrompt } from '../../utils/systemPrompt';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 type SetState<T> = Dispatch<SetStateAction<T>>;
 const FALLBACK_RECENT_MESSAGE_COUNT = 2;
 
@@ -1041,15 +1042,52 @@ async function dispatchResolvedTurn(
     return { handled: true };
   }
   const shouldGenerateImage = kind === 'image';
-  if (shouldGenerateImage && deps.activeImageModel) {
+  let targetImageModel = deps.activeImageModel;
+  if (shouldGenerateImage && !targetImageModel && isJarvisStandaloneRuntime) {
+    const firstLocalImage = useAppStore.getState().downloadedImageModels[0];
+    if (firstLocalImage) {
+      useAppStore.getState().setActiveImageModelId(firstLocalImage.id);
+      targetImageModel = firstLocalImage;
+    }
+  }
+  if (shouldGenerateImage && targetImageModel) {
     logger.log('[ROUTE-SM] dispatch → IMAGE pipeline');
-    await handleImageGenerationFn(deps, {
-      prompt: opts.text,
-      conversationId: opts.conversationId,
-      attachments: opts.attachments,
-      skipUserMessage: opts.imageSkipsUserMessage,
-      styleId: opts.styleId,
-    });
+    await handleImageGenerationFn(
+      { ...deps, activeImageModel: targetImageModel },
+      {
+        prompt: opts.text,
+        conversationId: opts.conversationId,
+        attachments: opts.attachments,
+        skipUserMessage: opts.imageSkipsUserMessage,
+        styleId: opts.styleId,
+      },
+    );
+    return { handled: true };
+  }
+  if (shouldGenerateImage && !targetImageModel && isJarvisStandaloneRuntime) {
+    deps.setAlertState(
+      showAlert(
+        'Нужна модель для рисования',
+        'Скачайте любую модель изображений во вкладке «Модели → Изображения», чтобы Jarvis Ai мог рисовать по русским запросам.',
+        [
+          {
+            text: 'Отмена',
+            style: 'cancel',
+            onPress: () => deps.setAlertState(hideAlert()),
+          },
+          {
+            text: 'Скачать модель',
+            onPress: () => {
+              deps.setAlertState(hideAlert());
+              deps.navigation?.navigate('Main', {
+                screen: 'ModelsTab',
+                params: { initialTab: 'image' },
+              });
+            },
+          },
+        ],
+      ),
+    );
     return { handled: true };
   }
   logger.log(
@@ -1160,7 +1198,12 @@ export async function handleSendFn(
   abortPreload(); // user acted — stop background warming so it can't block them
   if (!deps.hasActiveModel) {
     deps.setAlertState(
-      showAlert('No Model Selected', 'Please select a model first.'),
+      showAlert(
+        isJarvisStandaloneRuntime ? 'Модель не выбрана' : 'No Model Selected',
+        isJarvisStandaloneRuntime
+          ? 'Скачайте или выберите модель во вкладке «Модели».'
+          : 'Please select a model first.',
+      ),
     );
     return;
   }

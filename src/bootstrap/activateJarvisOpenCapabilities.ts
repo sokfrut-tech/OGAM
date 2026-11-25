@@ -14,12 +14,27 @@ import { JarvisProToolsScreen } from '../screens/jarvisPro/JarvisProToolsScreen'
 import { jarvisTtsService } from '../services/jarvisPro/jarvisTtsService';
 import { jarvisVideoService } from '../services/jarvisPro/jarvisVideoService';
 import { registerJarvisMcpExtension } from '../services/jarvisPro/jarvisMcpService';
+import {
+  discardDeferredJarvisImage,
+  finishDeferredJarvisImage,
+  hasPendingJarvisImage,
+  registerJarvisImageExtension,
+} from '../services/jarvisPro/jarvisImageToolExtension';
+import { isJarvisStandaloneRuntime } from '../i18n';
+import { modelResidencyManager } from '../services/modelResidency';
+import { useAppStore } from '../stores';
 
 /**
  * Registers all open-source Pro capabilities (offline RU TTS, local Wan video,
  * and Tools/MCP management) into core registries for standalone Jarvis Ai builds.
  */
 export function activateJarvisOpenCapabilities(): void {
+  if (
+    isJarvisStandaloneRuntime &&
+    useAppStore.getState().settings.modelLoadingMode !== 'conservative'
+  ) {
+    modelResidencyManager.setLoadPolicy('aggressive');
+  }
 
   // Voice hooks (Android offline RU TextToSpeech)
   registerHook(HOOKS.audioCanSpeak, () => jarvisTtsService.canSpeak());
@@ -39,20 +54,27 @@ export function activateJarvisOpenCapabilities(): void {
     }
   });
 
-  // Video hooks (native liboffgrid_video.so + downloadable Wan packs)
+  // Video & deferred image hooks (native liboffgrid_video.so + generate_image tool)
   registerHook(HOOKS.videoIsBusy, () => jarvisVideoService.isBusy());
-  registerHook(HOOKS.videoHasPending, () => jarvisVideoService.hasPending());
+  registerHook(HOOKS.videoHasPending, () =>
+    jarvisVideoService.hasPending() || hasPendingJarvisImage(),
+  );
   registerHook(HOOKS.videoCancel, () => jarvisVideoService.cancel());
   registerHook(HOOKS.videoGenerate, input => jarvisVideoService.generateVideo(input));
   registerHook(HOOKS.videoDefer, (conversationId: string, input) =>
     jarvisVideoService.defer(conversationId, input),
   );
-  registerHook(HOOKS.videoFinishDeferred, (conversationId: string, stopped: boolean) =>
-    jarvisVideoService.finishDeferred(conversationId, stopped),
+  registerHook(
+    HOOKS.videoFinishDeferred,
+    async (conversationId: string, stopped: boolean) => {
+      await jarvisVideoService.finishDeferred(conversationId, stopped);
+      await finishDeferredJarvisImage(conversationId, stopped);
+    },
   );
-  registerHook(HOOKS.videoDiscardDeferred, (conversationId: string) =>
-    jarvisVideoService.discardDeferred(conversationId),
-  );
+  registerHook(HOOKS.videoDiscardDeferred, (conversationId: string) => {
+    jarvisVideoService.discardDeferred(conversationId);
+    discardDeferredJarvisImage(conversationId);
+  });
 
   // UI slots
   registerSlot(SLOTS.messageSpeakButton, JarvisSpeakButton);
@@ -70,8 +92,9 @@ export function activateJarvisOpenCapabilities(): void {
     options: { headerShown: false },
   });
 
-  // User HTTP JSON-RPC MCP tool extension
+  // User HTTP JSON-RPC MCP tool extension + image generation tool
   registerJarvisMcpExtension();
+  registerJarvisImageExtension();
 
   // Warm local video pack discovery asynchronously
   jarvisVideoService.scanDownloadedVideoPacks().catch(() => {});

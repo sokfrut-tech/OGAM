@@ -18,9 +18,10 @@ import { Card } from '../components';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { TouchableOpacity } from '../components/Touchable';
 import { useTheme, useThemedStyles } from '../theme';
-import { t } from '../i18n';
+import { isJarvisStandaloneRuntime, t } from '../i18n';
 import type { RootStackParamList } from '../navigation/types';
 import { imageGenerationService } from '../services/imageGenerationService';
+import { hasCyrillic } from '../services/jarvisPro/russianPromptBridge';
 import { resolveMobileImageParameters } from '../services/imageParameterPolicy';
 import type { ImageGenerationState } from '../services/imageGenerationService';
 import { enhanceImagePrompt } from '../services/imagePromptEnhancement';
@@ -75,13 +76,20 @@ export const ImageGenScreen: React.FC = () => {
 
   useEffect(() => {
     const state = useAppStore.getState();
+    if (
+      isJarvisStandaloneRuntime &&
+      state.downloadedImageModels.length > 0 &&
+      !state.downloadedImageModels.some(m => m.id === state.activeImageModelId)
+    ) {
+      state.setActiveImageModelId(state.downloadedImageModels[0].id);
+    }
     const selected = state.downloadedImageModels.find(model => model.id === state.activeImageModelId);
     if (selected) {
       const resolved = resolveMobileImageParameters(selected, state.settings);
       setSteps(String(resolved.steps));
       setGuidanceScale(String(resolved.guidanceScale));
     }
-  }, [app.activeImageModelId]);
+  }, [app.activeImageModelId, app.downloadedImageModels]);
 
   useEffect(() => () => {
     if (whisperService.isCurrentlyTranscribing()) {
@@ -186,7 +194,7 @@ export const ImageGenScreen: React.FC = () => {
         steps: parsedSteps,
         guidanceScale: parsedGuidance,
         seed: parsedSeed,
-        promptIsFinal: true,
+        promptIsFinal: !(isJarvisStandaloneRuntime && hasCyrillic(finalPrompt)),
       });
       if (!result && imageGenerationService.getState().error) {
         Alert.alert(t('image.generationFailed'), imageGenerationService.getState().error || t('image.generationFailed'));
@@ -218,6 +226,63 @@ export const ImageGenScreen: React.FC = () => {
           {t('image.intro')}
         </Text>
 
+        {isJarvisStandaloneRuntime ? (
+          <Card style={styles.card}>
+            <View style={styles.modelHeaderRow}>
+              <Text style={styles.fieldTitle}>Модель изображений</Text>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate('Main', {
+                    screen: 'ModelsTab',
+                    params: { initialTab: 'image' },
+                  })
+                }
+                testID="image-gen-download-model"
+              >
+                <Text style={styles.downloadModelButtonText}>
+                  {app.downloadedImageModels.length > 0 ? '+ Модели' : 'Скачать'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {app.downloadedImageModels.length > 0 ? (
+              <View style={styles.modelChipRow}>
+                {app.downloadedImageModels.map((model, index) => {
+                  const active = model.id === app.activeImageModelId;
+                  return (
+                    <TouchableOpacity
+                      key={model.id}
+                      style={[styles.modelChip, active && styles.modelChipActive]}
+                      onPress={() => app.setActiveImageModelId(model.id)}
+                      testID={`image-gen-model-chip-${index}`}
+                    >
+                      <Text style={[styles.modelChipText, active && styles.modelChipTextActive]}>
+                        {model.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : (
+              <View>
+                <Text style={styles.unsupportedNote}>
+                  Для рисования скачайте любую модель Stable Diffusion во вкладке «Модели → Изображения».
+                </Text>
+                <TouchableOpacity
+                  style={styles.downloadModelButton}
+                  onPress={() =>
+                    navigation.navigate('Main', {
+                      screen: 'ModelsTab',
+                      params: { initialTab: 'image' },
+                    })
+                  }
+                >
+                  <Text style={styles.downloadModelButtonText}>Скачать модель изображений</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </Card>
+        ) : null}
+
         <Card style={styles.card}>
           <Text style={styles.fieldTitle}>{t('image.prompt')}</Text>
           <TextInput
@@ -232,6 +297,11 @@ export const ImageGenScreen: React.FC = () => {
             testID="image-gen-prompt"
             style={styles.promptInput}
           />
+          {isJarvisStandaloneRuntime && hasCyrillic(prompt) ? (
+            <Text style={styles.previewStatus}>
+              Русский промпт будет автоматически переведён для движка генерации.
+            </Text>
+          ) : null}
           {recording || voicePreview ? (
             <Text style={styles.voicePreview}>
               {recording ? `${t('image.listening')} ` : `${t('image.recognized')} `}{voicePreview}

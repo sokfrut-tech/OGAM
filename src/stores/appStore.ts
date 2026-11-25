@@ -49,6 +49,7 @@ import {
 import { migratePersistedState } from './appStoreMigrations';
 import { repairedTextSelection } from '../services/activeModelService/selectedTextModel';
 import { defaultImageSteps } from '../utils/imageGenAdvice';
+import { isJarvisStandaloneRuntime } from '../i18n';
 
 type OnboardingChecklist = {
   downloadedModel: boolean;
@@ -327,8 +328,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
     Platform.OS === 'ios' ? INFERENCE_BACKENDS.METAL : INFERENCE_BACKENDS.CPU,
   gpuLayers: 99,
   flashAttn: true,
-  aggressiveModelLoading: false,
-  modelLoadingMode: 'balanced',
+  aggressiveModelLoading: isJarvisStandaloneRuntime,
+  modelLoadingMode: isJarvisStandaloneRuntime ? 'aggressive' : 'balanced',
   cacheType: 'q8_0' as CacheType,
   showGenerationDetails: false,
   // Ends on silence by default: a turn that waits for a tap is the thing people ask us to fix.
@@ -336,7 +337,17 @@ export const DEFAULT_SETTINGS: AppSettings = {
   voiceTurnMode: 'silence' as VoiceTurnMode,
   voiceSilenceAfterSpeechMs: DEFAULT_SILENCE_AFTER_SPEECH_MS,
   voiceSpeakerDrainMs: DEFAULT_SPEAKER_DRAIN_MS,
-  enabledTools: ['web_search', 'read_url', 'search_knowledge_base'],
+  enabledTools: isJarvisStandaloneRuntime
+    ? [
+        'web_search',
+        'read_url',
+        'search_knowledge_base',
+        'calculator',
+        'get_current_datetime',
+        'get_device_info',
+        'generate_video',
+      ]
+    : ['web_search', 'read_url', 'search_knowledge_base'],
   thinkingEnabled: false,
   reasoningBudget: REASONING_BUDGET_AUTO,
   liteRTBackend: 'gpu',

@@ -22,6 +22,7 @@ import { useKeyboardAwarePopover } from './useKeyboardAwarePopover';
 import { useAppStore } from '../../stores';
 import { useRemoteServerStore } from '../../stores/remoteServerStore';
 import { remoteServerCapabilities } from '../../types/remoteServer';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 import { useUiModeStore } from '../../stores';
 import { getSlot, SLOTS } from '../../bootstrap/slotRegistry';
 import { callHook, HOOKS } from '../../bootstrap/hookRegistry';
@@ -388,6 +389,29 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   /** No video model and no computer: download one when this phone can run it, else find the computer. */
   const offerVideoStart = async () => {
+    if (isJarvisStandaloneRuntime) {
+      setAlertState(
+        showAlert(
+          'Создание видео на устройстве',
+          'Скачайте видеомодель Wan во вкладке «Модели → Видео», чтобы создавать ролики прямо на телефоне.',
+          [
+            { text: 'Отмена', style: 'cancel' },
+            ...(onGetVideoModel
+              ? [
+                  {
+                    text: 'Скачать видеомодель',
+                    onPress: () => {
+                      setAlertState(hideAlert());
+                      onGetVideoModel();
+                    },
+                  },
+                ]
+              : []),
+          ],
+        ),
+      );
+      return;
+    }
     await hardwareService.getDeviceInfo();
     const phoneCanMakeVideo = videoPacksForPhone(hardwareService.getTotalMemoryGB()).length > 0;
     if (phoneCanMakeVideo && onGetVideoModel) {
@@ -501,8 +525,28 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }, ANIM_DURATION_IN);
   };
 
-  const assistantGate =
-    assistantAvailability === 'no-pro'
+  const assistantGate = isJarvisStandaloneRuntime
+    ? assistantAvailability === 'no-pro'
+      ? {
+          title: 'Локальные инструменты и ПК',
+          body: 'Подключите компьютер с MCP/Desktop-агентом для управления браузером и рабочим столом, либо используйте встроенные инструменты в разделе Pro.',
+          action: 'Открыть инструменты',
+          onPress: onAssistantUpgrade,
+        }
+      : assistantAvailability === 'unavailable'
+        ? {
+            title: 'Задачи на ПК недоступны',
+            body: 'Сервер подключён, но веб- и компьютерные задачи отключены. Разрешите их в настройках сервера и повторите попытку.',
+            action: 'ОК',
+            onPress: undefined,
+          }
+        : {
+            title: 'Подключить компьютер',
+            body: 'Настройте синхронизацию и подключите сервер на компьютере, чтобы выполнять задачи в браузере и на рабочем столе.',
+            action: 'Настроить сервер',
+            onPress: onAssistantSetupSync,
+          }
+    : assistantAvailability === 'no-pro'
       ? {
           title: 'Assistant requires Pro',
           body: 'Assistant uses Web Use and Computer Use on a connected Desktop.',
@@ -532,13 +576,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   // keeps a Photo row, which says why and offers the repair when the vision file is broken.
   const attachChoices: AttachChoice[] = supportsVision
     ? [
-        { key: 'camera', label: 'Take photo', icon: 'camera', onPress: () => settle(pickFromCamera()) },
-        { key: 'library', label: 'Choose photo', icon: 'image', onPress: () => settle(pickFromLibrary()) },
-        { key: 'document', label: 'Document', icon: 'file', onPress: () => settle(handlePickDocument()) },
+        { key: 'camera', label: isJarvisStandaloneRuntime ? 'Сделать фото' : 'Take photo', icon: 'camera', onPress: () => settle(pickFromCamera()) },
+        { key: 'library', label: isJarvisStandaloneRuntime ? 'Выбрать фото' : 'Choose photo', icon: 'image', onPress: () => settle(pickFromLibrary()) },
+        { key: 'document', label: isJarvisStandaloneRuntime ? 'Документ' : 'Document', icon: 'file', onPress: () => settle(handlePickDocument()) },
       ]
     : [
-        { key: 'photo', label: 'Photo', icon: 'image', onPress: handleVisionPress },
-        { key: 'document', label: 'Document', icon: 'file', onPress: () => settle(handlePickDocument()) },
+        { key: 'photo', label: isJarvisStandaloneRuntime ? 'Фото' : 'Photo', icon: 'image', onPress: handleVisionPress },
+        { key: 'document', label: isJarvisStandaloneRuntime ? 'Документ' : 'Document', icon: 'file', onPress: () => settle(handlePickDocument()) },
       ];
 
   const handleAttachPress = () => {

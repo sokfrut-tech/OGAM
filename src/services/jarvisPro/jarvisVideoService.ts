@@ -9,6 +9,7 @@ import { videoModelDirectory, videoModelsDirectory } from '../videoModelFiles';
 import { videoModelDefaults } from '../../utils/videoPackPolicy';
 import { generateId } from '../../utils/generateId';
 import { hardwareService } from '../hardware';
+import { hasCyrillic, prepareMediaPromptForEngine } from './russianPromptBridge';
 
 interface NativeVideoModule {
   generate(input: Record<string, unknown>): Promise<{ path: string }>;
@@ -222,7 +223,12 @@ async function generateVideo(input: {
   const fileName = `jarvis-vid-${id}.mp4`;
   const outputPath = `${outDir}/${fileName}`;
 
-  const promptText = input.styleId ? `${input.prompt}, ${input.styleId}` : input.prompt;
+  const translatedPrompt = hasCyrillic(input.prompt)
+    ? prepareMediaPromptForEngine(input.prompt)
+    : input.prompt;
+  const promptText = input.styleId
+    ? `${translatedPrompt}, ${input.styleId}`
+    : translatedPrompt;
   const progressSub =
     typeof DeviceEventEmitter?.addListener === 'function'
       ? DeviceEventEmitter.addListener(
