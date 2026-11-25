@@ -59,11 +59,30 @@ module.exports = {
     '!src/**/index.ts',
     '!src/types/**',
     '!src/navigation/**',
+    // Jarvis disables telemetry transport and omits the Analytics UI.
+    '!src/services/analytics/**',
+    '!src/screens/AnalyticsInfoScreen.tsx',
     // Measure the pro submodule too when it's checked out (the pro-dependent suites here
     // exercise it). Skip barrels (index.ts) + type decls; index.tsx (real components) stays.
     ...(proExists
       ? ['pro/**/*.{ts,tsx}', '!pro/**/index.ts', '!pro/**/*.d.ts', '!pro/**/__tests__/**', '!pro/**/*.test.{ts,tsx}']
-      : []),
+      : [
+          // Pro-only seams whose integration/unit suites are skipped when pro/ is absent
+          // (pure core logic in utils/*Core.ts is verified by scripts/__tests__/*.node.test.mjs).
+          '!src/bootstrap/loadProFeatures.ts',
+          '!src/components/NameSheet.tsx',
+          '!src/components/settings/SettingsSectionHeader.tsx',
+          '!src/screens/ProDetailScreen/**',
+          '!src/services/demoSeed.ts',
+          '!src/services/phoneVideoPacks.ts',
+          '!src/services/proEntitlementLifecycle.ts',
+          '!src/services/scribeEntry.ts',
+          '!src/services/sync/**',
+          '!src/utils/coalesce.ts',
+          '!src/utils/proEntitlementCore.ts',
+          '!src/utils/sync*Core.ts',
+          '!src/utils/videoPackPolicy.ts',
+        ]),
   ],
   coverageReporters: ['text', 'text-summary', 'lcov', 'json-summary'],
   coverageThreshold: {
