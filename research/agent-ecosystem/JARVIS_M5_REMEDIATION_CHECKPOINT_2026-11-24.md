@@ -54,11 +54,25 @@ All listed runs completed with conclusion SUCCESS on head commit `2efa69acd019a3
 - Earlier focused run #45483207417 also SUCCESS:
   https://github.com/sokfrut-tech/OGAM/actions/runs/45483207417
 
+## Latest verification on exact remediation head `9950b1eda558178e157bc3dcb0feba3c066ca2f8`
+
+All three automated workflows completed with conclusion SUCCESS:
+- External dependency audit #45544544419:
+  https://github.com/sokfrut-tech/OGAM/actions/runs/45544544419
+- Focused M1-M4 TypeScript/Jest/SQLite validation #45544544421:
+  https://github.com/sokfrut-tech/OGAM/actions/runs/45544544421
+- Native OP-SQLite Android probe #45544544635:
+  https://github.com/sokfrut-tech/OGAM/actions/runs/45544544635
+  - ARM64 and x86_64 release APK build, checksum verification, Android emulator launch/diagnostics, and artifact upload all completed successfully.
+  - Artifact: `Jarvis-M3-M4-OPSQLite-Native-Probe-APK`, 14,933,047 bytes; GitHub artifact API digest: `sha256:2f82a6a8580178fb5e321c9dc20015272e8e8b443ff8d927606758c5ef2073b4`.
+  - Artifact ID: `14991683127`; expires 2026-12-09 04:26:56 UTC.
+  - Artifact download page: https://github.com/sokfrut-tech/OGAM/actions/runs/45544544635
+
 ## Remaining gates
 1. Physical OPPO validation of a newly built APK is still pending. The native probe is an isolated M3+M4 probe APK, not the full Jarvis app.
-2. Dependency/security audit on this exact remediation head has not been confirmed in this checkpoint.
+2. Automated dependency/security audit on exact remediation head passed (#45544544419); independent physical-device validation remains pending.
 3. Do not treat CI/emulator success as proof of real-device UI responsiveness or production readiness.
 4. No merge, release, or promotion to default branch has been performed.
 
 ## Status
-**M5 remediation has passed focused CI and the isolated native Android probe, but remains PARTIAL pending the remaining audit and device-level validation.** Planner + TaskLedger implementation remains gated until those checks are completed.
+**M5 remediation has passed the focused CI, dependency audit, and isolated native Android probe on head 9950b1e, but remains PARTIAL pending physical OPPO device validation.** Planner + TaskLedger implementation remains gated until those checks are completed.
