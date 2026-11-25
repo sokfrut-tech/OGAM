@@ -37,6 +37,7 @@ test('isRawModelName, splitGgufModelName, and modelDisplayName preserve human ti
   assert.equal(modelDisplayName('Bonsai-27B-Q4_K_M-00001-of-00002.gguf'), 'Bonsai 27B');
   assert.equal(modelDisplayName('model.gguf'), 'Model');
   assert.equal(modelDisplayName('model-file.gguf'), 'Model file');
+  assert.equal(modelDisplayName('kokoro-voice.pte'), 'Kokoro voice');
   assert.equal(modelDisplayName('K2 Horizon 3.7B'), undefined);
 });
 
@@ -53,6 +54,9 @@ test('parseMoeParams and baseModelKey normalize sparse MoE and mirror repo IDs',
 
   assert.equal(baseModelKey('unsloth/Qwen3-4B-Instruct-2507-GGUF'), 'qwen3-4b-instruct-2507');
   assert.equal(baseModelKey('Qwen/Qwen3-4B-Instruct-2507-MLX'), 'qwen3-4b-instruct-2507');
+  assert.equal(baseModelKey('bartowski/IFM_K2-Horizon-7B-GGUF'), 'k2-horizon-7b');
+  assert.equal(baseModelKey('bartowski/Llama-3.2-3B-Instruct-GGUF'), 'llama-3.2-3b-instruct');
+  assert.equal(baseModelKey('openbmb/MiniCPM-V-2_6-gguf'), 'minicpm-v-2-6');
 });
 
 test('migrated model naming files no longer import the legacy models package when cleared', () => {

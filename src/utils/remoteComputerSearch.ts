@@ -41,6 +41,24 @@ function normalizeEndpoint(endpoint: string): string {
   return endpoint.trim().replace(/\/+$/, '');
 }
 
+function normalizeTimestamp(value: unknown): string {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    if (/^-?\d+$/.test(trimmed)) {
+      const date = new Date(Number(trimmed));
+      return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+    }
+    const parsed = new Date(trimmed);
+    return Number.isNaN(parsed.getTime()) ? '' : trimmed;
+  }
+  return '';
+}
+
 function toSearchResult(item: unknown, index: number): RemoteSearchResult | null {
   if (!item || typeof item !== 'object') return null;
   const record = item as Record<string, unknown>;
@@ -49,10 +67,7 @@ function toSearchResult(item: unknown, index: number): RemoteSearchResult | null
   const snippet = typeof record.snippet === 'string' ? record.snippet : '';
   const kind = typeof record.kind === 'string' ? record.kind : 'document';
   const source = typeof record.source === 'string' ? record.source : '';
-  const timestamp =
-    typeof record.timestamp === 'string' || typeof record.timestamp === 'number'
-      ? String(record.timestamp)
-      : '';
+  const timestamp = normalizeTimestamp(record.timestamp);
   const deepLinkId = typeof record.deepLinkId === 'string' ? record.deepLinkId : '';
   if (!title && !snippet) return null;
   return {

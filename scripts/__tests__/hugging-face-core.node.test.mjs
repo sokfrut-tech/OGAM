@@ -139,6 +139,53 @@ test('searchHuggingFace reports Hugging Face HTTP error status cleanly', async (
   );
 });
 
+test('searchHuggingFace over-fetches, detects siblings mmproj vision, filters pipeline tags, and resolves newer replacements', async () => {
+  let requestedUrl = '';
+  const textResults = await searchHuggingFace('chat', {
+    kind: 'text',
+    limit: 10,
+    fetchImpl: async url => {
+      requestedUrl = String(url);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => [
+          {
+            id: 'bartowski/Qwen_Qwen3.5-4B-GGUF',
+            downloads: 100,
+            tags: ['gguf'],
+            siblings: [{ rfilename: 'mmproj-Qwen_Qwen3.5-4B-f16.gguf' }],
+          },
+          { id: 'bartowski/Llama-3.2-3B-Instruct-GGUF', downloads: 90, tags: ['gguf'] },
+          { id: 'Qwen/Qwen3-TTS-12Hz-1.7B-GGUF', downloads: 80, tags: ['gguf'], pipeline_tag: 'text-to-speech' },
+          { id: 'nomic-ai/nomic-embed-text-v2-moe-GGUF', downloads: 70, tags: ['gguf'], pipeline_tag: 'sentence-similarity' },
+        ],
+      };
+    },
+  });
+
+  assert.match(requestedUrl, /limit=30/);
+  assert.deepEqual(textResults.map(r => r.id), [
+    'bartowski/Qwen_Qwen3.5-4B-GGUF',
+    'bartowski/Llama-3.2-3B-Instruct-GGUF',
+  ]);
+  assert.equal(textResults[0].readsImages, true);
+  assert.equal(textResults[1].newer, 'Qwen 3.5 4B');
+
+  const visionResults = await searchHuggingFace('', {
+    kind: 'vision',
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => [
+        { id: 'org/Qwen3-VL-2B-Instruct-GGUF', downloads: 5 },
+        { id: 'org/Qwen3-4B-GGUF', downloads: 9 },
+      ],
+    }),
+  });
+  assert.deepEqual(visionResults.map(r => r.id), ['org/Qwen3-VL-2B-Instruct-GGUF']);
+});
+
 test('src/services/huggingface.ts has 0 imports from @offgrid/models', () => {
   const src = fs.readFileSync(path.join(REPO_ROOT, 'src/services/huggingface.ts'), 'utf8');
   assert.doesNotMatch(src, /from\s+['"]@offgrid\/models(?:\/[^'"]*)?['"]/);

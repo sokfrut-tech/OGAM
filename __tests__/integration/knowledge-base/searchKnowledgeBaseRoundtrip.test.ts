@@ -31,7 +31,7 @@ describe('search_knowledge_base — real document-index round-trip (guard)', () 
     const result = await executeToolCall({
       id: 'tc1', name: 'search_knowledge_base', arguments: { query: 'what is the capital of Zenland?' },
       context: { projectId: 'p1' },
-    });
+    }, ['search_knowledge_base']);
 
     // The tool hands back the real page text, tagged so the answer cites page 2 of zenland.pdf.
     expect(result.error).toBeFalsy();

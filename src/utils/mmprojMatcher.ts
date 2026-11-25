@@ -6,7 +6,7 @@
  * projectors across quantizations or generic repo-level `mmproj-F16.gguf` files.
  */
 
-const SPLIT_GGUF_SUFFIX = /-\d{5}-of-\d{5}(?=\.[^.]+$|$)/i;
+const SPLIT_GGUF_SUFFIX = /-\d{5}-of-\d{5}(?=[-_.]|$)/gi;
 const QUANT_TOKEN_PATTERN =
   /^(?:i?q\d+(?:_[a-z0-9]+)*|iq\d+[a-z]*|bf16|fp?(?:16|32)|mxfp\d+|int[48])$/i;
 const PROJECTOR_NOISE_TOKENS = new Set([

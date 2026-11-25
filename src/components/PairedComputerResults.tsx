@@ -97,7 +97,9 @@ export const PairedComputerResults: React.FC<Props> = ({
 
 const ResultRow: React.FC<{ result: RemoteSearchResult; onPress?: () => void }> = ({ result, onPress }) => {
   const styles = useThemedStyles(createStyles);
-  const meta = [result.source, result.timestamp ? formatWhen(new Date(result.timestamp).toISOString()) : '']
+  const parsedTime = result.timestamp ? new Date(result.timestamp) : null;
+  const when = parsedTime && !Number.isNaN(parsedTime.getTime()) ? formatWhen(parsedTime.toISOString()) : '';
+  const meta = [result.source, when]
     .filter(Boolean)
     .join(' · ');
   const content = (

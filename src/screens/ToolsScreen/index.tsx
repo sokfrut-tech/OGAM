@@ -33,10 +33,13 @@ export const ToolsScreen: React.FC = () => {
   const toolCountHintDismissed = useAppStore(st => st.toolCountHintDismissed);
   const setToolCountHintDismissed = useAppStore(st => st.setToolCountHintDismissed);
 
-  const handleToggleTool = (toolId: string) => {
+  const handleToggleTool = (toolId: string, nextValue?: boolean) => {
     const cur = useAppStore.getState().settings.enabledTools || [];
+    const shouldEnable = typeof nextValue === 'boolean' ? nextValue : !cur.includes(toolId);
     updateSettings({
-      enabledTools: cur.includes(toolId) ? cur.filter(id => id !== toolId) : [...cur, toolId],
+      enabledTools: shouldEnable
+        ? (cur.includes(toolId) ? cur : [...cur, toolId])
+        : cur.filter(id => id !== toolId),
     });
   };
 
@@ -99,7 +102,7 @@ export const ToolsScreen: React.FC = () => {
               </View>
               <AppSwitch
                 value={isEnabled}
-                onValueChange={() => handleToggleTool(tool.id)}
+                onValueChange={nextValue => handleToggleTool(tool.id, nextValue)}
                 accessibilityLabel={tool.displayName}
                 testID={`tool-picker-toggle-${tool.id}`}
               />

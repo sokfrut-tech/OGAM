@@ -15,7 +15,7 @@ const DENIES_REASONING_PATTERN =
  * iOS and GPU backends prefer `Q4_K_M`.
  */
 export function prefersQ4_0(platform: string, backend?: string | null): boolean {
-  return platform === 'android' && backend !== 'gpu';
+  return platform === 'android' && backend !== 'gpu' && backend !== 'opencl' && backend !== 'vulkan';
 }
 
 /** Raw README URL for a Hugging Face repository at the pinned revision (defaults to `main`). */

@@ -479,11 +479,12 @@ describe('an install upgraded from v0.0.119', () => {
     noCrash();
     back();
 
-    // ── Settings → Analytics: both switches off. v0.0.119 never asked, so nothing is shared.
+    // ── Settings → Analytics: omitted intentionally in the Jarvis fork (zero telemetry transport).
     fireEvent.press(await waitFor(() => view.getByTestId('settings-tab'), WAIT));
-    await view.findByTestId('settings-analytics', {}, WAIT);
-    expect(view.getByLabelText('Anonymous stats').props.value).toBe(false);
-    expect(view.getByLabelText('Crash reports').props.value).toBe(false);
+    await waitFor(() => expect(view.getByTestId('open-model-settings')).toBeTruthy(), WAIT);
+    expect(view.queryByTestId('settings-analytics')).toBeNull();
+    expect(view.queryByLabelText('Anonymous stats')).toBeNull();
+    expect(view.queryByLabelText('Crash reports')).toBeNull();
 
     // ── Settings → Model Settings → Image tab: the custom Image Steps value is kept.
     fireEvent.press(view.getByTestId('open-model-settings'));

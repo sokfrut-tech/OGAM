@@ -3,6 +3,8 @@
  * model name/quantization/type classification.
  */
 
+import { CATALOG } from './modelCatalogCore.ts';
+import { baseModelKey } from './modelNamingCore.ts';
 import type {
   HFSearchResult,
   ModelEntry,
@@ -52,7 +54,7 @@ const KNOWN_QUANTS = [
   'F32',
 ] as const;
 
-const SPLIT_GGUF_SUFFIX = /-\d{5}-of-\d{5}(?=\.[^.]+$|$)/i;
+const SPLIT_GGUF_SUFFIX = /-\d{5}-of-\d{5}(?=[-_.]|$)/gi;
 const QUANT_TOKEN_PATTERN =
   /^(?:i?q\d+(?:_[a-z0-9]+)*|iq\d+[a-z]*|bf16|fp?(?:16|32)|mxfp\d+|int[48])$/i;
 const PROJECTOR_NOISE_TOKENS = new Set([
@@ -235,6 +237,51 @@ function parseParamsFromName(name: string): { params?: number; activeParams?: nu
   };
 }
 
+const NON_CHAT_PIPELINE_TAGS = new Set([
+  'automatic-speech-recognition',
+  'sentence-similarity',
+  'feature-extraction',
+  'text-to-speech',
+  'text-to-image',
+  'text-to-video',
+  'image-to-video',
+  'text-to-audio',
+]);
+
+const SUPERSEDED_NEWER_BY_KEY: ReadonlyMap<string, string> = (() => {
+  const namesById = new Map(CATALOG.map(entry => [entry.id, entry.name]));
+  const map = new Map<string, string>();
+  for (const entry of CATALOG) {
+    if (!entry.supersededBy) continue;
+    const replacementName = namesById.get(entry.supersededBy);
+    if (replacementName) {
+      map.set(baseModelKey(entry.id), replacementName);
+    }
+  }
+  return map;
+})();
+
+function hasNonChatTag(repo: RawHfRepo): boolean {
+  if (repo.pipeline_tag && NON_CHAT_PIPELINE_TAGS.has(repo.pipeline_tag.toLowerCase())) {
+    return true;
+  }
+  const tags = (repo.tags ?? []).map(t => t.toLowerCase());
+  return tags.some(t =>
+    t.includes('automatic-speech-recognition') ||
+    t.includes('sentence-similarity') ||
+    t.includes('feature-extraction') ||
+    t.includes('text-to-speech'),
+  );
+}
+
+function repoReadsImages(repo: RawHfRepo): boolean {
+  const tags = (repo.tags ?? []).map(t => t.toLowerCase());
+  if (tags.includes('image-text-to-text') || tags.includes('vision')) return true;
+  if (repo.pipeline_tag?.toLowerCase() === 'image-text-to-text') return true;
+  if ((repo.siblings ?? []).some(s => isProjectorFilename(s.rfilename))) return true;
+  return getModelType(repo.id) === 'vision';
+}
+
 function trustScore(repo: RawHfRepo): number {
   const org = (repo.author ?? repo.id.split('/')[0] ?? '').toLowerCase();
   return TRUST_PRIORITY[org] ?? 0;
@@ -253,12 +300,13 @@ export async function searchHuggingFace(
   const fetchFn = resolveFetch(options.fetchImpl);
   const kind = options.kind ?? 'text';
   const limit = options.limit ?? 30;
+  const fetchLimit = Math.min(100, Math.max(limit * 3, 30));
   const sort = options.sort ?? 'downloads';
 
   const params = new URLSearchParams({
     sort,
     direction: '-1',
-    limit: String(limit),
+    limit: String(fetchLimit),
   });
   if (kind === 'transcription') {
     params.set('pipeline_tag', 'automatic-speech-recognition');
@@ -287,18 +335,10 @@ export async function searchHuggingFace(
     if (!repo?.id) return false;
     if (kind === 'text' || kind === 'vision') {
       const detected = getModelType(repo.id);
-      if (detected === 'transcription' || detected === 'embedding') return false;
-      const tags = (repo.tags ?? []).map(t => t.toLowerCase());
-      if (
-        tags.some(t =>
-          t.includes('automatic-speech-recognition') ||
-          t.includes('sentence-similarity') ||
-          t.includes('feature-extraction') ||
-          t.includes('text-to-speech'),
-        )
-      ) {
+      if (detected === 'transcription' || detected === 'embedding' || detected === 'image-gen') {
         return false;
       }
+      if (hasNonChatTag(repo)) return false;
     }
     return true;
   });
@@ -319,14 +359,13 @@ export async function searchHuggingFace(
       return (b.downloads ?? 0) - (a.downloads ?? 0);
     });
     const lead = sorted[0];
+    const readsImages = group.some(repoReadsImages);
+    if (kind === 'vision' && !readsImages) continue;
+
     const org = lead.author ?? lead.id.split('/')[0] ?? '';
     const name = lead.id.split('/').pop() || lead.id;
-    const tags = (lead.tags ?? []).map(t => t.toLowerCase());
-    const readsImages =
-      tags.includes('image-text-to-text') ||
-      tags.includes('vision') ||
-      getModelType(lead.id) === 'vision';
     const hasMtp = /gemma[-_]?4[-_]?(?:e2b|e4b|26b[-_]?a4b|31b)/i.test(lead.id);
+    const newer = SUPERSEDED_NEWER_BY_KEY.get(baseModelKey(lead.id));
     const { params: parsedParams, activeParams } = parseParamsFromName(name);
 
     results.push({
@@ -340,6 +379,7 @@ export async function searchHuggingFace(
       ...(parsedParams !== undefined ? { params: parsedParams } : {}),
       ...(activeParams !== undefined ? { activeParams } : {}),
       ...(hasMtp ? { hasMtp: true } : {}),
+      ...(newer ? { newer } : {}),
       ...(sorted.length > 1
         ? {
             variants: sorted.slice(1).map(alt => ({
@@ -352,7 +392,7 @@ export async function searchHuggingFace(
     });
   }
 
-  return results;
+  return results.slice(0, limit);
 }
 
 async function fetchRepoFileList(

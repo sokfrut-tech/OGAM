@@ -144,3 +144,31 @@ test('withoutChatsOnDevice filters only chat matches already listed on device', 
     ['2', '3'],
   );
 });
+
+test('searchRemoteComputer converts numeric epoch timestamps to valid ISO strings', async () => {
+  const outcome = await searchRemoteComputer({
+    endpoint: 'http://desktop.local:8080',
+    query: 'budget',
+    fetch: async () =>
+      new Response(
+        JSON.stringify({
+          data: [
+            {
+              id: 'meet:7',
+              title: 'Budget review',
+              snippet: 'We cut the budget',
+              kind: 'meeting',
+              source: 'Meeting',
+              timestamp: Date.parse('2026-10-20T09:00:00Z'),
+              deepLinkId: '',
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+  });
+  assert.equal(outcome.status, 'ok');
+  if (outcome.status === 'ok') {
+    assert.equal(outcome.results[0].timestamp, '2026-10-20T09:00:00.000Z');
+  }
+});

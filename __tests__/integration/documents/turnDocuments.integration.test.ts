@@ -150,7 +150,7 @@ describe('a project knowledge base', () => {
       name: 'search_knowledge_base',
       arguments: { query: 'What is served on Friday?' },
       context: { conversationId, projectId: 'project-office' },
-    });
+    }, ['search_knowledge_base']);
     expect(found.error).toBeUndefined();
     expect(found.content).toContain('dal makhani every Friday');
   });
@@ -187,7 +187,7 @@ describe('a knowledge-base search during the turn', () => {
       name: 'search_knowledge_base',
       arguments: { query: 'capital of Zenland' },
       context: { conversationId, projectId: 'project-geo' },
-    });
+    }, ['search_knowledge_base']);
     expect(result.error).toBeUndefined();
     const passages = h.parseSearchBlock(result.content) as { id: string; document: string; text: string }[];
 
@@ -224,7 +224,7 @@ describe('a knowledge-base search during the turn', () => {
       name: 'search_knowledge_base',
       arguments: { query: 'Where is Lake Mirror?' },
       context: { projectId: 'project-geo' },
-    });
+    }, ['search_knowledge_base']);
 
     // No keyword index on this build, yet the vector ranking still hands the model the passage.
     expect(result.content).toContain('Lake Mirror lies two hours east');

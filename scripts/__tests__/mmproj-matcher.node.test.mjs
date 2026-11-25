@@ -45,10 +45,14 @@ test('projectorsFor matches exact variant across quants, rejects foreign variant
     ['mmproj-F16.gguf'],
   );
 
-  // Strip packaging tokens (UD, QAD) and moondream `-text-model` suffix.
+  // Strip packaging tokens (UD, QAD), moondream `-text-model` suffix, and split shards before `-mmproj`.
   assert.equal(modelIdentityStem('Mistral-Small-3.1-24B-Instruct-2503-UD-IQ2_M.gguf'), 'mistral-small-3.1-24b-instruct-2503');
   assert.equal(modelIdentityStem('moondream2-text-model-f16.gguf'), 'moondream2');
   assert.equal(modelIdentityStem('LFM3-VL-2B-QAD-Q4_K_M.gguf'), 'lfm3-vl-2b');
+  assert.equal(
+    modelIdentityStem('Muse-Glimmer-30B-BF16-00001-of-00002.gguf'),
+    modelIdentityStem('bf16/muse-glimmer-30b-bf16-00001-of-00002-mmproj-BF16.gguf'),
+  );
 });
 
 test('mmproj.ts imports utilities from utils/mmprojMatcher', () => {

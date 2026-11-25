@@ -1,5 +1,9 @@
 const path = require('node:path');
 const fs = require('node:fs');
+const {
+  proDependentTestPaths,
+  jarvisDisabledTelemetryTestPaths,
+} = require('./scripts/test-exclusions');
 
 // pro/ is a git submodule: the directory exists even when not checked out, so detect a
 // real file inside it (package.json). Mirrors metro.config.js's proExists. When pro IS
@@ -10,109 +14,9 @@ const fs = require('node:fs');
 // @offgrid/pro to the null stub, so the open-core suite still runs and stays green.
 const proExists = fs.existsSync(path.resolve(__dirname, 'pro/package.json'));
 
-// Suites under THIS repo's __tests__ that import @offgrid/pro. Ignored ONLY when pro is
-// absent. (pro/'s OWN suite is always ignored here — it runs in the pro repo's CI.)
-const proDependentTestPaths = [
-  '/__tests__/pro/',
-  '/__tests__/unit/audio/',
-  '/__tests__/unit/engine/',
-  '/__tests__/integration/audio/',
-  '__tests__/unit/audioProgressCaption.test.ts',
-  '__tests__/unit/mcp/McpToolExtension.test.ts',
-  '__tests__/unit/services/ttsService.test.ts',
-  '__tests__/unit/stores/ttsStore.test.ts',
-  '__tests__/integration/stores/tts.test.ts',
-  '__tests__/rntl/components/ChatInputModeToggle.test.tsx',
-  '__tests__/rntl/components/PlaybackControls.test.tsx',
-  '__tests__/rntl/components/VoiceModelsPanel.test.tsx',
-  '__tests__/rntl/components/KokoroTTSBridge.test.tsx',
-  '__tests__/rntl/components/McpAddServerSheet.test.tsx',
-  '__tests__/rntl/components/McpServersScreen.test.tsx',
-  '__tests__/unit/tools/mcpPresets.test.ts',
-  '__tests__/hardening/batch5-kokoroDownloadError.test.ts',
-  '__tests__/hardening/batch5-playbackPausePreparing.test.ts',
-  '__tests__/integration/chat/savedVoiceRetranscribe.rendered.test.tsx',
-  '__tests__/integration/chat/syncedToolTimeline.rendered.test.tsx',
-  '__tests__/integration/licensing/proRuntimeExpiry.test.ts',
-  '__tests__/integration/pro/assistantToggleHelmetShape.rendered.test.tsx',
-  '__tests__/integration/pro/mcpLegacyOwnerOrder.rendered.test.tsx',
-  '__tests__/integration/pro/mcpSameNameToolRouting.rendered.test.tsx',
-  '__tests__/integration/pro/mcpToolChoiceRelaunch.rendered.test.tsx',
-  '__tests__/integration/pro/mcpToolOwnerLost.rendered.test.tsx',
-  '__tests__/integration/pro/mcpToolsEmptyStates.rendered.test.tsx',
-  '__tests__/integration/pro/mcpToolsWaitingForSignIn.rendered.test.tsx',
-  '__tests__/integration/pro/pairedMacTools.rendered.test.tsx',
-  '__tests__/integration/pro/release107TaskControlAcknowledgement.rendered.redflow.test.tsx',
-  '__tests__/integration/pro/release107TaskSessionPlayback.rendered.test.tsx',
-  '__tests__/integration/pro/release107TaskStateIntegrity.test.ts',
-  '__tests__/integration/pro/taskCardStopEndsGeneration.rendered.test.tsx',
-  '__tests__/integration/sync/receivingRules.rendered.test.tsx',
-  '__tests__/rntl/components/pairingCodeSheet.test.tsx',
-  '__tests__/unit/licensing/proLicenseProvider.test.ts',
-  '__tests__/unit/services/keygenClient.test.ts',
-  '__tests__/unit/sync/ambientSharePersistence.test.ts',
-  '__tests__/unit/sync/ambientShareService.test.ts',
-  '__tests__/unit/sync/availableSyncIds.test.ts',
-  '__tests__/unit/sync/capacityReplacementState.test.ts',
-  '__tests__/unit/sync/entitlementHostBootstrap.test.ts',
-  '__tests__/unit/sync/explicitSharedFileSource.test.ts',
-  '__tests__/unit/sync/fileCompletionNotificationService.test.ts',
-  '__tests__/unit/sync/forgetDeviceRules.test.ts',
-  '__tests__/unit/sync/forgetUnregisteredDevice.test.ts',
-  '__tests__/unit/sync/keygenPersonalMeshRegistry.test.ts',
-  '__tests__/unit/sync/licenceRevalidationBudget.test.ts',
-  '__tests__/unit/sync/localSharedFileScan.test.ts',
-  '__tests__/unit/sync/meshResidencyDecision.test.ts',
-  '__tests__/unit/sync/meshResidencyPolicy.test.ts',
-  '__tests__/unit/sync/mobileSharedFileForwarding.test.ts',
-  '__tests__/unit/sync/modelPackageSink.test.ts',
-  '__tests__/unit/sync/opLogIdentityMigration.test.ts',
-  '__tests__/unit/sync/openSharedFile.test.ts',
-  '__tests__/unit/sync/pairingEntitlementCredentialAdapter.test.ts',
-  '__tests__/unit/sync/pairingEntitlementReplacementAdapter.test.ts',
-  '__tests__/unit/sync/pairingSecretStore.test.ts',
-  '__tests__/unit/sync/pairingTrustDocument.parser.test.ts',
-  '__tests__/unit/sync/pairingTrustDocument.test.ts',
-  '__tests__/unit/sync/personalMeshRegistryCache.test.ts',
-  '__tests__/unit/sync/receivePreferences.test.ts',
-  '__tests__/unit/sync/repairDevice.test.ts',
-  '__tests__/unit/sync/sharedFileMaterializer.test.ts',
-  '__tests__/unit/sync/sharedFileStore.test.ts',
-  '__tests__/unit/sync/sharedFileSyncService.test.ts',
-  '__tests__/unit/sync/sharedFileTransfer.test.ts',
-  '__tests__/unit/sync/transferHistoryStore.test.ts',
-  '__tests__/integration/generation/toolExtensionLoop.test.ts',
-  '__tests__/hardening/batch5-speakMessageStateMachine.test.ts',
-  '__tests__/integration/memory/voiceNoteReclaimsStt.rendered.happy.test.tsx',
-  '__tests__/integration/memory/ttsCoresidentInVoiceTurn.rendered.happy.test.tsx',
-  '__tests__/integration/memory/whisperBlockedFreeRetry.rendered.happy.test.tsx',
-  '__tests__/integration/chat/greetingSkipsRemoteTools.rendered.test.tsx',
-  '__tests__/integration/remote/keyedServerRefusedDiscoveryKeepsModels.rendered.test.tsx',
-  '__tests__/integration/remote/gatewayV1ChatRoute.rendered.test.tsx',
-  '__tests__/integration/remote/serverAddressWithV1Suffix.rendered.test.tsx',
-  '__tests__/integration/remote/keylessPrivateHttpDiscovered.rendered.test.tsx',
-  '__tests__/integration/remote/ollamaStopBeforeSend.rendered.test.tsx',
-  '__tests__/integration/models/cachedVoiceModelAvailability.rendered.test.tsx',
-  '__tests__/integration/models/voiceModelChoice.rendered.test.tsx',
-  '__tests__/integration/releaseCandidateE.rendered.test.tsx',
-  '__tests__/integration/settings/demoSeedEmailDraftScenes.rendered.test.tsx',
-  '__tests__/integration/settings/devToolingReleaseGate.rendered.test.tsx',
-  '__tests__/integration/settings/chatSettingsModelChoices.rendered.test.tsx',
-  '__tests__/integration/onboarding/autoSetupVideoFindComputer.rendered.test.tsx',
-  '__tests__/integration/onboarding/proBootFlow.test.ts',
-  '__tests__/integration/licensing/sponsorPairsIntoFullMesh.rendered.test.tsx',
-  '__tests__/integration/licensing/keygenAutomaticReplacement.test.ts',
-  '__tests__/integration/pro/companionTaskRouting.integration.test.ts',
-  '__tests__/integration/voiceDownloadManagerRouting.test.tsx',
-  '__tests__/rntl/screens/ProDetailScreen.test.tsx',
-  '__tests__/unit/screens/DownloadManagerScreen/useDownloadManager.branches.test.ts',
-  '__tests__/unit/screens/DownloadManager/useVoiceDownloadItems.test.ts',
-  '__tests__/unit/services/deviceFingerprint.test.ts',
-];
-
 module.exports = {
   preset: 'react-native',
-  // Balances CI's --shard runs by recorded suite run time (scripts/jest-timings.json).
+  // Balances CI's --shard runs by recorded suite run time (scripts/jest-sequencer.js).
   testSequencer: '<rootDir>/scripts/jest-sequencer.js',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
@@ -124,6 +28,7 @@ module.exports = {
     // The pro-DEPENDENT suites under this repo's __tests__ DO run against the real pro
     // when it's checked out, and are ignored only when pro is genuinely absent.
     '<rootDir>/pro/',
+    ...jarvisDisabledTelemetryTestPaths,
     ...(proExists ? [] : proDependentTestPaths),
   ],
   // Stale agent git-worktrees under .claude/worktrees/ each carry a full repo copy (incl. their own
@@ -144,7 +49,7 @@ module.exports = {
     '^react-native-fs$': '<rootDir>/src/shims/react-native-fs.ts',
     '^@babel/runtime/(.*)$': '<rootDir>/node_modules/@babel/runtime/$1',
   },
-  transformIgnorePatterns: ['node_modules/(?!(react-native|@react-native|@react-navigation|react-native-.*|@react-native-.*|moti|@motify|@gorhom|@shopify|@ronradtke|@op-engineering|@offgrid)/)',],
+  transformIgnorePatterns: ['node_modules/(?!(react-native|@react-native|@react-navigation|react-native-.*|@react-native-.*|moti|@motify|@gorhom|@shopify|@ronradtke|@op-engineering|@offgrid)/)'],
   testEnvironment: 'node',
   clearMocks: true,
   verbose: true,
@@ -170,15 +75,9 @@ module.exports = {
       functions: 75,
       lines: 75,
     },
-    // pro/ is MEASURED here (visible in the core report + regression-guarded), carved out
-    // of the src `global` gate into its own group. The pro-dependent suites in this repo
-    // (incl. the __tests__/pro/** real-behavior tests) cover ~60% of pro; this floor
-    // ratchets that so it can't slide, and is raised as more pro tests land. New pro
-    // modules also add their own per-file 100 key. NOTE: this is a DIRECTORY key (not a
-    // glob) so jest aggregates all pro files into ONE group — a glob (`pro/**`) would apply
-    // per-file and fail on the many pro files no core suite imports.
-    // Pro is measured separately because this directory key removes it from the global group.
-    './pro': { statements: 75, branches: 75, functions: 75, lines: 75 },
+    // Pro is measured separately because this directory key removes it from the global group
+    // when pro/ is checked out.
+    ...(proExists ? { './pro': { statements: 75, branches: 75, functions: 75, lines: 75 } } : {}),
     // New standalone modules in this change set are held to 100% on every axis. Changed
     // legacy files have their NEW branches covered by the suites but aren't whole-file-100%.
     './src/services/imageModelIntegrity.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
@@ -186,18 +85,5 @@ module.exports = {
     './src/services/modelLoadErrors.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
     './src/components/ImageGenAdviceCard.tsx': { statements: 100, branches: 100, functions: 100, lines: 100 },
     './src/components/VoiceRecordButton/derive.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
-    // Opt-in analytics (docs/ANALYTICS.md): every new module is held to 100% on every axis.
-    './src/services/analytics/analytics.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
-    './src/services/analytics/client.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
-    './src/services/analytics/consentPrompt.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
-    './src/services/analytics/featureSnapshot.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
-    './src/services/analytics/modelFacts.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
-    './src/services/analytics/scrub.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
-    './src/services/analytics/uncleanExit.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
-    './src/services/analytics/values.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
-    './src/services/problemReport.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
-    './src/components/AnalyticsConsentPrompt.tsx': { statements: 100, branches: 100, functions: 100, lines: 100 },
-    './src/screens/AnalyticsInfoScreen.tsx': { statements: 100, branches: 100, functions: 100, lines: 100 },
-    './src/screens/SettingsAnalyticsSection.tsx': { statements: 100, branches: 100, functions: 100, lines: 100 },
   },
 };

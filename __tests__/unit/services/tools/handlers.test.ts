@@ -22,9 +22,13 @@ function makeToolCall(name: string, args: Record<string, any> = {}): ToolCall {
   return { id: 'test-call-1', name, arguments: args };
 }
 
-/** Shorthand: create a tool call and execute it in one step. */
-async function runTool(name: string, args: Record<string, any> = {}) {
-  return executeToolCall(makeToolCall(name, args));
+/** Shorthand: create a tool call and execute it with that tool enabled. */
+async function runTool(
+  name: string,
+  args: Record<string, any> = {},
+  enabledToolIds: readonly string[] = [name],
+) {
+  return executeToolCall(makeToolCall(name, args), enabledToolIds);
 }
 
 /**
@@ -78,7 +82,13 @@ describe('Tool Handlers', () => {
 
     it('returns error for unknown tool name', async () => {
       const result = await runTool('nonexistent_tool');
-      expect(result.error).toBe('Unknown tool: nonexistent_tool');
+      expect(result.error).toBe('Tool call rejected: Tool is not available in this build: nonexistent_tool.');
+      expect(result.content).toBe('');
+    });
+
+    it('fails closed when enabledToolIds omits the requested tool', async () => {
+      const result = await executeToolCall(makeToolCall('calculator', { expression: '1+1' }));
+      expect(result.error).toContain('Missing capability: tool:calculator');
       expect(result.content).toBe('');
     });
 
@@ -281,7 +291,7 @@ describe('Tool Handlers', () => {
       ['whitespace only', { query: '   ' }],
     ])('returns error when query is %s', async (_label, args) => {
       const result = await runTool('web_search', args);
-      expect(result.error).toContain('Missing required parameter: query');
+      expect(result.error).toMatch(/Missing required (?:parameter|input): query/);
     });
 
   });
@@ -369,7 +379,7 @@ describe('Tool Handlers', () => {
 
     it('returns error when url param is missing', async () => {
       const result = await runTool('read_url', {});
-      expect(result.error).toContain('Missing required parameter');
+      expect(result.error).toMatch(/Missing required (?:parameter|input)/);
     });
   });
 

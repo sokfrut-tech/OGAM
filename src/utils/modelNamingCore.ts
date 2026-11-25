@@ -70,7 +70,7 @@ const VERIFIED_QUANTIZERS = new Set([
 const LMSTUDIO_AUTHORS = new Set(['lmstudio-community', 'lm-kit']);
 
 const SPLIT_PART_PATTERN = /-\d{5}-of-\d{5}(?=\.(?:gguf|bin|safetensors)$|$)/i;
-const RAW_EXTENSION_PATTERN = /\.(?:gguf|bin|onnx|safetensors|litertlm|pte|task)$/i;
+const RAW_EXTENSION_PATTERN = /\.(?:gguf|bin|onnx|safetensors|litertlm|pte|task|zip|tar)$/i;
 const TRAILING_QUANT_PATTERN =
   /(?:^|[-_.])(?:I?Q\d+(?:_[A-Z0-9_]+)*|BF16|FP?16|FP?32|MXFP\d+|INT[48])$/i;
 const REPO_FORMAT_SUFFIX = /-(?:gguf|mlx|awq|gptq|exl2|litert|onnx|fp16|bf16|int[48])$/i;
@@ -174,6 +174,8 @@ export function parseMoeParams(nameOrFile: string): MoeParamCounts | null {
 export function baseModelKey(repoOrId: string): string {
   const segments = repoOrId.trim().split(/[/\\]/);
   let repo = (segments[segments.length - 1] ?? '').toLowerCase();
+  // Mirror uploaders (e.g. bartowski/IFM_K2-Horizon-7B-GGUF) prefix the upstream org with `_`.
+  repo = repo.replace(/^(?:meta-llama|deepseek-ai|wan-ai|zai-org|alibaba-pai|[a-z]{2,15})_(?=[a-z][a-z0-9.-])/, '');
   repo = repo.replace(/\.(?:gguf|bin|litertlm)$/i, '');
   repo = repo.replace(SPLIT_PART_PATTERN, '');
   while (REPO_FORMAT_SUFFIX.test(repo)) {

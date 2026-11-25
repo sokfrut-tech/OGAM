@@ -18,7 +18,7 @@ function makeToolCall(name: string, args: Record<string, any> = {}): ToolCall {
   return { id: 'b-call', name, arguments: args };
 }
 async function runTool(name: string, args: Record<string, any> = {}) {
-  return executeToolCall(makeToolCall(name, args));
+  return executeToolCall(makeToolCall(name, args), [name]);
 }
 
 describe('Tool Handlers — branch coverage', () => {

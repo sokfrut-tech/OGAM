@@ -8,11 +8,13 @@ import {
   prefersQ4_0,
 } from '../../src/utils/modelCapabilityRules.ts';
 
-test('prefersQ4_0 selects Q4_0 on Android CPU/NPU and Q4_K_M on GPU or iOS', () => {
+test('prefersQ4_0 selects Q4_0 on Android CPU/NPU and Q4_K_M on GPU, OpenCL, Vulkan, or iOS', () => {
   assert.equal(prefersQ4_0('android', 'cpu'), true);
   assert.equal(prefersQ4_0('android', 'npu'), true);
   assert.equal(prefersQ4_0('android', undefined), true);
   assert.equal(prefersQ4_0('android', 'gpu'), false);
+  assert.equal(prefersQ4_0('android', 'opencl'), false);
+  assert.equal(prefersQ4_0('android', 'vulkan'), false);
   assert.equal(prefersQ4_0('ios', 'gpu'), false);
   assert.equal(prefersQ4_0('ios', 'cpu'), false);
 });
