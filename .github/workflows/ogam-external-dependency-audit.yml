@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/jarvis-step-2-storage-privacy
+      - fix/jarvis-m5-undo-secret-guard-2026-11-24
   pull_request:
   workflow_dispatch:
 
@@ -78,7 +79,7 @@ jobs:
       - name: Verify standalone document ingest, search, and citation engine
         run: node --experimental-strip-types --test scripts/__tests__/rag-documents-core.node.test.mjs
       - name: Verify OGAM-owned Boost offer rules and copy
-        run: node --experimental-strip-types --test scripts/__tests__/boost-promo.node.test.mjs
+        run: node --experimental-strip-types --test scripts/__tests__/boost-promo.test.mjs
       - name: Verify OGAM-owned image parameter defaults and overrides
         run: node --experimental-strip-types --test scripts/__tests__/image-parameter-core.node.test.mjs
       - name: Verify OGAM-owned model quant and card reasoning rules
