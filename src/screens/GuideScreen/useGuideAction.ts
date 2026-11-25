@@ -5,7 +5,7 @@
 import { Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GUIDE_LINKS } from '@offgrid/models';
+import { GUIDE_LINKS } from '../../utils/guideCore';
 import type { RootStackParamList } from '../../navigation/types';
 import { useAppStore } from '../../stores';
 import { selectHasProAccess } from '../../stores/proAccessSlice';

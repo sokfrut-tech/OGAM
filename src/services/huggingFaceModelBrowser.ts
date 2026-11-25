@@ -1,12 +1,14 @@
 import { Buffer } from 'buffer';
 import { Platform } from 'react-native';
+import { CATALOG } from '@offgrid/models';
+import type { MobileWhisperCatalogModel } from '../types/modelCatalog';
 import {
-  CATALOG,
   searchHuggingFace,
   resolveHuggingFaceModel,
-  type MobileWhisperCatalogModel,
   extractQuantization,
   cleanModelName,
+} from '../utils/huggingFaceCore';
+import {
   imageEngineSettings,
   isCompleteSDCheckpointHeader,
   isImageWeightAvailableOn,
@@ -14,7 +16,7 @@ import {
   QWEN_IMAGE_21_WEIGHT,
   SD_CHECKPOINT_HEADER_BYTES,
   sdImagePackFor,
-} from '@offgrid/models';
+} from '../utils/sdImagePackPolicy';
 import RNFS from 'react-native-fs';
 import { hardwareService } from './hardware';
 import { computeBudgetMB } from './modelResidency/budget';

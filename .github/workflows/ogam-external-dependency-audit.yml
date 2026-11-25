@@ -103,6 +103,12 @@ jobs:
         run: node --experimental-strip-types --test scripts/__tests__/transcription-engine-policy.node.test.mjs
       - name: Verify OGAM-owned remote catalog parsing, merge, and refresh
         run: node --experimental-strip-types --test scripts/__tests__/remote-catalog-core.node.test.mjs
+      - name: Verify OGAM-owned SD image pack rules and checkpoint header validation
+        run: node --experimental-strip-types --test scripts/__tests__/sd-image-pack-policy.node.test.mjs
+      - name: Verify OGAM-owned Hugging Face search, split-GGUF collapse, and strict mmproj pairing
+        run: node --experimental-strip-types --test scripts/__tests__/hugging-face-core.node.test.mjs
+      - name: Verify OGAM-owned guide topics, progressive typing reveal, and grounded mobile flows
+        run: node --experimental-strip-types --test scripts/__tests__/guide-core.node.test.mjs
       - name: Generate complete source/config inventory
         run: node scripts/audit-offgrid-imports.mjs --output=ogam-import-audit.json
       - name: Upload audit evidence

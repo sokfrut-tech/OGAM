@@ -7,7 +7,7 @@
  * search model, its vectors would not line up, and the guide matches by words instead. Any failure
  * does the same; the guide always answers.
  */
-import { GUIDE_KB_VECTOR_MODEL } from '@offgrid/models';
+import { GUIDE_KB_VECTOR_MODEL } from '../utils/guideCore';
 import { embeddingService } from './rag/embedding';
 import logger from '../utils/logger';
 

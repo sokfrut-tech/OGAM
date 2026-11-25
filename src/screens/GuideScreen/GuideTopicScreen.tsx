@@ -7,7 +7,7 @@ import React, { useMemo } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
-import { guideWhereLabel } from '@offgrid/models';
+import { guideWhereLabel } from '../../utils/guideCore';
 import { AliveScreen } from '../../components/AliveScreen';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Button } from '../../components/Button';
