@@ -259,6 +259,11 @@ class IntentClassifier {
    * Returns null if uncertain
    */
   private classifyByPattern(message: string): Intent | null {
+    if (RUSSIAN_NON_IMAGE_QUESTION_RE.test(message)) {
+      logger.log('[ROUTE-SM] classify pattern=RU_TEXT_QUESTION');
+      return 'text';
+    }
+
     // Check for strong image generation indicators
     for (const pattern of IMAGE_PATTERNS) {
       if (pattern.test(message)) {
@@ -267,12 +272,10 @@ class IntentClassifier {
       }
     }
 
-    if (!RUSSIAN_NON_IMAGE_QUESTION_RE.test(message)) {
-      for (const pattern of RUSSIAN_IMAGE_PATTERNS) {
-        if (pattern.test(message)) {
-          logger.log(`[ROUTE-SM] classify pattern=RU_IMAGE matched /${pattern.source}/`);
-          return 'image';
-        }
+    for (const pattern of RUSSIAN_IMAGE_PATTERNS) {
+      if (pattern.test(message)) {
+        logger.log(`[ROUTE-SM] classify pattern=RU_IMAGE matched /${pattern.source}/`);
+        return 'image';
       }
     }
 

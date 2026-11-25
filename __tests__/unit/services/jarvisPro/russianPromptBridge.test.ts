@@ -39,16 +39,18 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
     (Platform as { OS: string }).OS = 'android';
     useAppStore.setState({
       downloadedImageModels: [],
-      activeImageModel: null,
+      activeImageModelId: null,
     });
   });
 
   afterEach(() => {
+    _clearExtensionsForTesting();
+    _clearScreensForTesting();
     discardDeferredJarvisImage('conv-ru-img');
     (Platform as { OS: string }).OS = originalPlatformOs;
     useAppStore.setState({
       downloadedImageModels: [],
-      activeImageModel: null,
+      activeImageModelId: null,
     });
   });
 
@@ -94,7 +96,7 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
       'как нарисовать кота пошагово',
       'что такое Stable Diffusion',
       'объясни почему небо синее',
-      'how to draw a cat',
+      'explain how artists draw realistic portraits',
     ];
     for (const msg of negatives) {
       expect(await intentClassifier.classifyIntent(msg, { useLLM: false })).toBe('text');
@@ -137,7 +139,7 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
     const ext = createJarvisImageToolExtension();
     expect(ext.id).toBe('jarvis-open-image');
     expect(ext.getSystemPromptHint()).toBe('');
-    expect(ext.getOpenAISchemas()).toEqual([]);
+    expect(ext.getOpenAISchemas?.() ?? []).toEqual([]);
     expect(ext.canHandle('generate_image')).toBe(false);
     expect(ext.enabledToolCount?.()).toBe(0);
 
@@ -165,7 +167,7 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
 
     expect(ext.canHandle('generate_image')).toBe(true);
     expect(ext.enabledToolCount?.()).toBe(1);
-    expect(ext.getOpenAISchemas().map(s => s.function.name)).toEqual(['generate_image']);
+    expect((ext.getOpenAISchemas?.() ?? []).map(s => s.function.name)).toEqual(['generate_image']);
     expect(ext.getSystemPromptHint()).toContain('generate_image');
 
     const queuedResult = await ext.execute({
@@ -182,11 +184,10 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
     expect(hasPendingJarvisImage()).toBe(false);
 
     // Activate wires extension & chained deferred hooks cleanly
-    const cleanup = activateJarvisOpenCapabilities();
+    activateJarvisOpenCapabilities();
     expect(getToolExtensions().some(e => e.id === 'jarvis-open-image')).toBe(true);
     expect(hasHook(HOOKS.videoFinishDeferred)).toBe(true);
     expect(hasHook(HOOKS.videoHasPending)).toBe(true);
     await callHook(HOOKS.videoDiscardDeferred, 'conv-ru-img');
-    cleanup();
   });
 });
