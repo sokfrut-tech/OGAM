@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import { NativeModules, Platform } from 'react-native';
+import { Alert, NativeModules, Platform } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import RNFS from 'react-native-fs';
 import { JarvisSpeakButton } from '../../../../src/components/jarvisPro/JarvisSpeakButton';
@@ -9,6 +9,7 @@ import {
   JarvisTtsSettingsSummary,
 } from '../../../../src/components/jarvisPro/JarvisTtsSettingsSection';
 import { JarvisVideoSettingsSection } from '../../../../src/components/jarvisPro/JarvisVideoSettingsSection';
+import { ImageGenScreen } from '../../../../src/screens/ImageGenScreen';
 import { JarvisProToolsScreen } from '../../../../src/screens/jarvisPro/JarvisProToolsScreen';
 import { JarvisVideoPanel } from '../../../../src/screens/jarvisPro/JarvisVideoPanel';
 import { JarvisVoicePanel } from '../../../../src/screens/jarvisPro/JarvisVoicePanel';
@@ -16,6 +17,7 @@ import { hardwareService } from '../../../../src/services/hardware';
 import { completeVideoPacks, videoPacksForPhone } from '../../../../src/services/phoneVideoPacks';
 import { useAppStore } from '../../../../src/stores/appStore';
 import { useJarvisProStore } from '../../../../src/stores/jarvisProStore';
+import { useWhisperStore } from '../../../../src/stores/whisperStore';
 import { withNavigatorRoutes } from '../../../harness/realNavigation';
 
 jest.unmock('@react-navigation/native');
@@ -50,6 +52,8 @@ describe('Jarvis Pro UI Components and Screens', () => {
       mcpServers: [],
     });
     useAppStore.getState().updateSettings({ enabledTools: ['calculator'] });
+    useAppStore.setState({ downloadedImageModels: [], activeImageModelId: null });
+    useWhisperStore.setState({ downloadedModelId: null });
     NativeModules.JarvisAndroidTtsModule = {
       isAvailable: jest.fn(async () => true),
       speak: jest.fn(async () => true),
@@ -75,6 +79,8 @@ describe('Jarvis Pro UI Components and Screens', () => {
     (Platform as { OS: string }).OS = originalPlatformOs;
     (DeviceInfo.getTotalMemory as jest.Mock).mockResolvedValue(8 * 1024 * 1024 * 1024);
     await hardwareService.refreshMemoryInfo();
+    useAppStore.setState({ downloadedImageModels: [], activeImageModelId: null });
+    useWhisperStore.setState({ downloadedModelId: null });
     global.fetch = originalFetch;
     delete NativeModules.JarvisAndroidTtsModule;
     delete NativeModules.VideoGenerationModule;
@@ -199,5 +205,64 @@ describe('Jarvis Pro UI Components and Screens', () => {
     fireEvent.press(ui.getByTestId('jarvis-mcp-add-button'));
     await waitFor(() => expect(ui.getByText('Dev MCP')).toBeTruthy());
     expect(ui.getByText('ping')).toBeTruthy();
+  });
+
+  it('renders ImageGenScreen parameter validation, voice navigation, and prompt controls', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+
+    const noModelUi = render(
+      withNavigatorRoutes(<ImageGenScreen />, {
+        destinations: ['Main'],
+      }),
+    );
+    fireEvent.press(noModelUi.getByTestId('image-gen-voice'));
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Whisper model required',
+      expect.stringContaining('Download and select a Whisper model'),
+    );
+    await waitFor(() => expect(noModelUi.getByTestId('route-Main')).toBeTruthy());
+
+    useAppStore.setState({
+      downloadedImageModels: [
+        {
+          id: 'sd-1',
+          name: 'SD 1.5',
+          description: 'Local',
+          modelPath: '/tmp/sd1',
+          downloadedAt: '2026-11-25T00:00:00.000Z',
+          size: 1024,
+          backend: 'mnn',
+        },
+      ],
+      activeImageModelId: 'sd-1',
+    });
+
+    const ui = render(
+      withNavigatorRoutes(<ImageGenScreen />, {
+        destinations: ['Main'],
+      }),
+    );
+
+    fireEvent.changeText(ui.getByTestId('image-gen-prompt'), 'sunset over ocean');
+    fireEvent.changeText(ui.getByTestId('image-gen-negative-prompt'), 'blurry');
+
+    fireEvent.changeText(ui.getByTestId('image-gen-steps'), '1');
+    fireEvent.press(ui.getByTestId('image-gen-generate'));
+    expect(alertSpy).toHaveBeenCalledWith('Invalid steps', expect.any(String));
+
+    fireEvent.changeText(ui.getByTestId('image-gen-steps'), '20');
+    fireEvent.changeText(ui.getByTestId('image-gen-cfg'), '0');
+    fireEvent.press(ui.getByTestId('image-gen-generate'));
+    expect(alertSpy).toHaveBeenCalledWith('Invalid CFG', expect.any(String));
+
+    fireEvent.changeText(ui.getByTestId('image-gen-cfg'), '7.5');
+    fireEvent.changeText(ui.getByTestId('image-gen-seed'), '-1');
+    fireEvent.press(ui.getByTestId('image-gen-generate'));
+    expect(alertSpy).toHaveBeenCalledWith('Invalid seed', expect.any(String));
+
+    fireEvent.press(ui.getByTestId('image-gen-enhance'));
+    await waitFor(() =>
+      expect(ui.getByText(/(Preview ready|Enhancement unavailable)/i)).toBeTruthy(),
+    );
   });
 });

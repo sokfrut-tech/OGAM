@@ -25,8 +25,10 @@ import {
   _clearExtensionsForTesting,
   getToolExtensions,
 } from '../../../../src/services/tools/extensions';
+import { APP_CONFIG } from '../../../../src/constants';
 import { _clearScreensForTesting } from '../../../../src/navigation/screenRegistry';
 import { useAppStore } from '../../../../src/stores/appStore';
+import { useRemoteServerStore } from '../../../../src/stores/remoteServerStore';
 
 describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () => {
   const originalPlatformOs = Platform.OS;
@@ -41,6 +43,11 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
       downloadedImageModels: [],
       activeImageModelId: null,
     });
+    useRemoteServerStore.setState({
+      servers: [],
+      activeServerId: null,
+      activeRemoteMediaServerIds: {},
+    });
   });
 
   afterEach(() => {
@@ -51,6 +58,11 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
     useAppStore.setState({
       downloadedImageModels: [],
       activeImageModelId: null,
+    });
+    useRemoteServerStore.setState({
+      servers: [],
+      activeServerId: null,
+      activeRemoteMediaServerIds: {},
     });
   });
 
@@ -79,6 +91,26 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
     const cyrillicLlmOutput = prepareMediaPromptForEngine('Нарисуй лису', 'лиса на снегу');
     expect(hasCyrillic(cyrillicLlmOutput)).toBe(false);
     expect(cyrillicLlmOutput).toMatch(/fox/i);
+
+    expect(stripRussianMediaCommand('')).toBe('');
+    expect(stripRussianMediaCommand('Нарисуй кота')).toBe('кота');
+    expect(stripRussianMediaCommand('просто кот на диване')).toBe('просто кот на диване');
+    expect(translateRussianVisualPromptFallback('')).toBe('');
+
+    const complexVisual = translateRussianVisualPromptFallback(
+      'щука рядом с юлой, ёжик в тумане и эльф, 4к 3д, ultra hd',
+    );
+    expect(hasCyrillic(complexVisual)).toBe(false);
+    expect(complexVisual).toMatch(/4k/i);
+    expect(complexVisual).toMatch(/3d/i);
+    expect(complexVisual).toMatch(/ultra hd/i);
+    expect(complexVisual).toMatch(/beside/i);
+
+    expect(prepareMediaPromptForEngine('   ')).toBe('');
+    expect(prepareMediaPromptForEngine('neon dragon')).toBe('neon dragon');
+    const blankLlmFallback = prepareMediaPromptForEngine('нарисуй дракона', '   ');
+    expect(hasCyrillic(blankLlmFallback)).toBe(false);
+    expect(blankLlmFallback).toMatch(/dragon/i);
   });
 
   it('classifies Russian and English drawing requests while sparing informational questions', async () => {
@@ -101,6 +133,16 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
     for (const msg of negatives) {
       expect(await intentClassifier.classifyIntent(msg, { useLLM: false })).toBe('text');
     }
+
+    // Repeat call exercises cache hit; short (< 10 chars) and multi-sentence (> 100 chars) exercise fallback branches
+    expect(await intentClassifier.classifyIntent('нарисуй кота в стиле киберпанк', { useLLM: false })).toBe('image');
+    expect(await intentClassifier.classifyIntent('привет', { useLLM: false })).toBe('text');
+    expect(
+      await intentClassifier.classifyIntent(
+        'Первый абзац описания обычной темы для теста длины строки. Второй абзац тоже длинный и содержит достаточное число символов!',
+        { useLLM: false },
+      ),
+    ).toBe('text');
   });
 
   it('detects Russian tool keywords cleanly without ASCII word-boundary bugs', () => {
@@ -120,9 +162,13 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
   });
 
   it('recognizes Russian video generation prompts and rejects non-generation questions', () => {
+    expect(isVideoRequest('')).toBe(false);
+    expect(isVideoRequest('   ')).toBe(false);
     expect(isVideoRequest('Сделай видео заката над морем')).toBe(true);
     expect(isVideoRequest('Оживи фото кота')).toBe(true);
     expect(isVideoRequest('Сгенерируй короткий ролик про горы')).toBe(true);
+    expect(isVideoRequest('Animate a rocket launching')).toBe(true);
+    expect(isVideoRequest('a video of waves')).toBe(true);
     expect(isVideoRequest('Как сделать видео на телефоне?')).toBe(false);
     expect(isVideoRequest('Перескажи это видео')).toBe(false);
   });
@@ -130,9 +176,11 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
   it('treats JARVIS_RU_SYSTEM_PROMPT and legacy Off Grid prompt cleanly as built-in prompts', () => {
     expect(JARVIS_RU_SYSTEM_PROMPT).toContain('Jarvis Ai');
     expect(isBuiltInPrompt(JARVIS_RU_SYSTEM_PROMPT)).toBe(true);
+    expect(isBuiltInPrompt(APP_CONFIG.defaultSystemPrompt)).toBe(true);
     expect(isBuiltInPrompt(undefined)).toBe(true);
     expect(firstPrompt('  ', 'Свой системный промпт')).toBe('Свой системный промпт');
     expect(resolveSystemPrompt('Свой системный промпт')).toBe('Свой системный промпт');
+    expect(resolveSystemPrompt('', undefined)).toBe(APP_CONFIG.defaultSystemPrompt);
   });
 
   it('exposes generate_image only when image model exists and manages deferred queue cleanly', async () => {
@@ -141,7 +189,18 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
     expect(ext.getSystemPromptHint()).toBe('');
     expect(ext.getOpenAISchemas?.() ?? []).toEqual([]);
     expect(ext.canHandle('generate_image')).toBe(false);
+    expect(ext.canHandle('other_tool')).toBe(false);
     expect(ext.enabledToolCount?.()).toBe(0);
+    expect(ext.parseToolCalls?.('x')).toEqual([]);
+    expect(ext.stripFromVisibleText?.('x')).toBe('x');
+
+    const invalidArgsResult = await ext.execute({
+      id: 'call-empty',
+      name: 'generate_image',
+      arguments: { prompt: '' },
+      context: {},
+    });
+    expect(invalidArgsResult.error).toContain('Требуется описание');
 
     const noModelResult = await ext.execute({
       id: 'call-0',
@@ -150,6 +209,26 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
       context: { conversationId: 'conv-ru-img' },
     });
     expect(noModelResult.error).toContain('Не скачана модель');
+
+    const listener = jest.fn();
+    const unsubscribe = ext.subscribe?.(listener);
+
+    useRemoteServerStore.setState({
+      servers: [
+        {
+          id: 'srv-img',
+          name: 'Local GPU',
+          endpoint: 'http://127.0.0.1:8080',
+          providerType: 'openai-compatible',
+          createdAt: '2026-11-25T00:00:00.000Z',
+          mediaModels: { image: 'sdxl' },
+        },
+      ],
+      activeRemoteMediaServerIds: { image: 'srv-img' },
+    });
+    expect(ext.canHandle('generate_image')).toBe(true);
+    expect(ext.enabledToolCount?.()).toBe(1);
+    expect(listener).toHaveBeenCalledTimes(1);
 
     useAppStore.setState({
       downloadedImageModels: [
@@ -164,6 +243,8 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
         },
       ],
     });
+    expect(listener).toHaveBeenCalledTimes(2);
+    unsubscribe?.();
 
     expect(ext.canHandle('generate_image')).toBe(true);
     expect(ext.enabledToolCount?.()).toBe(1);
@@ -179,7 +260,19 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
     expect(queuedResult.error).toBeUndefined();
     expect(hasPendingJarvisImage()).toBe(true);
 
-    // Stopped turn clears pending request without invoking native SD
+    discardDeferredJarvisImage('conv-ru-img');
+    expect(hasPendingJarvisImage()).toBe(false);
+
+    // Non-existent conversation finishes cleanly as a no-op
+    await finishDeferredJarvisImage('unknown-id', false);
+
+    // Queue again and test stopped turn cleanup
+    await ext.execute({
+      id: 'call-2',
+      name: 'generate_image',
+      arguments: { prompt: 'нарисуй дракона' },
+      context: { conversationId: 'conv-ru-img' },
+    });
     await finishDeferredJarvisImage('conv-ru-img', true);
     expect(hasPendingJarvisImage()).toBe(false);
 
@@ -188,6 +281,8 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
     expect(getToolExtensions().some(e => e.id === 'jarvis-open-image')).toBe(true);
     expect(hasHook(HOOKS.videoFinishDeferred)).toBe(true);
     expect(hasHook(HOOKS.videoHasPending)).toBe(true);
-    await callHook(HOOKS.videoDiscardDeferred, 'conv-ru-img');
+    expect(await callHook(HOOKS.videoHasPending)).toBe(false);
+    await callHook(HOOKS.videoFinishDeferred, 'missing', true);
+    await callHook(HOOKS.videoDiscardDeferred, 'missing');
   });
 });
