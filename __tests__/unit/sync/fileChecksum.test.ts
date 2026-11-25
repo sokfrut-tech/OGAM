@@ -1,4 +1,4 @@
-import { CHUNK_SIZE } from '@offgrid/sync';
+import { CHUNK_SIZE } from '../../../src/utils/syncChecksumCore';
 import { NativeModules, Platform } from 'react-native';
 import { modelTransferFsBoundary } from '../../utils/modelTransferFsBoundary';
 import { fileTransferChecksum } from '../../../src/services/sync/fileChecksum';

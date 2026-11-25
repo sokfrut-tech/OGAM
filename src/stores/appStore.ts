@@ -11,7 +11,7 @@ import { persist } from 'zustand/middleware';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
-import type { RecordProvenance } from '@offgrid/sync';
+import type { RecordProvenance } from '../types/syncContracts';
 import {
   DEFAULT_SILENCE_AFTER_SPEECH_MS,
   DEFAULT_SPEAKER_DRAIN_MS,

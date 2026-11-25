@@ -1,7 +1,7 @@
 import type {
   PersonalMeshActivationResult,
   PersonalMeshReconciliationReason,
-} from '@offgrid/sync';
+} from '../types/syncContracts';
 
 
 export type ProTier = 'lifetime' | 'monthly' | 'annual' | 'subscription';

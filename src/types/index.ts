@@ -3,7 +3,7 @@ import type {
   SyncedAssistantTimelineEntry,
   SyncedToolArtifact,
   SyncedTurnStatus,
-} from '@offgrid/sync';
+} from './syncContracts';
 // Model source and credibility types
 export type ModelSource =
   | 'offgrid'

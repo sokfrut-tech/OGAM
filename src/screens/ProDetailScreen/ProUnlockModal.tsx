@@ -7,10 +7,8 @@ import {
 } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
 import Icon from 'react-native-vector-icons/Feather';
-import {
-  projectPersonalMeshActivationFailure,
-  type PersonalMeshActivationFailureProjection,
-} from '@offgrid/sync';
+import { projectPersonalMeshActivationFailure } from '../../utils/proEntitlementCore';
+import type { PersonalMeshActivationFailureProjection } from '../../types/syncContracts';
 import { useTheme, useThemedStyles } from '../../theme';
 import type { ThemeColors, ThemeShadows } from '../../theme';
 import { SPACING, TYPOGRAPHY } from '../../constants';

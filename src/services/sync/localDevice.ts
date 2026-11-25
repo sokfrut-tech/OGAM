@@ -8,7 +8,7 @@
 // twice and its records are attributed to a device that is not in any roster.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DeviceInfo from 'react-native-device-info';
-import type { DeviceInfo as SyncDeviceInfo } from '@offgrid/sync';
+import type { DeviceInfo as SyncDeviceInfo } from '../../types/syncContracts';
 import { currentPlatform } from './nativeSync';
 
 /**

@@ -4,9 +4,8 @@ import {
   BLOB_TOKEN_TTL_MS,
   blobKeyBase64,
   createBlobMaterial,
-  type BlobChannelHost,
-  type BlobEndpoint,
-} from '@offgrid/sync';
+} from '../../utils/syncChecksumCore';
+import type { BlobChannelHost, BlobEndpoint } from '../../types/syncContracts';
 import logger from '../../utils/logger';
 
 /**

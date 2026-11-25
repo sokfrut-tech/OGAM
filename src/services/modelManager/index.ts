@@ -20,7 +20,7 @@ import {
   loadDownloadedModels,
   loadDownloadedImageModels,
 } from './storage';
-import type { TransferredModelManifest } from '@offgrid/sync';
+import type { TransferredModelManifest } from '../../types/syncContracts';
 import { registerTransferredModelFile } from './transferAdmission';
 import {
   performBackgroundDownload,

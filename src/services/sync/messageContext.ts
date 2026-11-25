@@ -1,11 +1,13 @@
 import {
   projectSyncedMessageTurn,
   serializeSyncedMessageContext,
-  type SyncedRetrievalSource,
-  type SyncedToolArtifact,
-  type SyncedMessageTurnInput,
-  type SyncedMessageTurnProjection,
-} from '@offgrid/sync';
+} from '../../utils/syncMessageContextCore';
+import type {
+  SyncedRetrievalSource,
+  SyncedToolArtifact,
+  SyncedMessageTurnInput,
+  SyncedMessageTurnProjection,
+} from '../../types/syncContracts';
 import type { Message } from '../../types';
 
 const RETRIEVAL_TOOL_ARTIFACT_ID = 'offgrid:retrieval-sources';

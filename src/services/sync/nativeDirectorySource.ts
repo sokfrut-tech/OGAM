@@ -4,7 +4,7 @@ import {
   pickDirectory,
 } from '@react-native-documents/picker';
 import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
-import type { AmbientDirectoryAccessCopy } from '@offgrid/sync';
+import type { AmbientDirectoryAccessCopy } from '../../types/syncContracts';
 
 /**
  * The grant Android uses for its Downloads folder, where there is no folder grant to hold.
