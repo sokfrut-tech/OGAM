@@ -134,34 +134,34 @@ export const SettingsScreen: React.FC = () => {
       const status = await requestJarvisAssistantRole();
       setAssistantRoleStatus(status);
       if (!status.supported) {
-        Alert.alert('Джарвис — системный помощник', 'System-assistant integration requires Android 12 or newer. Voice dictation inside OGAM remains available on supported Android versions.');
+        Alert.alert('Джарвис — системный помощник', 'Для интеграции с системным помощником требуется Android 12 или новее. Голосовой ввод внутри Джарвис остаётся доступен на поддерживаемых версиях Android.');
       } else if (!status.roleAvailable) {
-        Alert.alert('Jarvis system assistant', 'This Android/ColorOS build does not currently expose the system assistant role to OGAM.');
+        Alert.alert('Системный помощник Джарвис', 'Эта версия Android/ColorOS пока не предоставляет Джарвис роль системного помощника.');
       } else if (status.ready) {
-        Alert.alert('Jarvis enabled', 'Jarvis is now selected as the system assistant.');
+        Alert.alert('Джарвис включён', 'Теперь Джарвис выбран системным помощником.');
       } else if (status.roleHeld) {
-        Alert.alert('Джарвис выбран', 'Android granted Jarvis the assistant role. The system service has not reported itself active yet; return to Settings later to refresh its status.');
+        Alert.alert('Джарвис выбран', 'Android предоставил Джарвис роль помощника. Системная служба ещё не сообщила об активации. Вернись в настройки позже, чтобы обновить статус.');
       } else {
-        Alert.alert('Jarvis not selected', 'Android did not activate Jarvis as the default assistant. You can try again or choose it in system Default apps settings.');
+        Alert.alert('Джарвис не выбран', 'Android не назначил Джарвис помощником по умолчанию. Попробуй ещё раз или выбери его в настройках приложений по умолчанию.');
       }
     } catch (error) {
-      Alert.alert('Could not open assistant selection', error instanceof Error ? error.message : String(error));
+      Alert.alert('Не удалось открыть выбор помощника', error instanceof Error ? error.message : String(error));
     } finally {
       setIsRequestingAssistantRole(false);
     }
   };
 
   const assistantRoleDescription = !assistantRoleStatus
-    ? 'Check Android system-assistant support'
+    ? 'Проверить поддержку системного помощника Android'
     : !assistantRoleStatus.supported
-      ? 'Requires Android 12 or newer'
+      ? 'Требуется Android 12 или новее'
       : !assistantRoleStatus.roleAvailable
-        ? 'Not available on this Android/ColorOS build'
+        ? 'Недоступно в этой версии Android/ColorOS'
         : assistantRoleStatus.ready
-          ? 'Jarvis is your default system assistant'
+          ? 'Джарвис — системный помощник по умолчанию'
           : assistantRoleStatus.roleHeld
-            ? 'Android has not activated the Jarvis service yet'
-            : 'Use Jarvis from your system-assistant gesture';
+            ? 'Android ещё не активировал службу Джарвис'
+            : 'Запускай Джарвис жестом системного помощника';
 
   const handleSendFeedback = async () => {
     const { downloadedModels, activeModelId } = useAppStore.getState();
@@ -173,15 +173,15 @@ export const SettingsScreen: React.FC = () => {
     const tier = hardwareService.getDeviceTier();
     const freeGB = (fsInfo.freeSpace / (1024 * 1024 * 1024)).toFixed(1);
     const activeModel = downloadedModels.find(m => m.id === activeModelId);
-    const modelLine = activeModel ? activeModel.fileName : 'None';
-    const remoteServer = activeServerId ? 'Yes' : 'No';
+    const modelLine = activeModel ? activeModel.fileName : 'Нет';
+    const remoteServer = activeServerId ? 'Да' : 'Нет';
     const deviceLine = deviceInfo
-      ? `Device: ${deviceInfo.deviceModel} (${deviceInfo.systemName} ${deviceInfo.systemVersion})`
-      : 'Device: Unknown';
+      ? `Устройство: ${deviceInfo.deviceModel} (${deviceInfo.systemName} ${deviceInfo.systemVersion})`
+      : 'Устройство: неизвестно';
 
-    const subject = `[Feedback] Off Grid AI v${appVersion()}`;
+    const subject = `[Отзыв] Джарвис AI v${appVersion()}`;
     const body =
-      `Hi,\n\n[Describe your feedback or issue here]\n\n` +
+      `Здравствуйте!\n\n[Опишите отзыв или проблему]\n\n` +
         `---\n` +
         `App: ${appBuildLabel()}\n` +
         `${deviceLine}\n` +
