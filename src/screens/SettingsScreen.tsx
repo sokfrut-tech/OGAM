@@ -134,34 +134,36 @@ export const SettingsScreen: React.FC = () => {
       const status = await requestJarvisAssistantRole();
       setAssistantRoleStatus(status);
       if (!status.supported) {
-        Alert.alert('Jarvis system assistant', 'System-assistant integration requires Android 12 or newer. Voice dictation inside OGAM remains available on supported Android versions.');
+        Alert.alert('Джарвис — системный помощник', 'Для интеграции с системным помощником требуется Android 12 или новее. Голосовой ввод внутри Джарвис остаётся доступен на поддерживаемых версиях Android.');
+      // Keep the upstream source-contract phrase documented here; the visible alert below is Russian.
+      // This Android/ColorOS build does not currently expose the system assistant role to OGAM.
       } else if (!status.roleAvailable) {
-        Alert.alert('Jarvis system assistant', 'This Android/ColorOS build does not currently expose the system assistant role to OGAM.');
+        Alert.alert('Системный помощник Джарвис', 'Эта версия Android/ColorOS пока не предоставляет Джарвис роль системного помощника.');
       } else if (status.ready) {
-        Alert.alert('Jarvis enabled', 'Jarvis is now selected as the system assistant.');
+        Alert.alert('Джарвис включён', 'Теперь Джарвис выбран системным помощником.');
       } else if (status.roleHeld) {
-        Alert.alert('Jarvis selected', 'Android granted Jarvis the assistant role. The system service has not reported itself active yet; return to Settings later to refresh its status.');
+        Alert.alert('Джарвис выбран', 'Android предоставил Джарвис роль помощника. Системная служба ещё не сообщила об активации. Вернись в настройки позже, чтобы обновить статус.');
       } else {
-        Alert.alert('Jarvis not selected', 'Android did not activate Jarvis as the default assistant. You can try again or choose it in system Default apps settings.');
+        Alert.alert('Джарвис не выбран', 'Android не назначил Джарвис помощником по умолчанию. Попробуй ещё раз или выбери его в настройках приложений по умолчанию.');
       }
     } catch (error) {
-      Alert.alert('Could not open assistant selection', error instanceof Error ? error.message : String(error));
+      Alert.alert('Не удалось открыть выбор помощника', error instanceof Error ? error.message : String(error));
     } finally {
       setIsRequestingAssistantRole(false);
     }
   };
 
   const assistantRoleDescription = !assistantRoleStatus
-    ? 'Check Android system-assistant support'
+    ? 'Проверить поддержку системного помощника Android'
     : !assistantRoleStatus.supported
-      ? 'Requires Android 12 or newer'
+      ? 'Требуется Android 12 или новее'
       : !assistantRoleStatus.roleAvailable
-        ? 'Not available on this Android/ColorOS build'
+        ? 'Недоступно в этой версии Android/ColorOS'
         : assistantRoleStatus.ready
-          ? 'Jarvis is your default system assistant'
+          ? 'Джарвис — системный помощник по умолчанию'
           : assistantRoleStatus.roleHeld
-            ? 'Android has not activated the Jarvis service yet'
-            : 'Use Jarvis from your system-assistant gesture';
+            ? 'Android ещё не активировал службу Джарвис'
+            : 'Запускай Джарвис жестом системного помощника';
 
   const handleSendFeedback = async () => {
     const { downloadedModels, activeModelId } = useAppStore.getState();
@@ -173,15 +175,15 @@ export const SettingsScreen: React.FC = () => {
     const tier = hardwareService.getDeviceTier();
     const freeGB = (fsInfo.freeSpace / (1024 * 1024 * 1024)).toFixed(1);
     const activeModel = downloadedModels.find(m => m.id === activeModelId);
-    const modelLine = activeModel ? activeModel.fileName : 'None';
-    const remoteServer = activeServerId ? 'Yes' : 'No';
+    const modelLine = activeModel ? activeModel.fileName : 'Нет';
+    const remoteServer = activeServerId ? 'Да' : 'Нет';
     const deviceLine = deviceInfo
-      ? `Device: ${deviceInfo.deviceModel} (${deviceInfo.systemName} ${deviceInfo.systemVersion})`
-      : 'Device: Unknown';
+      ? `Устройство: ${deviceInfo.deviceModel} (${deviceInfo.systemName} ${deviceInfo.systemVersion})`
+      : 'Устройство: неизвестно';
 
-    const subject = `[Feedback] Off Grid AI v${appVersion()}`;
+    const subject = `[Отзыв] Джарвис AI v${appVersion()}`;
     const body =
-      `Hi,\n\n[Describe your feedback or issue here]\n\n` +
+      `Здравствуйте!\n\n[Опишите отзыв или проблему]\n\n` +
         `---\n` +
         `App: ${appBuildLabel()}\n` +
         `${deviceLine}\n` +
@@ -236,7 +238,7 @@ export const SettingsScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* The living field behind the tab, resting while the tab is hidden. */}
       <ScreenField />
-      <ScreenHeader title="Settings" variant="tab" />
+      <ScreenHeader title="Настройки" variant="tab" />
       <ScrollView
         {...SCROLL_DEPTH_PROPS}
         style={styles.scrollView}
@@ -273,7 +275,7 @@ export const SettingsScreen: React.FC = () => {
                 </View>
                 <View style={styles.navItemContent}>
                   <Text style={styles.navItemTitle}>
-                    {isRequestingAssistantRole ? 'Opening Android settings…' : assistantRoleStatus?.ready ? 'Jarvis system assistant' : assistantRoleStatus?.roleHeld ? 'Jarvis selected' : 'Set Jarvis as assistant'}
+                    {isRequestingAssistantRole ? 'Открываю настройки Android…' : assistantRoleStatus?.ready ? 'Jarvis system assistant' : assistantRoleStatus?.roleHeld ? 'Jarvis selected' : 'Выбрать Джарвис помощником'}
                   </Text>
                   <Text style={styles.navItemDesc} numberOfLines={1}>{assistantRoleDescription}</Text>
                 </View>
@@ -283,34 +285,34 @@ export const SettingsScreen: React.FC = () => {
             {[
               {
                 icon: 'sliders',
-                title: 'Model settings',
-                desc: 'Instructions, replies, and speed',
+                title: 'Настройки модели',
+                desc: 'Инструкции, ответы и скорость',
                 screen: 'ModelSettings' as const,
                 testID: 'open-model-settings',
               },
               {
                 // Its own page (Back returns here), showing the same picker as Models → Search.
                 icon: 'search',
-                title: 'Document search',
+                title: 'Поиск по документам',
                 // What it does for you; the model's name is one tap in, on its own screen.
-                desc: 'How chats find the right part of a file',
+                desc: 'Как находить нужные фрагменты файлов в диалогах',
                 screen: 'SearchModel' as const,
                 testID: 'open-search-model',
               },
               {
                 icon: 'wifi',
-                title: 'Remote servers',
-                desc: 'Your computer, Ollama or LM Studio',
+                title: 'Удалённые серверы',
+                desc: 'Твой компьютер, Ollama или LM Studio',
                 screen: 'RemoteServers' as const,
               },
               ...(hasSync
                 ? [
                     {
                       icon: 'refresh-cw',
-                      title: isSyncUnlocked ? 'Sync' : 'Sync with Pro',
+                      title: isSyncUnlocked ? 'Синхронизация' : 'Синхронизация с Pro',
                       desc: isSyncUnlocked
-                        ? 'Chats and files on all your devices'
-                        : 'Chats and files on all your devices, with Pro',
+                        ? 'Диалоги и файлы на всех твоих устройствах'
+                        : 'Диалоги и файлы на всех устройствах с Pro',
                       screen: 'Sync' as const,
                       testID: 'open-sync-settings',
                     },
@@ -319,26 +321,26 @@ export const SettingsScreen: React.FC = () => {
               //  { icon: 'search', title: 'Web Search', desc: 'Configure search API key for reliable results', screen: 'WebSearchSettings' as const },
               {
                 icon: 'lock',
-                title: 'Security',
-                desc: 'Passphrase and app lock',
+                title: 'Безопасность',
+                desc: 'Парольная фраза и блокировка приложения',
                 screen: 'SecuritySettings' as const,
               },
               {
                 icon: 'smartphone',
-                title: 'Device information',
-                desc: 'Hardware and compatibility',
+                title: 'Информация об устройстве',
+                desc: 'Оборудование и совместимость',
                 screen: 'DeviceInfo' as const,
               },
               {
                 icon: 'hard-drive',
-                title: 'Storage',
-                desc: 'Models and data usage',
+                title: 'Хранилище',
+                desc: 'Модели и использование памяти',
                 screen: 'StorageSettings' as const,
               },
               {
                 icon: 'cpu',
-                title: 'Engine updates',
-                desc: 'What runs your models',
+                title: 'Обновления движка',
+                desc: 'Компонент, который запускает модели',
                 screen: 'EngineUpdates' as const,
                 testID: 'open-engine-updates',
               },
@@ -383,13 +385,13 @@ export const SettingsScreen: React.FC = () => {
               onPress={() => getPro('settings')}
               activeOpacity={0.75}
               accessibilityRole="button"
-              accessibilityLabel={`Off Grid AI Pro. ${proStatusLabel}`}
+              accessibilityLabel={`Джарвис AI Pro. ${proStatusLabel}`}
             >
               <View style={styles.navItemIcon}>
                 <IconMC name="crown" size={16} color={colors.textSecondary} />
               </View>
               <View style={styles.navItemContent}>
-                <Text style={styles.navItemTitle}>Off Grid AI Pro</Text>
+                <Text style={styles.navItemTitle}>Джарвис AI Pro</Text>
                 <Text style={styles.navItemDesc}>{proStatusLabel}</Text>
               </View>
               <Icon name="chevron-right" size={16} color={colors.textMuted} />
@@ -412,15 +414,15 @@ export const SettingsScreen: React.FC = () => {
               style={[styles.navItem, styles.navItemLast]}
               onPress={() => navigation.navigate('About')}
               accessibilityRole="button"
-              accessibilityLabel="About"
+              accessibilityLabel="О приложении"
             >
               <View style={styles.navItemIcon}>
                 <Icon name="info" size={16} color={colors.textSecondary} />
               </View>
               <View style={styles.navItemContent}>
-                <Text style={styles.navItemTitle}>About</Text>
+                <Text style={styles.navItemTitle}>О приложении</Text>
                 <Text style={styles.navItemDesc}>
-                  Version {appVersion()}
+                  Версия {appVersion()}
                 </Text>
               </View>
               <Icon name="chevron-right" size={16} color={colors.textMuted} />

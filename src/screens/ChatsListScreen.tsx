@@ -40,7 +40,7 @@ type NavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<RootStackParamList>
 >;
 
-const SEARCH_BAR = { placeholder: 'Search chats', clearLabel: 'Clear chat search', testID: 'chat-search-input' };
+const SEARCH_BAR = { placeholder: 'Поиск диалогов', clearLabel: 'Очистить поиск диалогов', testID: 'chat-search-input' };
 
 export const ChatsListScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -141,7 +141,7 @@ export const ChatsListScreen: React.FC = () => {
   };
 
   const handleBulkDelete = () => {
-    const selected = conversations.filter(conversation => selectedIds.has(conversation.id));
+    const выбрано = conversations.filter(conversation => selectedIds.has(conversation.id));
     if (selected.length === 0) return;
     setAlertState(showAlert(
       'Delete Chats',
@@ -327,13 +327,13 @@ export const ChatsListScreen: React.FC = () => {
       {/* The living field behind the tab, resting while the tab is hidden. */}
       <ScreenField />
       <ScreenHeader
-        title="Chats"
+        title="Диалоги"
         variant="tab"
         right={
           selecting ? (
             <Button
               title=""
-              accessibilityLabel="Cancel selection"
+              accessibilityLabel="Отменить выбор"
               variant="ghost"
               size="small"
               onPress={stopSelecting}
@@ -344,7 +344,7 @@ export const ChatsListScreen: React.FC = () => {
               {conversations.length > 0 ? (
                 <Button
                   title=""
-                  accessibilityLabel="View options"
+                  accessibilityLabel="Параметры отображения"
                   variant="ghost"
                   size="small"
                   onPress={() => setViewMenuOpen(true)}
@@ -355,7 +355,7 @@ export const ChatsListScreen: React.FC = () => {
               {conversations.length > 0 ? (
                 <Button
                   title=""
-                  accessibilityLabel="Select chats"
+                  accessibilityLabel="Выбрать диалоги"
                   variant="ghost"
                   size="small"
                   onPress={() => setSelecting(true)}
@@ -363,7 +363,7 @@ export const ChatsListScreen: React.FC = () => {
                 />
               ) : null}
               <Button
-                title="New"
+                title="Новый"
                 variant="primary"
                 size="small"
                 onPress={handleNewChat}
@@ -384,19 +384,19 @@ export const ChatsListScreen: React.FC = () => {
             </View>
           </AnimatedEntry>
           <AnimatedEntry index={1} staggerMs={60} trigger={focusTrigger}>
-            <Text style={styles.emptyTitle}>No chats yet</Text>
+            <Text style={styles.emptyTitle}>Диалогов пока нет</Text>
           </AnimatedEntry>
           <AnimatedEntry index={2} staggerMs={60} trigger={focusTrigger}>
             <Text style={styles.emptyText}>
               {hasModels
-                ? 'Start a new conversation to begin chatting with your local AI.'
-                : 'Download a model from the Models tab to start chatting.'}
+                ? 'Создай новый диалог, чтобы начать общаться с локальным ИИ.'
+                : 'Скачай модель во вкладке «Модели», чтобы начать общаться.'}
             </Text>
           </AnimatedEntry>
           {hasModels && (
             <AnimatedListItem index={3} staggerMs={60} trigger={focusTrigger} hapticType="impactLight" style={styles.emptyButton} onPress={handleNewChat}>
               <Icon name="plus" size={18} color={colors.primary} />
-              <Text style={styles.emptyButtonText}>New chat</Text>
+              <Text style={styles.emptyButtonText}>Новый диалог</Text>
             </AnimatedListItem>
           )}
         </View>
@@ -407,7 +407,7 @@ export const ChatsListScreen: React.FC = () => {
             <View style={styles.selectionBar}>
               <Text style={styles.selectionCount}>{selectedIds.size} selected</Text>
               <Button
-                title={allVisibleSelected ? 'Clear' : 'Select all'}
+                title={allVisibleSelected ? 'Снять выбор' : 'Выбрать все'}
                 variant="ghost"
                 size="small"
                 onPress={() => {
@@ -420,7 +420,7 @@ export const ChatsListScreen: React.FC = () => {
               />
               <Button
                 title=""
-                accessibilityLabel="Delete selected chats"
+                accessibilityLabel="Удалить выбранные диалоги"
                 variant="ghost"
                 size="small"
                 disabled={selectedIds.size === 0}

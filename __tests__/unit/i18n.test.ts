@@ -1,8 +1,8 @@
 import { locale, t } from '../../src/i18n';
 
 describe('device locale translations', () => {
-  it('selects a supported locale', () => {
-    expect(['en', 'ru']).toContain(locale);
+  it('uses Russian as the Jarvis product language', () => {
+    expect(locale).toBe('ru');
   });
 
   it('returns a translated image generator title', () => {

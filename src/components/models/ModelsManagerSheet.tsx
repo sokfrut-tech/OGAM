@@ -24,12 +24,12 @@ type LoadingState = { isLoading: boolean; type?: string | null };
 type RowDef = { type: ModelRowType; icon: string; label: string };
 
 const ROWS: RowDef[] = [
-  { type: 'text', icon: 'message-square', label: 'Text' },
-  { type: 'image', icon: 'image', label: 'Image' },
-  { type: 'video', icon: 'video', label: 'Video' },
-  { type: 'voice', icon: 'volume-2', label: 'Voice' },
-  { type: 'speech', icon: 'mic', label: 'Speech' },
-  { type: 'search', icon: 'search', label: 'Search' },
+  { type: 'text', icon: 'message-square', label: 'Текст' },
+  { type: 'image', icon: 'image', label: 'Изображения' },
+  { type: 'video', icon: 'video', label: 'Видео' },
+  { type: 'voice', icon: 'volume-2', label: 'Голос' },
+  { type: 'speech', icon: 'mic', label: 'Речь' },
+  { type: 'search', icon: 'search', label: 'Поиск' },
 ];
 
 type Props = {
@@ -125,7 +125,7 @@ export const ModelsManagerSheet: React.FC<Props> = ({
       visible={visible}
       onClose={onClose}
       onClosed={onClosed}
-      title="Models"
+      title="Модели"
       enableDynamicSizing
     >
       <View style={styles.content}>
@@ -205,7 +205,7 @@ export const ModelsManagerSheet: React.FC<Props> = ({
               {isEjecting
                 ? <LoadingDots color={colors.textMuted} />
                 : <Icon name="power" size={14} color={colors.textSecondary} />}
-              <Text style={styles.ejectText}>Eject all models</Text>
+              <Text style={styles.ejectText}>Выгрузить все модели</Text>
             </AnimatedPressable>
           )}
           {!hasActiveModel && <View style={styles.actionButton} />}
@@ -221,7 +221,7 @@ export const ModelsManagerSheet: React.FC<Props> = ({
             {isRefreshing
               ? <LoadingDots color={colors.textMuted} />
               : <Icon name="refresh-cw" size={14} color={colors.textSecondary} />}
-            <Text style={styles.refreshText}>Refresh models</Text>
+            <Text style={styles.refreshText}>Обновить модели</Text>
           </AnimatedPressable>
         </View>
         {refreshError && <Text style={styles.refreshError}>{refreshError}</Text>}
