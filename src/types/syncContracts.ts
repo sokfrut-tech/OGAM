@@ -306,12 +306,69 @@ export interface DiscoverySource {
   required?: boolean;
 }
 
-export interface PairedDevice {
-  device: DeviceInfo;
+export interface PairedDevice extends DeviceInfo {
   sharedSecret: string;
   membershipId?: string;
   pairedAt?: number;
   routeId?: string;
+}
+
+export interface PairingEntitlementCredential {
+  version: number;
+  entitlementId: string;
+  secret: string;
+  expiresAt: string | null;
+  maxDevices: number;
+  verifiedAt: number;
+}
+
+export interface PersonalMeshRegistrationInput {
+  syncDeviceId: string;
+  deviceName: string;
+  platform: DevicePlatform;
+}
+
+export type PairingEntitlementInspection =
+  | { status: 'licensed'; entitlementId: string }
+  | { status: 'unlicensed' };
+
+export interface PairingEntitlementHostAdapter {
+  inspect(): Promise<PairingEntitlementInspection>;
+  prepareExport(
+    registration: PersonalMeshRegistrationInput,
+  ): Promise<{ id: string; credential: PairingEntitlementCredential }>;
+  commitExport(preparedId: string): Promise<void>;
+  rollbackExport(preparedId: string): Promise<void>;
+  finalizeExport(preparedId: string): Promise<void>;
+  prepareImport(
+    credential: PairingEntitlementCredential,
+    registration: PersonalMeshRegistrationInput,
+  ): Promise<{ id: string }>;
+  commitImport(preparedId: string): Promise<void>;
+  rollbackImport(preparedId: string): Promise<void>;
+  finalizeImport(preparedId: string): Promise<void>;
+}
+
+export interface PendingMembershipRevocation {
+  revocationId: string;
+  deviceId?: string;
+  membershipId: string;
+  device: DeviceInfo;
+  revocationSecret?: string;
+  dismissedAt?: number;
+  state?: string;
+  error?: string;
+  createdAt?: number;
+  updatedAt?: number;
+  [key: string]: unknown;
+}
+
+export interface MembershipRevocationTombstone {
+  deviceId: string;
+  membershipId: string;
+  revocationSecret?: string;
+  revokedAt?: number;
+  [key: string]: unknown;
 }
 
 export interface PairingAttemptSnapshot {
@@ -326,6 +383,11 @@ export interface PairingAttemptSnapshot {
 }
 
 export interface PairingPersistence {
+  begin?(device: PairedDevice): void | Promise<void>;
+  commit?(device: PairedDevice): void | Promise<void>;
+  rollback?(deviceId: string): void | Promise<void>;
+  getActive?(deviceId: string): PairedDevice | undefined | Promise<PairedDevice | undefined>;
+  dropActive?(deviceId: string): void | Promise<void>;
   save?(device: PairedDevice): Promise<void>;
   load?(): Promise<PairedDevice[]>;
   remove?(deviceId: string): Promise<void>;
@@ -343,6 +405,35 @@ export interface MembershipRevocationSnapshot {
 }
 
 export interface MembershipRevocationPersistence {
+  beginLocal?(
+    active: PairedDevice,
+    pending: PendingMembershipRevocation,
+  ): boolean | Promise<boolean>;
+  listPending?(): PendingMembershipRevocation[] | Promise<PendingMembershipRevocation[]>;
+  getPending?(
+    deviceId: string,
+  ): PendingMembershipRevocation | undefined | Promise<PendingMembershipRevocation | undefined>;
+  getTombstone?(
+    deviceId: string,
+    membershipId: string,
+  ): MembershipRevocationTombstone | undefined | Promise<MembershipRevocationTombstone | undefined>;
+  applyRemote?(
+    expectedActive: PairedDevice,
+    tombstone: MembershipRevocationTombstone,
+  ): boolean | Promise<boolean>;
+  completeLocal?(
+    pending: PendingMembershipRevocation,
+    tombstone: MembershipRevocationTombstone,
+  ): boolean | Promise<boolean>;
+  setPendingDismissed?(
+    deviceId: string,
+    revocationId: string,
+    dismissedAt?: number,
+  ): boolean | Promise<boolean>;
+  getRevocationSecret?(
+    deviceId: string,
+    membershipId: string,
+  ): string | undefined | Promise<string | undefined>;
   save?(records: MembershipRevocationSnapshot[]): Promise<void>;
   load?(): Promise<MembershipRevocationSnapshot[]>;
   [key: string]: unknown;
@@ -382,13 +473,28 @@ export interface PeerLinkEvent {
   [key: string]: unknown;
 }
 
+export interface SyncByteCodec {
+  toBytes(data: unknown): Uint8Array;
+  fromBytes(bytes: Uint8Array): unknown;
+}
+
+export interface SyncEngineLike {
+  isPaired(deviceId: string): boolean;
+  reconnect(
+    device: DeviceInfo,
+    sharedSecret: string,
+    expectedMembershipId?: string,
+  ): Promise<void>;
+  retryMembershipRevocation?(device: DeviceInfo): Promise<boolean>;
+}
+
 export interface SyncEngineOptions {
   localDevice: DeviceInfo;
   transport: TransportBridge;
   getPassphrase?: (remote: DeviceInfo) => Promise<string | null> | string | null;
   getSharedSecret?: (deviceId: string) => string | undefined;
   resolveMeshAdmission?: (remote: DeviceInfo) => Promise<string | null | undefined> | string | null | undefined;
-  pairingEntitlement?: unknown;
+  pairingEntitlement?: PairingEntitlementHostAdapter;
   onPaired?: (device: PairedDevice) => void;
   pairingPersistence?: PairingPersistence;
   onPairingFailed?: (remote: DeviceInfo | undefined, error: string) => void;

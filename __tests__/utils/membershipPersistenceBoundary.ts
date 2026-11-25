@@ -4,7 +4,7 @@ import type {
   PairedDevice,
   PairingPersistence,
   PendingMembershipRevocation,
-} from '@offgrid/sync';
+} from '../../src/types/syncContracts';
 
 function activeMatches(
   current: PairedDevice | undefined,

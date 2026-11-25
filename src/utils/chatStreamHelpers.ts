@@ -38,8 +38,10 @@ export interface ChatStreamPreview {
   readonly phase?: ChatStreamPhase;
   readonly progress?: ChatStreamProgress;
   readonly tools?: readonly ChatStreamTool[];
+  readonly seq?: number;
   readonly startedAt?: number;
   readonly updatedAt?: number;
+  readonly complete?: boolean;
   readonly completed?: boolean;
 }
 

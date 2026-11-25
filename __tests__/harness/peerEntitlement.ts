@@ -2,7 +2,7 @@ import type {
   PairingEntitlementCredential,
   PairingEntitlementHostAdapter,
   PersonalMeshRegistrationInput,
-} from '@offgrid/sync';
+} from '../../src/types/syncContracts';
 
 /**
  * The OTHER device's entitlement, for tests that need two paired devices.

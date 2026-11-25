@@ -14,7 +14,7 @@ import { createLicensedMesh } from '../../harness/licensedMesh';
 import { TYPED_PAIRING_CODE } from '../../utils/pairFromPeer';
 
 const mesh = createLicensedMesh();
-import type { RnTcpModule } from '@offgrid/sync/rn';
+import type { RnTcpModule } from '../../../src/types/syncContracts';
 
 type Handler = (...a: any[]) => void;
 
