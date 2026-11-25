@@ -282,7 +282,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   accessible={false}
                   testID="home-app-logo"
                 />
-                <Text style={styles.title} accessibilityRole="header" numberOfLines={1}>Off Grid AI</Text>
+                <Text style={styles.title} accessibilityRole="header" numberOfLines={1}>Джарвис AI</Text>
               </View>
               <View style={styles.headerActions}>
                 {/* What it does for you: every feature, and an Ask box (Mac, 2026-11-17).
@@ -315,11 +315,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               {/* The brand's promise, word for word (brand_tone_voice: never "nothing leaves your device"). Balanced
                   breaks keep a last word from sitting alone on Android. */}
               <Text style={styles.subtitle} textBreakStrategy="balanced">
-                Your chats and files never leave your device.
+                Твои диалоги и файлы остаются на этом устройстве.
               </Text>
               {activeTextModelId || activeImageModelId || remoteLabels.video || videoLabel ? (
                 <Button
-                  title="New chat"
+                  title="Новый диалог"
                   variant="hero"
                   size="small"
                   icon={<Icon name="plus" size={16} color={colors.onHero} />}
