@@ -251,7 +251,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         <View style={styles.header}>
           {!isLastSlide && (
             <Button
-              title="Skip"
+              title="Пропустить"
               variant="ghost"
               onPress={handleSkip}
               testID="onboarding-skip"
@@ -284,7 +284,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 
         <View style={styles.footer}>
           <Button
-            title={isLastSlide ? 'Get Started' : 'Next'}
+            title={isLastSlide ? 'Начать' : 'Далее'}
             onPress={handleNext}
             size="large"
             style={styles.nextButton}
@@ -296,9 +296,9 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
           >
             <View style={styles.madeWithLoveRow}>
               <Text style={styles.madeWithLoveText}>
-                {'made with '}
+                {'Создано с '}
                 <Text style={styles.heart}>{'♥'}</Text>
-                {' by '}
+                {' командой '}
               </Text>
               <Image
                 source={require('../assets/wednesday_logo.png')}
