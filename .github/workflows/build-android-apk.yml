@@ -15,7 +15,7 @@ on:
       - 'ci/jarvis-ogam-standalone-apk-*'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: jarvis-android-apk-${{ github.ref }}
@@ -160,6 +160,31 @@ jobs:
             echo "=== JARVIS MANIFEST SERVICE ==="
             grep -F "JarvisVoiceInteractionService" "$MANIFEST_TREE"
           } | tee "${OUT_DIR}/apk-inspection.txt"
+
+      - name: Publish verified Russian APK as a public GitHub Release
+        if: env.BUILD_TYPE == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/jarvis-apk/Jarvis-OGAM-arm64-release.apk"
+          CHECKSUM="${APK}.sha256"
+          test -s "$APK"
+          test -s "$CHECKSUM"
+          SHA256="$(sha256sum "$APK" | awk '{print $1}')"
+          EXPECTED="$(awk '{print $1}' "$CHECKSUM")"
+          test "$SHA256" = "$EXPECTED"
+          TAG="jarvis-ogam-arm64-ru-2026-11-25-${GITHUB_SHA:0:7}"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release tag already exists; refusing to overwrite it."
+            exit 1
+          fi
+          gh release create "$TAG" "$APK" "$CHECKSUM" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Джарвис AI — русская версия — 25.11.2026" \
+            --notes "Русскоязычная ARM64-сборка Джарвис AI. Исходный коммит: $GITHUB_SHA. SHA-256: $SHA256. APK и контрольная сумма прошли проверку в GitHub Actions. Физическая проверка на OPPO Find X6 Pro ещё не проводилась."
 
       - name: Upload APK, checksum and inspection report
         uses: actions/upload-artifact@v4
