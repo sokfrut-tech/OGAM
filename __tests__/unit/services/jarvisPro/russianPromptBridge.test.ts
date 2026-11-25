@@ -94,7 +94,8 @@ describe('Jarvis Russian Prompt Bridge, Classifiers & Image Tool Extension', () 
 
     expect(stripRussianMediaCommand('')).toBe('');
     expect(stripRussianMediaCommand('Нарисуй кота')).toBe('кота');
-    expect(stripRussianMediaCommand('просто кот на диване')).toBe('просто кот на диване');
+    expect(stripRussianMediaCommand('рыжий кот на диване')).toBe('рыжий кот на диване');
+    expect(stripRussianMediaCommand('пожалуйста')).toBe('пожалуйста');
     expect(translateRussianVisualPromptFallback('')).toBe('');
 
     const complexVisual = translateRussianVisualPromptFallback(
