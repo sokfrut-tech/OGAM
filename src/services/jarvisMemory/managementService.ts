@@ -287,41 +287,67 @@ export class JarvisMemoryManagementService {
     };
   }
 
-  /** Captures a pre-edit local snapshot before delegating to repository.updateRecord (MEM-011 + PocketMind undo). */
+  /** Atomically updates record and stores a pre-edit snapshot in a single SQLite SAVEPOINT (M5-01). */
   async updateWithCheckpoint(
     id: string,
     patch: MemoryUpdatePatch,
     expectedUpdatedAt: number,
   ): Promise<{ record: MemoryRecord; checkpoint: MemoryUndoCheckpoint }> {
     const db = await this.ensureManagementTables();
-    const existing = await jarvisMemoryRepository.getById(id);
-    if (!existing || existing.status === 'deleted') {
-      throw new Error(`Jarvis memory record ${id} was not found.`);
-    }
+    db.executeSync('SAVEPOINT jarvis_memory_update_with_cp');
+    try {
+      const existing = await jarvisMemoryRepository.getById(id);
+      if (!existing || existing.status === 'deleted') {
+        throw new Error(`Jarvis memory record ${id} was not found.`);
+      }
 
-    const updated = await jarvisMemoryRepository.updateRecord(id, patch, expectedUpdatedAt);
-    const checkpoint = this.saveCheckpoint(db, 'update', existing);
-    return { record: updated, checkpoint };
+      const updated = await jarvisMemoryRepository.updateRecord(id, patch, expectedUpdatedAt);
+      const checkpoint = this.saveCheckpoint(db, 'update', existing);
+      db.executeSync('RELEASE SAVEPOINT jarvis_memory_update_with_cp');
+      return { record: updated, checkpoint };
+    } catch (error) {
+      try {
+        db.executeSync('ROLLBACK TO SAVEPOINT jarvis_memory_update_with_cp');
+        db.executeSync('RELEASE SAVEPOINT jarvis_memory_update_with_cp');
+      } catch {
+        /* Preserve original failure if savepoint cleanup also fails. */
+      }
+      throw error;
+    }
   }
 
-  /** Captures a pre-delete local snapshot before delegating to repository.deleteRecord (MEM-006 + PocketMind undo). */
+  /** Atomically deletes record with tombstone and stores a pre-delete snapshot in a single SQLite SAVEPOINT (M5-01). */
   async deleteWithCheckpoint(
     id: string,
     reason: MemoryDeletionReason = 'user_delete',
   ): Promise<{ deleted: boolean; checkpoint: MemoryUndoCheckpoint | null }> {
     const db = await this.ensureManagementTables();
-    const existing = await jarvisMemoryRepository.getById(id);
-    if (!existing) {
-      return { deleted: false, checkpoint: null };
-    }
+    db.executeSync('SAVEPOINT jarvis_memory_delete_with_cp');
+    try {
+      const existing = await jarvisMemoryRepository.getById(id);
+      if (!existing) {
+        db.executeSync('RELEASE SAVEPOINT jarvis_memory_delete_with_cp');
+        return { deleted: false, checkpoint: null };
+      }
 
-    const deleted = await jarvisMemoryRepository.deleteRecord(id, reason);
-    if (!deleted) {
-      return { deleted: false, checkpoint: null };
-    }
+      const deleted = await jarvisMemoryRepository.deleteRecord(id, reason);
+      if (!deleted) {
+        db.executeSync('RELEASE SAVEPOINT jarvis_memory_delete_with_cp');
+        return { deleted: false, checkpoint: null };
+      }
 
-    const checkpoint = this.saveCheckpoint(db, 'delete', existing);
-    return { deleted: true, checkpoint };
+      const checkpoint = this.saveCheckpoint(db, 'delete', existing);
+      db.executeSync('RELEASE SAVEPOINT jarvis_memory_delete_with_cp');
+      return { deleted: true, checkpoint };
+    } catch (error) {
+      try {
+        db.executeSync('ROLLBACK TO SAVEPOINT jarvis_memory_delete_with_cp');
+        db.executeSync('RELEASE SAVEPOINT jarvis_memory_delete_with_cp');
+      } catch {
+        /* Preserve original failure if savepoint cleanup also fails. */
+      }
+      throw error;
+    }
   }
 
   async getLatestUndoCheckpoint(): Promise<MemoryUndoCheckpoint | null> {
@@ -509,9 +535,21 @@ export class JarvisMemoryManagementService {
 
     if (action === 'delete_linked') {
       const deletedIds: string[] = [];
-      for (const memoryId of ids) {
-        const deleted = await jarvisMemoryRepository.deleteRecord(memoryId, 'source_deleted');
-        if (deleted) deletedIds.push(memoryId);
+      db.executeSync('SAVEPOINT jarvis_memory_source_delete');
+      try {
+        for (const memoryId of ids) {
+          const deleted = await jarvisMemoryRepository.deleteRecord(memoryId, 'source_deleted');
+          if (deleted) deletedIds.push(memoryId);
+        }
+        db.executeSync('RELEASE SAVEPOINT jarvis_memory_source_delete');
+      } catch (error) {
+        try {
+          db.executeSync('ROLLBACK TO SAVEPOINT jarvis_memory_source_delete');
+          db.executeSync('RELEASE SAVEPOINT jarvis_memory_source_delete');
+        } catch {
+          /* Preserve original source deletion failure */
+        }
+        throw error;
       }
       return {
         action,

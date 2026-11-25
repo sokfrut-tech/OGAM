@@ -43,6 +43,14 @@ function stemPrefix(token: string): string {
   return token.slice(0, Math.max(4, token.length - 2));
 }
 
+function sanitizePromptInlineText(raw: string): string {
+  return raw
+    .replace(/[\r\n\u0000-\u001F\u007F]+/g, ' ')
+    .replace(/\[JARVIS_CONFIRMED_MEMORY_(?:BEGIN|END)\]/gi, '[redacted_memory_marker]')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function formatCompactValue(value: unknown, maxChars = 180): string {
   let raw: string;
   if (typeof value === 'string') {
@@ -54,17 +62,17 @@ function formatCompactValue(value: unknown, maxChars = 180): string {
       raw = String(value);
     }
   }
-  const singleLine = raw.replace(/\s+/g, ' ').trim();
+  const singleLine = sanitizePromptInlineText(raw);
   if (singleLine.length <= maxChars) return singleLine;
   return `${singleLine.slice(0, maxChars - 1)}…`;
 }
 
 function formatCitation(record: MemoryRecord): string {
-  const shortId = record.id.slice(0, 8);
-  const scopeTag =
-    record.scope === 'global' ? 'global' : `${record.scope}:${record.scopeId ?? 'unknown'}`;
+  const shortId = sanitizePromptInlineText(record.id.slice(0, 8));
+  const safeScopeId = record.scopeId ? sanitizePromptInlineText(record.scopeId) : 'unknown';
+  const scopeTag = record.scope === 'global' ? 'global' : `${record.scope}:${safeScopeId}`;
   const sourceTag = record.sourceConversationId
-    ? `chat:${record.sourceConversationId}${record.sourceMessageId ? `#${record.sourceMessageId}` : ''}`
+    ? `chat:${sanitizePromptInlineText(record.sourceConversationId)}${record.sourceMessageId ? `#${sanitizePromptInlineText(record.sourceMessageId)}` : ''}`
     : 'manual';
   return `[mem:${shortId} | ${scopeTag} | ${sourceTag}]`;
 }
@@ -242,7 +250,9 @@ export class JarvisMemoryRetrievalService {
       if (items.length >= maxItems) break;
 
       const citation = formatCitation(entry.record);
-      const formattedLine = `- ${citation} (${entry.record.kind}) ${entry.record.subject} · ${entry.record.predicate}: ${formatCompactValue(entry.record.value)}`;
+      const safeSubject = sanitizePromptInlineText(entry.record.subject);
+      const safePredicate = sanitizePromptInlineText(entry.record.predicate);
+      const formattedLine = `- ${citation} (${entry.record.kind}) ${safeSubject} · ${safePredicate}: ${formatCompactValue(entry.record.value)}`;
       const candidateLines = [...lines, formattedLine];
       const candidateBlock = `${PROMPT_HEADER}\n${candidateLines.join('\n')}\n${PROMPT_FOOTER}`;
 

@@ -80,7 +80,8 @@ export type SecretRiskCategory =
   | 'auth_header_or_uri_secret'
   | 'secret_field_name'
   | 'payment_card'
-  | 'seed_phrase';
+  | 'seed_phrase'
+  | 'uninspectable_structure';
 
 export interface SecretRiskFinding {
   category: SecretRiskCategory;

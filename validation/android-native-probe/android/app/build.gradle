@@ -11,13 +11,13 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.jarvism3probe"
+    namespace "com.jarvism5probe"
     defaultConfig {
-        applicationId "com.jarvism3probe"
+        applicationId "com.jarvism5probe"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0.0-m3m4"
+        versionName "1.0.0-m5"
     }
     buildTypes {
         debug { signingConfig signingConfigs.debug }

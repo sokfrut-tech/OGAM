@@ -135,8 +135,61 @@ function isLikelySeedPhrase(text: string, contextHint: string): boolean {
   return SEED_CONTEXT_RE.test(contextHint) || SEED_CONTEXT_RE.test(text);
 }
 
+export const SECRET_SCAN_MAX_DEPTH = 8;
+export const SECRET_SCAN_MAX_NODES = 500;
+
+const ZERO_WIDTH_OR_BIDI_RE = /[\u200B-\u200F\u202A-\u202E\u2060\uFEFF]/g;
+const LATIN_CHAR_RE = /[A-Za-z]/;
+const CYRILLIC_CHAR_RE = /[\u0400-\u04FF]/;
+
+const CONFUSABLE_CYRILLIC_TO_LATIN: Record<string, string> = {
+  а: 'a',
+  е: 'e',
+  ё: 'e',
+  о: 'o',
+  р: 'p',
+  с: 'c',
+  х: 'x',
+  у: 'y',
+  к: 'k',
+  т: 't',
+  м: 'm',
+  н: 'h',
+  в: 'b',
+  і: 'i',
+  ј: 'j',
+};
+
+function stripInvisibleChars(raw: string): string {
+  return raw.replace(ZERO_WIDTH_OR_BIDI_RE, '');
+}
+
+function foldMixedScriptConfusables(text: string): string {
+  if (!LATIN_CHAR_RE.test(text) || !CYRILLIC_CHAR_RE.test(text)) {
+    return text;
+  }
+  return Array.from(text)
+    .map(ch => CONFUSABLE_CYRILLIC_TO_LATIN[ch] ?? ch)
+    .join('');
+}
+
 function normalizeKey(rawKey: string): string {
-  return rawKey.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  return stripInvisibleChars(rawKey)
+    .normalize('NFKC')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+}
+
+function isSensitiveKeyName(rawKey: string): boolean {
+  const cleaned = stripInvisibleChars(rawKey).normalize('NFKC').trim();
+  const normalized = cleaned.toLowerCase().replace(/[\s-]+/g, '_');
+  if (SECRET_KEY_NAMES.has(normalized) || SECRET_KEY_RE.test(cleaned)) {
+    return true;
+  }
+  const foldedClean = foldMixedScriptConfusables(cleaned.toLowerCase());
+  const foldedNormalized = foldedClean.replace(/[\s-]+/g, '_');
+  return SECRET_KEY_NAMES.has(foldedNormalized) || SECRET_KEY_RE.test(foldedClean);
 }
 
 function hasNonEmptySecretValue(val: unknown): boolean {
@@ -153,19 +206,20 @@ function scanString(
   contextHint: string,
   findings: SecretRiskFinding[],
 ): void {
+  const normalizedText = stripInvisibleChars(text).normalize('NFKC');
   for (const rule of VALUE_PATTERN_RULES) {
-    if (rule.pattern.test(text)) {
+    if (rule.pattern.test(text) || rule.pattern.test(normalizedText)) {
       findings.push({ category: rule.category, field, label: rule.label });
     }
   }
-  if (containsLuhnCard(text)) {
+  if (containsLuhnCard(normalizedText)) {
     findings.push({
       category: 'payment_card',
       field,
       label: 'Luhn-valid payment card number',
     });
   }
-  if (isLikelySeedPhrase(text, contextHint)) {
+  if (isLikelySeedPhrase(normalizedText, contextHint)) {
     findings.push({
       category: 'seed_phrase',
       field,
@@ -174,45 +228,111 @@ function scanString(
   }
 }
 
-function scanValueRecursive(
-  value: unknown,
-  fieldPath: string,
-  contextHint: string,
+type TraversalFrame = {
+  value: unknown;
+  fieldPath: string;
+  contextHint: string;
+  depth: number;
+  ancestors: Set<object>;
+};
+
+/**
+ * Fail-closed bounded iterative traversal: rejects circular objects, nesting deeper than
+ * SECRET_SCAN_MAX_DEPTH, or structures exceeding SECRET_SCAN_MAX_NODES instead of skipping checks.
+ */
+function scanValueBounded(
+  rootValue: unknown,
+  rootPath: string,
+  rootContextHint: string,
   findings: SecretRiskFinding[],
-  depth = 0,
 ): void {
-  if (depth > 8 || value == null) return;
-  if (typeof value === 'string') {
-    scanString(fieldPath, value, contextHint, findings);
-    return;
-  }
-  if (Array.isArray(value)) {
-    for (let i = 0; i < value.length; i += 1) {
-      scanValueRecursive(value[i], `${fieldPath}[${i}]`, contextHint, findings, depth + 1);
+  const stack: TraversalFrame[] = [
+    {
+      value: rootValue,
+      fieldPath: rootPath,
+      contextHint: rootContextHint,
+      depth: 0,
+      ancestors: new Set<object>(),
+    },
+  ];
+  let visitedNodes = 0;
+
+  while (stack.length > 0) {
+    const frame = stack.pop()!;
+    const { value, fieldPath, contextHint, depth, ancestors } = frame;
+    if (value == null) continue;
+
+    if (depth > SECRET_SCAN_MAX_DEPTH) {
+      findings.push({
+        category: 'uninspectable_structure',
+        field: fieldPath,
+        label: 'Value nesting depth exceeds secret-inspection limit (fail-closed)',
+      });
+      continue;
     }
-    return;
-  }
-  if (typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>);
-    for (const [key, entryValue] of entries) {
-      const normalized = normalizeKey(key);
-      if (
-        (SECRET_KEY_NAMES.has(normalized) || SECRET_KEY_RE.test(key.trim())) &&
-        hasNonEmptySecretValue(entryValue)
-      ) {
+
+    visitedNodes += 1;
+    if (visitedNodes > SECRET_SCAN_MAX_NODES) {
+      findings.push({
+        category: 'uninspectable_structure',
+        field: fieldPath,
+        label: 'Value node budget exceeded during secret inspection (fail-closed)',
+      });
+      break;
+    }
+
+    if (typeof value === 'string') {
+      scanString(fieldPath, value, contextHint, findings);
+      continue;
+    }
+
+    if (typeof value === 'object') {
+      const objRef = value as object;
+      if (ancestors.has(objRef)) {
         findings.push({
-          category: 'secret_field_name',
-          field: `${fieldPath}.${key}`,
-          label: 'Sensitive credential field name',
+          category: 'uninspectable_structure',
+          field: fieldPath,
+          label: 'Circular value reference cannot be safely inspected (fail-closed)',
+        });
+        continue;
+      }
+
+      const nextAncestors = new Set(ancestors);
+      nextAncestors.add(objRef);
+
+      if (Array.isArray(value)) {
+        for (let i = value.length - 1; i >= 0; i -= 1) {
+          stack.push({
+            value: value[i],
+            fieldPath: `${fieldPath}[${i}]`,
+            contextHint,
+            depth: depth + 1,
+            ancestors: nextAncestors,
+          });
+        }
+        continue;
+      }
+
+      const entries = Object.entries(value as Record<string, unknown>);
+      for (const [key, entryValue] of entries) {
+        if (isSensitiveKeyName(key) && hasNonEmptySecretValue(entryValue)) {
+          findings.push({
+            category: 'secret_field_name',
+            field: `${fieldPath}.${key}`,
+            label: 'Sensitive credential field name',
+          });
+        }
+      }
+      for (let i = entries.length - 1; i >= 0; i -= 1) {
+        const [key, entryValue] = entries[i]!;
+        stack.push({
+          value: entryValue,
+          fieldPath: `${fieldPath}.${key}`,
+          contextHint: `${contextHint} ${key}`,
+          depth: depth + 1,
+          ancestors: nextAncestors,
         });
       }
-      scanValueRecursive(
-        entryValue,
-        `${fieldPath}.${key}`,
-        `${contextHint} ${key}`,
-        findings,
-        depth + 1,
-      );
     }
   }
 }
@@ -231,7 +351,7 @@ export class SecretMemoryBlockedError extends Error {
 
 /**
  * Inspects a candidate memory entry for passwords, API tokens, private keys, payment cards,
- * and recovery phrases without ever copying raw secret values into findings or logs.
+ * recovery phrases, or uninspectable deep/circular payloads without copying raw secrets.
  */
 export function assessSecretRisk(input: {
   subject: string;
@@ -243,17 +363,14 @@ export function assessSecretRisk(input: {
 
   scanString('subject', input.subject, contextHint, findings);
   scanString('predicate', input.predicate, contextHint, findings);
-  if (
-    (SECRET_KEY_NAMES.has(normalizeKey(input.predicate)) || SECRET_KEY_RE.test(input.predicate.trim())) &&
-    hasNonEmptySecretValue(input.value)
-  ) {
+  if (isSensitiveKeyName(input.predicate) && hasNonEmptySecretValue(input.value)) {
     findings.push({
       category: 'secret_field_name',
       field: 'predicate',
       label: 'Sensitive credential predicate',
     });
   }
-  scanValueRecursive(input.value, 'value', contextHint, findings);
+  scanValueBounded(input.value, 'value', contextHint, findings);
 
   const deduped: SecretRiskFinding[] = [];
   const seen = new Set<string>();
