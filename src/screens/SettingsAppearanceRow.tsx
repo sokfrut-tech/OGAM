@@ -9,7 +9,7 @@ import type { ThemeColors } from '../theme';
 type ThemeMode = 'system' | 'light' | 'dark';
 import type { createStyles } from './SettingsScreen.styles';
 
-interface SettingsВнешний видRowProps {
+interface SettingsAppearanceRowProps {
   focusTrigger: number;
   styles: ReturnType<typeof createStyles>;
   colors: ThemeColors;
@@ -18,7 +18,7 @@ interface SettingsВнешний видRowProps {
 }
 
 /** Система, light or dark. Its own component so the Settings render stays inside the 350-line cap. */
-export const SettingsВнешний видRow: React.FC<SettingsВнешний видRowProps> = ({
+export const SettingsAppearanceRow: React.FC<SettingsAppearanceRowProps> = ({
   focusTrigger,
   styles,
   colors,
