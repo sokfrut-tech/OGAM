@@ -167,11 +167,11 @@ export const ProjectsScreen: React.FC = () => {
       {/* The living field behind the tab, resting while the tab is hidden. */}
       <LivingField active={isFocused} />
       <ScreenHeader
-        title="Projects"
+        title="Проекты"
         variant="tab"
         right={
           <Button
-            title="New"
+            title="Новый"
             variant="primary"
             size="small"
             onPress={handleNewProject}
@@ -182,7 +182,7 @@ export const ProjectsScreen: React.FC = () => {
       />
 
       <Text style={styles.subtitle}>
-        Projects group related chats with shared context and instructions.
+        Проекты объединяют связанные диалоги с общим контекстом и инструкциями.
       </Text>
 
       {projects.length === 0 ? (
@@ -193,16 +193,16 @@ export const ProjectsScreen: React.FC = () => {
             </View>
           </AnimatedEntry>
           <AnimatedEntry index={1} staggerMs={60} trigger={focusTrigger}>
-            <Text style={styles.emptyTitle}>No projects yet</Text>
+            <Text style={styles.emptyTitle}>Проектов пока нет</Text>
           </AnimatedEntry>
           <AnimatedEntry index={2} staggerMs={60} trigger={focusTrigger}>
             <Text style={styles.emptyText}>
-              Keep related chats together, with notes and instructions they all share.
+              Собирай связанные диалоги вместе, добавляй общие заметки и инструкции.
             </Text>
           </AnimatedEntry>
           <AnimatedEntry index={3} staggerMs={60} trigger={focusTrigger}>
             <Button
-              title="New project"
+              title="Создать проект"
               variant="hero"
               size="small"
               icon={<Icon name="plus" size={16} color={colors.onHero} />}
@@ -216,8 +216,8 @@ export const ProjectsScreen: React.FC = () => {
           <ListSearchBar
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search projects"
-            clearLabel="Clear project search"
+            placeholder="Поиск проектов"
+            clearLabel="Очистить поиск проектов"
             testID="project-search-input"
             style={styles.searchBar}
           />
@@ -232,7 +232,7 @@ export const ProjectsScreen: React.FC = () => {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             {...LIST_CLIPPING_PROPS}
-            ListEmptyComponent={<Text style={styles.noMatches}>No projects match your search.</Text>}
+            ListEmptyComponent={<Text style={styles.noMatches}>По запросу ничего не найдено.</Text>}
             testID="project-list"
           />
         </>
