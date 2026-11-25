@@ -1,28 +1,10 @@
 name: Publish existing Jarvis APK as public release
 
 on:
-  workflow_dispatch:
-    inputs:
-      artifact_id:
-        description: "GitHub Actions artifact ID containing the APK"
-        required: true
-        type: string
-        default: "15031006793"
-      source_sha:
-        description: "Commit SHA used to build the APK"
-        required: true
-        type: string
-        default: "750bae3f01ca32c3471c90d95d0367f512737814"
-      release_tag:
-        description: "New release tag"
-        required: true
-        type: string
-        default: "jarvis-ogam-arm64-2026-11-25"
-      expected_sha256:
-        description: "Expected APK SHA-256"
-        required: true
-        type: string
-        default: "85130f7b765787d501a480cdbf8aafcc869b710c3653ddb783b4cf1a43685981"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-jarvis-arm64-release.yml"
 
 permissions:
   actions: read
@@ -31,14 +13,14 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      ARTIFACT_ID: "15031006793"
+      SOURCE_SHA: "750bae3f01ca32c3471c90d95d0367f512737814"
+      RELEASE_TAG: "jarvis-ogam-arm64-2026-11-25"
+      EXPECTED_SHA256: "85130f7b765787d501a480cdbf8aafcc869b710c3653ddb783b4cf1a43685981"
     steps:
-      - name: Validate inputs
+      - name: Validate pinned release inputs
         shell: bash
-        env:
-          ARTIFACT_ID: ${{ inputs.artifact_id }}
-          SOURCE_SHA: ${{ inputs.source_sha }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
-          EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
         run: |
           [[ "$ARTIFACT_ID" =~ ^[0-9]+$ ]]
           [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
@@ -49,7 +31,6 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          ARTIFACT_ID: ${{ inputs.artifact_id }}
         run: |
           curl --fail --silent --show-error --location \
             -H "Authorization: Bearer $GH_TOKEN" \
@@ -62,10 +43,8 @@ jobs:
           test "${#apks[@]}" -eq 1
           echo "APK_PATH=${apks[0]}" >> "$GITHUB_ENV"
 
-      - name: Verify APK checksum and package metadata
+      - name: Verify APK checksum
         shell: bash
-        env:
-          EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
         run: |
           ACTUAL_SHA256=$(sha256sum "$APK_PATH" | awk '{print $1}')
           echo "APK SHA-256: $ACTUAL_SHA256"
@@ -75,9 +54,6 @@ jobs:
       - name: Publish public GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
-          SOURCE_SHA: ${{ inputs.source_sha }}
-          EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
         run: |
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release tag already exists; refusing to overwrite it."
