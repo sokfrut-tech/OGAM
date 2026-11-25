@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, Text, TextInput, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Feather';
@@ -26,142 +26,141 @@ export interface JarvisVideoPanelProps {
   onSelect?: () => void;
 }
 
-const createStyles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-    content: {
-      padding: SPACING.lg,
-      gap: SPACING.md,
-      paddingBottom: SPACING.xxl,
-    },
-    card: {
-      ...cardSurface(colors),
-      padding: SPACING.md,
-      gap: SPACING.sm,
-    },
-    rowBetween: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: SPACING.sm,
-    },
-    titleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACING.sm,
-      flex: 1,
-    },
-    title: {
-      ...TYPOGRAPHY.h2,
-      color: colors.text,
-    },
-    sectionTitle: {
-      ...TYPOGRAPHY.h3,
-      color: colors.text,
-    },
-    body: {
-      ...TYPOGRAPHY.bodySmall,
-      color: colors.textSecondary,
-    },
-    meta: {
-      ...TYPOGRAPHY.meta,
-      color: colors.textMuted,
-    },
-    input: {
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 8,
-      paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.sm,
-      color: colors.text,
-      backgroundColor: colors.surface,
-      minHeight: 72,
-      textAlignVertical: 'top',
-    },
-    actionsRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACING.sm,
-    },
-    primaryButton: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: SPACING.xs,
-      paddingVertical: SPACING.sm,
-      paddingHorizontal: SPACING.md,
-      borderRadius: 8,
-      backgroundColor: colors.primary,
-    },
-    primaryButtonText: {
-      ...TYPOGRAPHY.bodySmall,
-      color: colors.onPrimary,
-    },
-    secondaryButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: SPACING.xs,
-      paddingVertical: SPACING.sm,
-      paddingHorizontal: SPACING.md,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.surface,
-    },
-    secondaryButtonText: {
-      ...TYPOGRAPHY.bodySmall,
-      color: colors.text,
-    },
-    dangerButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: SPACING.xs,
-      paddingVertical: SPACING.sm,
-      paddingHorizontal: SPACING.md,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: colors.error,
-      backgroundColor: colors.errorBackground,
-    },
-    dangerButtonText: {
-      ...TYPOGRAPHY.bodySmall,
-      color: colors.error,
-    },
-    errorBox: {
-      padding: SPACING.sm,
-      borderRadius: 8,
-      backgroundColor: colors.errorBackground,
-      borderWidth: 1,
-      borderColor: colors.error,
-    },
-    errorText: {
-      ...TYPOGRAPHY.bodySmall,
-      color: colors.error,
-    },
-    progressTrack: {
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: colors.surfaceLight,
-      overflow: 'hidden',
-    },
-    progressFill: {
-      height: 6,
-      backgroundColor: colors.primary,
-    },
-    packCard: {
-      ...cardSurface(colors),
-      padding: SPACING.md,
-      gap: SPACING.sm,
-    },
-    packCardSelected: {
-      borderColor: colors.primary,
-    },
-  });
+const createStyles = (colors: ThemeColors) => ({
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: SPACING.lg,
+    gap: SPACING.md,
+    paddingBottom: SPACING.xxl,
+  },
+  card: {
+    ...cardSurface(colors),
+    padding: SPACING.md,
+    gap: SPACING.sm,
+  },
+  rowBetween: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    gap: SPACING.sm,
+  },
+  titleRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.sm,
+    flex: 1,
+  },
+  title: {
+    ...TYPOGRAPHY.h2,
+    color: colors.text,
+  },
+  sectionTitle: {
+    ...TYPOGRAPHY.h3,
+    color: colors.text,
+  },
+  body: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.textSecondary,
+  },
+  meta: {
+    ...TYPOGRAPHY.meta,
+    color: colors.textMuted,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    color: colors.text,
+    backgroundColor: colors.surface,
+    minHeight: 72,
+    textAlignVertical: 'top' as const,
+  },
+  actionsRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.sm,
+  },
+  primaryButton: {
+    flex: 1,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: SPACING.xs,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+  },
+  primaryButtonText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.onPrimary,
+  },
+  secondaryButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: SPACING.xs,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  secondaryButtonText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.text,
+  },
+  dangerButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: SPACING.xs,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.error,
+    backgroundColor: colors.errorBackground,
+  },
+  dangerButtonText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.error,
+  },
+  errorBox: {
+    padding: SPACING.sm,
+    borderRadius: 8,
+    backgroundColor: colors.errorBackground,
+    borderWidth: 1,
+    borderColor: colors.error,
+  },
+  errorText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.error,
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.surfaceLight,
+    overflow: 'hidden' as const,
+  },
+  progressFill: {
+    height: 6,
+    backgroundColor: colors.primary,
+  },
+  packCard: {
+    ...cardSurface(colors),
+    padding: SPACING.md,
+    gap: SPACING.sm,
+  },
+  packCardSelected: {
+    borderColor: colors.primary,
+  },
+});
 
 function packSizeBytes(pack: ModelEntry): number {
   return pack.files.reduce((sum, f) => sum + (f.sizeBytes ?? 0), 0);

@@ -447,7 +447,7 @@ export const TextModelsTab: React.FC<Props> = (props) => {
     // The model you talk to is marked "In use" on its row, the same way every other kind marks it.
     const isActive = downloadedModels.some(model => model.id === activeTextModelId && isFamilyFile(model));
     return (
-      <ModelListItem item={item} index={index} focusTrigger={focusTrigger} isDownloaded={isDownloaded} isActive={isActive} isTrending={trendingAsModelInfo.some(t => t.id === item.id)} onPress={directDownload ?? (() => handleSelectModel(item))} onDownload={directDownload} rowStyle={[GROUPED_CARD_ROW, listGroupRowEnds(index, listData.length)]} />
+      <ModelListItem item={item} index={index} focusTrigger={focusTrigger} isDownloaded={isDownloaded} isActive={isActive} isTrending={trendingAsModelInfo.some(trend => trend.id === item.id)} onPress={directDownload ?? (() => handleSelectModel(item))} onDownload={directDownload} rowStyle={[GROUPED_CARD_ROW, listGroupRowEnds(index, listData.length)]} />
     );
   };
 
@@ -576,6 +576,7 @@ export const TextModelsTab: React.FC<Props> = (props) => {
       ) : (
         <FlatList
           {...LIST_CLIPPING_PROPS}
+          initialNumToRender={24}
           data={listData}
           renderItem={renderModelItem}
           ItemSeparatorComponent={ListGroupSeparator}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { TouchableOpacity } from '../Touchable';
 import { SPACING, TYPOGRAPHY } from '../../constants';
@@ -19,57 +19,56 @@ const BACKEND_OPTIONS: ReadonlyArray<{ id: JarvisVideoBackend; label: string }> 
   { id: 'cpu', label: 'CPU' },
 ];
 
-const createStyles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    card: {
-      ...cardSurface(colors),
-      padding: SPACING.md,
-      gap: SPACING.md,
-      marginTop: SPACING.md,
-    },
-    titleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACING.sm,
-    },
-    title: {
-      ...TYPOGRAPHY.h3,
-      color: colors.text,
-    },
-    subtitle: {
-      ...TYPOGRAPHY.bodySmall,
-      color: colors.textSecondary,
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-      gap: SPACING.sm,
-    },
-    chip: {
-      paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.xs,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.surface,
-    },
-    chipActive: {
-      borderColor: colors.primary,
-      backgroundColor: colors.selectedFill,
-    },
-    chipText: {
-      ...TYPOGRAPHY.bodySmall,
-      color: colors.textSecondary,
-    },
-    chipTextActive: {
-      color: colors.primary,
-    },
-    statusText: {
-      ...TYPOGRAPHY.meta,
-      color: colors.textMuted,
-    },
-  });
+const createStyles = (colors: ThemeColors) => ({
+  card: {
+    ...cardSurface(colors),
+    padding: SPACING.md,
+    gap: SPACING.md,
+    marginTop: SPACING.md,
+  },
+  titleRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.sm,
+  },
+  title: {
+    ...TYPOGRAPHY.h3,
+    color: colors.text,
+  },
+  subtitle: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.textSecondary,
+  },
+  row: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    flexWrap: 'wrap' as const,
+    gap: SPACING.sm,
+  },
+  chip: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  chipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.selectedFill,
+  },
+  chipText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.textSecondary,
+  },
+  chipTextActive: {
+    color: colors.primary,
+  },
+  statusText: {
+    ...TYPOGRAPHY.meta,
+    color: colors.textMuted,
+  },
+});
 
 export const JarvisVideoSettingsSection: React.FC<JarvisVideoSettingsSectionProps> = ({
   alwaysOpen = false,

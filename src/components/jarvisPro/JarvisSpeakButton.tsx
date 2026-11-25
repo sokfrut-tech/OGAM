@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { TouchableOpacity } from '../Touchable';
 import { SPACING, TYPOGRAPHY } from '../../constants';
@@ -13,31 +13,30 @@ export interface JarvisSpeakButtonProps {
   messageId?: string;
 }
 
-const createStyles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    button: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACING.xs,
-      paddingHorizontal: SPACING.sm,
-      paddingVertical: 3,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.surface,
-    },
-    buttonActive: {
-      borderColor: colors.primary,
-      backgroundColor: colors.selectedFill,
-    },
-    label: {
-      ...TYPOGRAPHY.meta,
-      color: colors.textSecondary,
-    },
-    labelActive: {
-      color: colors.primary,
-    },
-  });
+const createStyles = (colors: ThemeColors) => ({
+  button: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.xs,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  buttonActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.selectedFill,
+  },
+  label: {
+    ...TYPOGRAPHY.meta,
+    color: colors.textSecondary,
+  },
+  labelActive: {
+    color: colors.primary,
+  },
+});
 
 export const JarvisSpeakButton: React.FC<JarvisSpeakButtonProps> = ({
   text = '',

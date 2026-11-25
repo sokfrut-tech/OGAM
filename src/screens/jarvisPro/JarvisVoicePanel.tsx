@@ -20,108 +20,107 @@ export interface JarvisVoicePanelProps {
 
 const RATE_OPTIONS = [0.8, 1.0, 1.2, 1.5] as const;
 
-const createStyles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-    content: {
-      padding: SPACING.lg,
-      gap: SPACING.md,
-      paddingBottom: SPACING.xxl,
-    },
-    card: {
-      ...cardSurface(colors),
-      padding: SPACING.md,
-      gap: SPACING.sm,
-    },
-    rowBetween: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: SPACING.sm,
-    },
-    titleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACING.sm,
-      flex: 1,
-    },
-    title: {
-      ...TYPOGRAPHY.h2,
-      color: colors.text,
-    },
-    sectionTitle: {
-      ...TYPOGRAPHY.h3,
-      color: colors.text,
-    },
-    body: {
-      ...TYPOGRAPHY.bodySmall,
-      color: colors.textSecondary,
-    },
-    meta: {
-      ...TYPOGRAPHY.meta,
-      color: colors.textMuted,
-    },
-    badge: {
-      paddingHorizontal: SPACING.sm,
-      paddingVertical: 3,
-      borderRadius: 999,
-      backgroundColor: colors.selectedFill,
-      borderWidth: 1,
-      borderColor: colors.primary,
-    },
-    badgeText: {
-      ...TYPOGRAPHY.meta,
-      color: colors.primary,
-    },
-    chipRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: SPACING.sm,
-    },
-    chip: {
-      paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.xs,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.surface,
-    },
-    chipActive: {
-      borderColor: colors.primary,
-      backgroundColor: colors.selectedFill,
-    },
-    chipText: {
-      ...TYPOGRAPHY.bodySmall,
-      color: colors.textSecondary,
-    },
-    chipTextActive: {
-      color: colors.primary,
-    },
-    primaryButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: SPACING.xs,
-      paddingVertical: SPACING.sm,
-      paddingHorizontal: SPACING.md,
-      borderRadius: 8,
-      backgroundColor: colors.primary,
-    },
-    primaryButtonText: {
-      ...TYPOGRAPHY.body,
-      color: colors.onPrimary,
-    },
-    voiceRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: SPACING.xs,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
-    },
-  });
+const createStyles = (colors: ThemeColors) => ({
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: SPACING.lg,
+    gap: SPACING.md,
+    paddingBottom: SPACING.xxl,
+  },
+  card: {
+    ...cardSurface(colors),
+    padding: SPACING.md,
+    gap: SPACING.sm,
+  },
+  rowBetween: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    gap: SPACING.sm,
+  },
+  titleRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.sm,
+    flex: 1,
+  },
+  title: {
+    ...TYPOGRAPHY.h2,
+    color: colors.text,
+  },
+  sectionTitle: {
+    ...TYPOGRAPHY.h3,
+    color: colors.text,
+  },
+  body: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.textSecondary,
+  },
+  meta: {
+    ...TYPOGRAPHY.meta,
+    color: colors.textMuted,
+  },
+  badge: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: colors.selectedFill,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  badgeText: {
+    ...TYPOGRAPHY.meta,
+    color: colors.primary,
+  },
+  chipRow: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: SPACING.sm,
+  },
+  chip: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  chipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.selectedFill,
+  },
+  chipText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.textSecondary,
+  },
+  chipTextActive: {
+    color: colors.primary,
+  },
+  primaryButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: SPACING.xs,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+  },
+  primaryButtonText: {
+    ...TYPOGRAPHY.body,
+    color: colors.onPrimary,
+  },
+  voiceRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingVertical: SPACING.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+});
 
 export const JarvisVoicePanel: React.FC<JarvisVoicePanelProps> = ({
   showRemoteModels = false,

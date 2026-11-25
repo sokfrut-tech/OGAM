@@ -20,110 +20,109 @@ import { useTheme, useThemedStyles } from '../../theme';
 import type { ThemeColors } from '../../theme';
 import { cardSurface } from '../../theme/surface';
 
-const createStyles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-    content: {
-      padding: SPACING.lg,
-      gap: SPACING.md,
-      paddingBottom: SPACING.xxl,
-    },
-    card: {
-      ...cardSurface(colors),
-      padding: SPACING.md,
-      gap: SPACING.sm,
-    },
-    rowBetween: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: SPACING.sm,
-    },
-    sectionTitle: {
-      ...TYPOGRAPHY.h3,
-      color: colors.text,
-    },
-    body: {
-      ...TYPOGRAPHY.bodySmall,
-      color: colors.textSecondary,
-    },
-    meta: {
-      ...TYPOGRAPHY.meta,
-      color: colors.textMuted,
-    },
-    toolRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: SPACING.xs,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
-      gap: SPACING.sm,
-    },
-    toolTextCol: {
-      flex: 1,
-      gap: 2,
-    },
-    actionsRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACING.sm,
-    },
-    primaryButton: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: SPACING.xs,
-      paddingVertical: SPACING.sm,
-      paddingHorizontal: SPACING.md,
-      borderRadius: 8,
-      backgroundColor: colors.primary,
-    },
-    primaryButtonText: {
-      ...TYPOGRAPHY.bodySmall,
-      color: colors.onPrimary,
-    },
-    secondaryButton: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: SPACING.xs,
-      paddingVertical: SPACING.sm,
-      paddingHorizontal: SPACING.md,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.surface,
-    },
-    secondaryButtonText: {
-      ...TYPOGRAPHY.bodySmall,
-      color: colors.text,
-    },
-    iconActionButton: {
-      padding: SPACING.xs,
-      borderRadius: 6,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.surface,
-    },
-    input: {
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 8,
-      paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.sm,
-      color: colors.text,
-      backgroundColor: colors.surface,
-    },
-    errorText: {
-      ...TYPOGRAPHY.bodySmall,
-      color: colors.error,
-    },
-  });
+const createStyles = (colors: ThemeColors) => ({
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: SPACING.lg,
+    gap: SPACING.md,
+    paddingBottom: SPACING.xxl,
+  },
+  card: {
+    ...cardSurface(colors),
+    padding: SPACING.md,
+    gap: SPACING.sm,
+  },
+  rowBetween: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    gap: SPACING.sm,
+  },
+  sectionTitle: {
+    ...TYPOGRAPHY.h3,
+    color: colors.text,
+  },
+  body: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.textSecondary,
+  },
+  meta: {
+    ...TYPOGRAPHY.meta,
+    color: colors.textMuted,
+  },
+  toolRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingVertical: SPACING.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+    gap: SPACING.sm,
+  },
+  toolTextCol: {
+    flex: 1,
+    gap: 2,
+  },
+  actionsRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.sm,
+  },
+  primaryButton: {
+    flex: 1,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: SPACING.xs,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+  },
+  primaryButtonText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.onPrimary,
+  },
+  secondaryButton: {
+    flex: 1,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: SPACING.xs,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  secondaryButtonText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.text,
+  },
+  iconActionButton: {
+    padding: SPACING.xs,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    color: colors.text,
+    backgroundColor: colors.surface,
+  },
+  errorText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: colors.error,
+  },
+});
 
 export const JarvisProToolsScreen: React.FC = () => {
   const { colors } = useTheme();

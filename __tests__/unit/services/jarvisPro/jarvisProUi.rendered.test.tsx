@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import { NativeModules } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
+import DeviceInfo from 'react-native-device-info';
 import RNFS from 'react-native-fs';
 import { JarvisSpeakButton } from '../../../../src/components/jarvisPro/JarvisSpeakButton';
 import {
@@ -12,7 +13,7 @@ import { JarvisProToolsScreen } from '../../../../src/screens/jarvisPro/JarvisPr
 import { JarvisVideoPanel } from '../../../../src/screens/jarvisPro/JarvisVideoPanel';
 import { JarvisVoicePanel } from '../../../../src/screens/jarvisPro/JarvisVoicePanel';
 import { hardwareService } from '../../../../src/services/hardware';
-import { completeVideoPacks } from '../../../../src/services/phoneVideoPacks';
+import { completeVideoPacks, videoPacksForPhone } from '../../../../src/services/phoneVideoPacks';
 import { useAppStore } from '../../../../src/stores/appStore';
 import { useJarvisProStore } from '../../../../src/stores/jarvisProStore';
 import { withNavigatorRoutes } from '../../../harness/realNavigation';
@@ -26,9 +27,11 @@ jest.mock('react-native-vector-icons/Feather', () => {
 
 describe('Jarvis Pro UI Components and Screens', () => {
   const originalFetch = global.fetch;
+  const originalPlatformOs = Platform.OS;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (Platform as { OS: string }).OS = 'android';
     useJarvisProStore.setState({
       ttsAutoSpeak: false,
       ttsRate: 1.0,
@@ -67,8 +70,11 @@ describe('Jarvis Pro UI Components and Screens', () => {
     };
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.restoreAllMocks();
+    (Platform as { OS: string }).OS = originalPlatformOs;
+    (DeviceInfo.getTotalMemory as jest.Mock).mockResolvedValue(8 * 1024 * 1024 * 1024);
+    await hardwareService.refreshMemoryInfo();
     global.fetch = originalFetch;
     delete NativeModules.JarvisAndroidTtsModule;
     delete NativeModules.VideoGenerationModule;
@@ -124,9 +130,23 @@ describe('Jarvis Pro UI Components and Screens', () => {
   });
 
   it('renders JarvisVideoPanel with empty prompt error, generation, and pack actions', async () => {
-    jest.spyOn(RNFS, 'exists').mockResolvedValue(false);
-    jest.spyOn(hardwareService, 'getTotalMemoryGB').mockReturnValue(12);
-    const pack = completeVideoPacks()[0];
+    (DeviceInfo.getTotalMemory as jest.Mock).mockResolvedValue(12 * 1024 * 1024 * 1024);
+    await hardwareService.refreshMemoryInfo();
+    const pack = videoPacksForPhone(12)[0] ?? completeVideoPacks()[0];
+    expect(pack).toBeDefined();
+    jest.spyOn(RNFS, 'exists').mockImplementation(async (p: string) => {
+      if (p.endsWith('/video-models')) return true;
+      return p.includes(encodeURIComponent(pack.id));
+    });
+    jest.spyOn(RNFS, 'readDir').mockResolvedValue(
+      pack.files.map(f => ({
+        name: f.name,
+        path: `/tmp/${f.name}`,
+        size: 1024,
+        isFile: () => true,
+        isDirectory: () => false,
+      })) as any,
+    );
 
     const onSelect = jest.fn();
     const ui = render(
@@ -138,10 +158,9 @@ describe('Jarvis Pro UI Components and Screens', () => {
     fireEvent.press(ui.getByTestId('jarvis-video-generate-button'));
     expect(ui.getByText('Введите описание сцены для генерации видео.')).toBeTruthy();
 
-    useJarvisProStore.setState({
-      downloadedVideoPackIds: [pack.id],
-      selectedVideoPackId: pack.id,
-    });
+    await waitFor(() =>
+      expect(ui.getByTestId(`jarvis-video-pack-select-${pack.id}`)).toBeTruthy(),
+    );
     fireEvent.press(ui.getByTestId(`jarvis-video-pack-select-${pack.id}`));
     expect(onSelect).toHaveBeenCalled();
 

@@ -1,4 +1,5 @@
-import { DeviceEventEmitter, NativeModules } from 'react-native';
+import { DeviceEventEmitter, NativeModules, Platform } from 'react-native';
+import DeviceInfo from 'react-native-device-info';
 import RNFS from 'react-native-fs';
 import { HOOKS, callHook, hasHook } from '../../../../src/bootstrap/hookRegistry';
 import { SLOTS, getSlot } from '../../../../src/bootstrap/slotRegistry';
@@ -31,9 +32,11 @@ import { useJarvisProStore } from '../../../../src/stores/jarvisProStore';
 
 describe('Jarvis Pro Store and Services', () => {
   const originalFetch = global.fetch;
+  const originalPlatformOs = Platform.OS;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (Platform as { OS: string }).OS = 'android';
     _clearScreensForTesting();
     _clearExtensionsForTesting();
     useJarvisProStore.setState({
@@ -68,8 +71,11 @@ describe('Jarvis Pro Store and Services', () => {
     };
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.restoreAllMocks();
+    (Platform as { OS: string }).OS = originalPlatformOs;
+    (DeviceInfo.getTotalMemory as jest.Mock).mockResolvedValue(8 * 1024 * 1024 * 1024);
+    await hardwareService.refreshMemoryInfo();
     global.fetch = originalFetch;
     delete NativeModules.JarvisAndroidTtsModule;
     delete NativeModules.VideoGenerationModule;
@@ -156,7 +162,8 @@ describe('Jarvis Pro Store and Services', () => {
       })) as any,
     );
     jest.spyOn(RNFS, 'mkdir').mockResolvedValue(undefined as any);
-    jest.spyOn(hardwareService, 'getTotalMemoryGB').mockReturnValue(12);
+    (DeviceInfo.getTotalMemory as jest.Mock).mockResolvedValue(12 * 1024 * 1024 * 1024);
+    await hardwareService.refreshMemoryInfo();
 
     const scanned = await jarvisVideoService.scanDownloadedVideoPacks();
     expect(scanned).toContain(pack.id);
