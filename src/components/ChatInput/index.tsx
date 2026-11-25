@@ -168,7 +168,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onStop,
   disabled,
   isGenerating,
-  placeholder = 'Message',
+  placeholder = 'Напиши сообщение',
   supportsVision = false,
   visionNeedsRepair = false,
   conversationId,
@@ -634,7 +634,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     <TouchableOpacity
       testID="send-button"
       accessibilityRole="button"
-      accessibilityLabel={isGenerating ? 'Queue message' : 'Send message'}
+      accessibilityLabel={isGenerating ? 'Добавить в очередь' : 'Отправить сообщение'}
       accessibilityHint={isGenerating ? 'Long press to stop the reply and send now' : undefined}
       style={styles.circleButton}
       onPress={() => handleSend()}
@@ -646,7 +646,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     <TouchableOpacity
       testID="stop-button"
       accessibilityRole="button"
-      accessibilityLabel="Stop reply"
+      accessibilityLabel="Остановить ответ"
       style={[styles.circleButton, styles.circleButtonStop]}
       onPress={handleStop}
     >
@@ -714,7 +714,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 variant="ghost"
                 size="small"
                 testID="assistant-toggle"
-                accessibilityLabel="Assistant"
+                accessibilityLabel="Джарвис"
                 accessibilityState={{
                   selected: assistantEnabled,
                   busy: assistantTransitioning,
@@ -739,7 +739,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 onChangeText={setMessage}
                 onSelectionChange={e => setSelection(e.nativeEvent.selection)}
                 placeholder={
-                  imageMode === 'video' ? 'Describe a video' : imageMode === 'force' ? 'Describe a picture' : placeholder
+                  imageMode === 'video' ? 'Опиши видео' : imageMode === 'force' ? 'Опиши изображение' : placeholder
                 }
                 placeholderTextColor={colors.textMuted}
                 multiline
