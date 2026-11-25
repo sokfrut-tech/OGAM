@@ -1,36 +1,12 @@
-import { NativeModules, Platform } from 'react-native';
-
 const en = require('./en.json') as Record<string, string>;
 const ru = require('./ru.json') as Record<string, string>;
 
 export type AppLocale = 'en' | 'ru';
 export type TranslationKey = keyof typeof en;
 
-function detectLocale(): AppLocale {
-  const native = NativeModules as {
-    SettingsManager?: { settings?: { AppleLocale?: string; AppleLanguages?: string[] } };
-    I18nManager?: { localeIdentifier?: string };
-    PlatformConstants?: { LocaleIdentifier?: string; localeIdentifier?: string };
-  };
-  const intlLocale = Intl.DateTimeFormat().resolvedOptions().locale;
-  const candidates = [
-    intlLocale,
-    ...(Platform.OS === 'ios' ? [
-        native.SettingsManager?.settings?.AppleLocale,
-        native.SettingsManager?.settings?.AppleLanguages?.[0],
-        native.I18nManager?.localeIdentifier,
-      ] : [
-        native.I18nManager?.localeIdentifier,
-        native.PlatformConstants?.LocaleIdentifier,
-        native.PlatformConstants?.localeIdentifier,
-      ]),
-  ];
-  const deviceLocale = candidates.find(value => typeof value === 'string' && value.length > 0) ?? 'en';
-  return deviceLocale.replace('_', '-').toLowerCase().startsWith('ru') ? 'ru' : 'en';
-}
-
-/** The fork follows the device language and currently ships English + Russian. */
-export const locale: AppLocale = detectLocale();
+/** Jarvis is a Russian-first assistant build; the UI must not inherit an English
+ * Hermes default locale on Android or the user's unrelated system language. */
+export const locale: AppLocale = 'ru';
 
 export function t(
   key: TranslationKey,
