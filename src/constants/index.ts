@@ -138,19 +138,11 @@ export const APP_CONFIG = {
   modelStorageDir: 'models',
   whisperStorageDir: 'whisper-models',
   maxConcurrentDownloads: 1,
-  defaultSystemPrompt: `You are Off Grid AI, an assistant that runs entirely on this phone. Nothing the user types leaves the device, and you work with no internet connection. You are not in a browser and not on a server.
+  defaultSystemPrompt: `Ты — Джарвис, русскоязычный ИИ-помощник на этом телефоне. По умолчанию отвечай по-русски. Работай локально, когда выбрана локальная модель; не утверждай, что запрос офлайн, если активна удалённая модель. Не отправляй данные пользователя с устройства без его явного разрешения.
 
-Answer everyday questions straight from what you know: colours, facts, words, maths, ideas. You need nothing else for those, so never say you lack access or a tool for them.
+Отвечай точно и по делу. Не выдумывай факты, результаты действий или доступ к функциям телефона. Когда не знаешь ответа, прямо скажи об этом. Перед потенциально опасными действиями проси подтверждение.
 
-In this app the user can chat with you, make images, attach documents and photos for you to read, and keep related chats together in projects.
-
-Your answers should be:
-- Accurate: never make up information
-- Concise but complete: answer the question fully, without padding
-- Helpful and friendly: solve the user's actual need
-- Honest about limits: if you don't know, say so
-
-If asked about yourself, say you are Off Grid AI, running privately on this phone.`,
+Помогай с обычными вопросами, анализом документов и изображений, а также с доступными инструментами приложения. Если спрашивают, кто ты, отвечай: «Я Джарвис AI — помощник на этом телефоне».`,
   streamingEnabled: true,
   maxContextLength: 4096, // Default context window; eliminates double-init on models that support ≥4096
 };
@@ -170,38 +162,38 @@ import { boostPromoCopy } from '../utils/boostPromo';
 export const ONBOARDING_SLIDES: readonly OnboardingSlide[] = [
   {
     id: 'freedom',
-    keyword: 'YOURS',
-    title: 'Your AI.\nNo Strings Attached.',
+    keyword: 'ТВОЙ',
+    title: 'Твой ИИ.\nТолько для тебя.',
     description:
-      'No subscriptions, no sign-ups, no company reading your chats. An AI that lives on your device and answers to no one else.',
+      'Без подписок и регистрации. Твои диалоги остаются твоими. ИИ работает на устройстве и подчиняется только тебе.',
   },
   {
     id: 'magic',
-    keyword: 'MAGIC',
-    title: 'Just Talk.\nIt Figures Out the Rest.',
+    keyword: 'ПРОСТО',
+    title: 'Говори как обычно.\nОстальное сделает ИИ.',
     description:
-      'Describe an image \u2014 it creates one. Show it a photo \u2014 it understands. Attach a document \u2014 it reads it. One conversation, no modes, no friction.',
+      'Опиши изображение — ИИ создаст его. Покажи фотографию — он её поймёт. Прикрепи документ — он прочитает его. Всё в одном диалоге.',
   },
   {
     id: 'create',
-    keyword: 'CREATE',
-    title: 'Say It Simply.\nGet Something Stunning.',
+    keyword: 'СОЗДАВАЙ',
+    title: 'Опиши идею.\nПолучи результат.',
     description:
-      'Type \u201Cimagine a cat on the moon\u201D and watch your words become a vivid image in seconds. AI enhances your ideas automatically \u2014 no prompt engineering needed.',
+      'Напиши, например: «кот на Луне», и преврати слова в изображение. ИИ поможет оформить идею — специальные команды не нужны.',
   },
   {
     // The private cloud offer (shared copy): models too big for the phone, on our servers.
     id: 'boost',
-    keyword: 'BIGGER',
-    title: 'Smarter Answers,\nWithout a Bigger Phone.',
+    keyword: 'МОЩНЕЕ',
+    title: 'Более сильные ответы\nбез нового телефона.',
     description: boostPromoCopy('phone').body,
   },
   {
     id: 'hardware',
-    keyword: 'READY',
-    title: 'Powered\nYour Way.',
+    keyword: 'ГОТОВ',
+    title: 'Выбирай, как\nработает твой ИИ.',
     description:
-      'Run models on your phone with Metal and Neural Engine acceleration \u2014 or connect to powerful models already on your home network. We\u2019ll find the best setup for you.',
+      'Запускай модели прямо на телефоне или подключай модели в домашней сети. Подберём подходящий вариант.',
   },
 ];
 
