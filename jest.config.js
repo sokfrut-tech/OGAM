@@ -78,6 +78,8 @@ const proDependentTestPaths = [
   '__tests__/unit/sync/sharedFileSyncService.test.ts',
   '__tests__/unit/sync/sharedFileTransfer.test.ts',
   '__tests__/unit/sync/transferHistoryStore.test.ts',
+  '__tests__/integration/generation/toolExtensionLoop.test.ts',
+  '__tests__/hardening/batch5-speakMessageStateMachine.test.ts',
 ];
 
 module.exports = {

@@ -290,7 +290,7 @@ export interface TransportRoute {
 export interface DiscoveryService {
   start(): Promise<void>;
   startBrowsing?(): Promise<void>;
-  stopBrowsing(): Promise<void>;
+  stopBrowsing?(): Promise<void>;
   rescan(): Promise<void>;
   advertise(device?: DeviceInfo): Promise<void>;
   stopAdvertising(): Promise<void>;
