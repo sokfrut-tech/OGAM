@@ -291,7 +291,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   onPress={() => navigation.navigate('Guide')}
                   style={styles.crownButton}
                   accessibilityRole="button"
-                  accessibilityLabel="What it does for you"
+                  accessibilityLabel="Что умеет Джарвис"
                   testID="home-guide-button"
                 >
                   <Icon name="info" size={18} color={colors.textSecondary} />
@@ -303,7 +303,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   onPress={() => getPro('home-crown')}
                   style={styles.crownButton}
                   accessibilityRole="button"
-                  accessibilityLabel="Open Off Grid AI Pro"
+                  accessibilityLabel="Открыть Джарвис AI Pro"
                 >
                   <IconMC name="crown" size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
@@ -354,12 +354,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <Card style={styles.setupCard} testID="setup-card">
               <Text style={styles.setupText}>
                 {downloadedModels.length > 0 || remoteTextModels.length > 0
-                  ? 'Select a text, image, or video model to start'
-                  : 'Choose a model here or on your network.'}
+                  ? 'Выберите текстовую модель, модель изображений или видео, чтобы начать'
+                  : 'Выберите модель на телефоне или в локальной сети.'}
               </Text>
               <View style={styles.setupActions}>
                 <Button
-                  title="Add Remote Server"
+                  title="Добавить удалённый сервер"
                   variant="outline"
                   size="small"
                   onPress={() => navigation.navigate('RemoteServers')}
@@ -368,8 +368,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 <Button
                   title={
                     downloadedModels.length > 0 || remoteTextModels.length > 0
-                      ? 'Select Model'
-                      : 'Browse Models'
+                      ? 'Выбрать модель'
+                      : 'Каталог моделей'
                   }
                   variant="outline"
                   size="small"
@@ -419,14 +419,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 hapticType="selection"
                 testID="home-gallery-card"
                 accessibilityRole="button"
-                accessibilityLabel={`Gallery, ${generatedImages.length} images, ${generatedVideos.length} videos`}
+                accessibilityLabel={`Галерея: изображений — ${generatedImages.length}, видео — ${generatedVideos.length}`}
               >
                 <Icon name="grid" size={18} color={colors.textSecondary} />
                 <View style={styles.galleryCardInfo}>
-                  <Text style={styles.galleryCardTitle}>Gallery</Text>
+                  <Text style={styles.galleryCardTitle}>Галерея</Text>
                   <Text style={styles.galleryCardMeta}>
-                    {generatedImages.length} images · {generatedVideos.length}{' '}
-                    videos
+                    {generatedImages.length} изображений · {generatedVideos.length} видео
                   </Text>
                 </View>
                 <Icon name="chevron-right" size={16} color={colors.textMuted} />
@@ -442,12 +441,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 hapticType="selection"
                 testID="home-notes-card"
                 accessibilityRole="button"
-                accessibilityLabel={notesUnlocked ? 'Notes' : 'Notes, part of Off Grid AI Pro'}
+                accessibilityLabel={notesUnlocked ? 'Заметки' : 'Заметки — часть Джарвис AI Pro'}
               >
                 <Icon name="file-text" size={18} color={colors.textSecondary} />
                 <View style={styles.galleryCardInfo}>
-                  <Text style={styles.galleryCardTitle}>Notes</Text>
-                  <Text style={styles.galleryCardMeta} numberOfLines={1}>Write privately, with your model's help.</Text>
+                  <Text style={styles.galleryCardTitle}>Заметки</Text>
+                  <Text style={styles.galleryCardMeta} numberOfLines={1}>Пиши заметки с помощью своей модели.</Text>
                 </View>
                 {notesUnlocked ? null : (
                   <IconMC name="crown" size={14} color={colors.textMuted} />
@@ -465,12 +464,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 hapticType="selection"
                 testID="home-vault-card"
                 accessibilityRole="button"
-                accessibilityLabel={vaultUnlocked ? 'Vault' : 'Vault, part of Off Grid AI Pro'}
+                accessibilityLabel={vaultUnlocked ? 'Защищённое хранилище' : 'Защищённое хранилище — часть Джарвис AI Pro'}
               >
                 <Icon name="lock" size={18} color={colors.textSecondary} />
                 <View style={styles.galleryCardInfo}>
-                  <Text style={styles.galleryCardTitle}>Vault</Text>
-                  <Text style={styles.galleryCardMeta} numberOfLines={1}>Your passwords, sealed on this phone.</Text>
+                  <Text style={styles.galleryCardTitle}>Хранилище</Text>
+                  <Text style={styles.galleryCardMeta} numberOfLines={1}>Пароли хранятся на этом телефоне.</Text>
                 </View>
                 {vaultUnlocked ? null : (
                   <IconMC name="crown" size={14} color={colors.textMuted} />
@@ -482,19 +481,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 style={styles.galleryCard}
                 onPress={() =>
                   openSupportEmail({
-                    subject: '[Idea] Off Grid AI Mobile',
-                    body: 'Hi,\n\nI would like to see this in Off Grid AI Mobile:\n\n',
+                    subject: '[Идея] Джарвис AI',
+                    body: 'Здравствуйте!\n\nПредлагаю добавить в Джарвис AI:\n\n',
                   })
                 }
                 hapticType="selection"
                 testID="home-support-email"
                 accessibilityRole="button"
-                accessibilityLabel="What should we build next? Write to us."
+                accessibilityLabel="Что добавить в Джарвис? Напишите нам."
               >
                 <Icon name="message-square" size={18} color={colors.textSecondary} />
                 <View style={styles.galleryCardInfo}>
-                  <Text style={styles.galleryCardTitle}>What should we build next?</Text>
-                  <Text style={styles.galleryCardMeta} numberOfLines={1}>Tell us, and it may be in the next update.</Text>
+                  <Text style={styles.galleryCardTitle}>Что добавить в Джарвис?</Text>
+                  <Text style={styles.galleryCardMeta} numberOfLines={1}>Напишите нам — рассмотрим для следующих обновлений.</Text>
                 </View>
                 <Icon name="mail" size={16} color={colors.textMuted} />
               </AnimatedPressable>
