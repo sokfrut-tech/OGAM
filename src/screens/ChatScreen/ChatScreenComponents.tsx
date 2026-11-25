@@ -39,12 +39,12 @@ export const NoModelScreen: React.FC<{
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
-          accessibilityLabel="Back"
+          accessibilityLabel="Назад"
         >
           <Icon name="arrow-left" size={20} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>New chat</Text>
+          <Text style={styles.headerTitle}>Новый диалог</Text>
         </View>
         <View style={styles.headerActions} />
       </View>
@@ -53,15 +53,15 @@ export const NoModelScreen: React.FC<{
       <View style={styles.noModelIconContainer}>
         <Icon name="cpu" size={32} color={colors.textMuted} />
       </View>
-      <Text style={styles.noModelTitle}>No Model Selected</Text>
+      <Text style={styles.noModelTitle}>Модель не выбрана</Text>
       <Text style={styles.noModelText}>
         {hasAvailableModels
-          ? 'Select a text or image model to get started.'
-          : 'Download a text or image model from the Models tab to get started.'}
+          ? 'Выбери текстовую модель или модель изображений, чтобы начать.'
+          : 'Скачай текстовую модель или модель изображений во вкладке «Модели», чтобы начать.'}
       </Text>
       {hasAvailableModels && (
         <TouchableOpacity style={styles.selectModelButton} onPress={() => setShowModelSelector(true)}>
-          <Text style={styles.selectModelButtonText}>Select Model</Text>
+          <Text style={styles.selectModelButtonText}>Выбрать модель</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -77,9 +77,9 @@ export const NoModelScreen: React.FC<{
 
 /** What a new person can ask straight away: everyday, answered well by a small on-device model. */
 export const STARTER_PROMPTS = [
-  'Plan a relaxed weekend near the mountains',
-  'Explain how compound interest works',
-  'Write a short, kind thank-you note',
+  'Составь план спокойных выходных в горах',
+  'Объясни, как работают сложные проценты',
+  'Напиши короткую и добрую благодарность',
 ] as const;
 
 export const ChatHeader: React.FC<{
@@ -120,14 +120,14 @@ export const ChatHeader: React.FC<{
             onPress={onOpenModels}
             testID="model-selector"
             accessibilityRole="button"
-            accessibilityLabel={`Model: ${modelName || 'none'}${isRemote ? ', on a remote server' : ''}. Change model`}
+            accessibilityLabel={`Model: ${modelName || 'не выбрана'}${isRemote ? ', на удалённом сервере' : ''}. Изменить модель`}
           >
             {isRemote && (
               <Icon name="cloud" size={12} color={colors.primary} style={styles.remoteIcon} />
             )}
             <Icon name="layers" size={12} color={colors.textSecondary} style={styles.remoteIcon} />
             <Text style={styles.headerSubtitle} numberOfLines={1} testID="model-loaded-indicator">
-              {modelName || 'Models'}
+              {modelName || 'Модели'}
             </Text>
             <Text style={styles.modelSelectorArrow}>▼</Text>
           </TouchableOpacity>
@@ -136,11 +136,11 @@ export const ChatHeader: React.FC<{
             style={[styles.headerProjectRow, styles.headerProjectTarget]}
             onPress={() => setShowProjectSelector(true)}
             accessibilityRole="button"
-            accessibilityLabel={`Project: ${activeProject ? activeProject.name : 'Default'}. Change project`}
+            accessibilityLabel={`Project: ${activeProject ? activeProject.name : 'По умолчанию'}. Изменить проект`}
           >
             <Icon name="folder" size={11} color={colors.textMuted} />
             <Text style={[styles.headerSubtitle, { color: colors.textMuted }]} numberOfLines={1}>
-              {activeProject ? activeProject.name : 'Default'}
+              {activeProject ? activeProject.name : 'По умолчанию'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -154,12 +154,12 @@ export const ChatHeader: React.FC<{
             onPress={onOpenDocuments}
             testID="chat-documents-icon"
             accessibilityRole="button"
-            accessibilityLabel={`Documents in this chat: ${documentCount}`}
+            accessibilityLabel={`Документов в диалоге: ${documentCount}`}
           >
             <Icon name="file-text" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={styles.iconButton} onPress={() => setShowSettingsPanel(true)} testID="chat-settings-icon" accessibilityRole="button" accessibilityLabel="Chat settings" hitSlop={7}>
+        <TouchableOpacity style={styles.iconButton} onPress={() => setShowSettingsPanel(true)} testID="chat-settings-icon" accessibilityRole="button" accessibilityLabel="Настройки диалога" hitSlop={7}>
           <Icon name="sliders" size={16} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
@@ -185,14 +185,14 @@ export const EmptyChat: React.FC<{
       </View>
     </AnimatedEntry>
     <AnimatedEntry index={1} staggerMs={60}>
-      <Text style={styles.emptyChatTitle}>What's on your mind?</Text>
+      <Text style={styles.emptyChatTitle}>О чём поговорим?</Text>
     </AnimatedEntry>
     <AnimatedEntry index={2} staggerMs={60}>
       <Text style={styles.emptyChatText} testID="empty-chat-hint">
         {/* With no model chosen yet, no name: never "Unknown". */}
         {activeModelName || activeModel?.name
-          ? `Ask anything. ${activeModelName || activeModel?.name} answers.`
-          : 'Ask anything.'}
+          ? `Задай вопрос — ${activeModelName || activeModel?.name} ответит.`
+          : 'Задай любой вопрос.'}
       </Text>
     </AnimatedEntry>
     {onStarter && (
@@ -217,15 +217,15 @@ export const EmptyChat: React.FC<{
       <TouchableOpacity style={styles.projectHint} onPress={() => setShowProjectSelector(true)}>
         <Icon name="folder" size={13} color={colors.textMuted} />
         <Text style={styles.projectHintText}>
-          Project: {activeProject?.name || 'Default'} · Change
+          Проект: {activeProject?.name || 'По умолчанию'} · Изменить
         </Text>
       </TouchableOpacity>
     </AnimatedEntry>
     <AnimatedEntry index={5} staggerMs={60}>
       <Text style={styles.privacyText}>
         {isRemote
-          ? 'This chat runs on a remote server, not on this phone.'
-          : 'Your chats and files never leave your device.'}
+          ? 'Этот диалог обрабатывается на удалённом сервере, а не на телефоне.'
+          : 'Твои диалоги и файлы остаются на этом устройстве.'}
       </Text>
     </AnimatedEntry>
   </View>
@@ -261,7 +261,7 @@ export const ImageProgressIndicator: React.FC<{
             )}
             <View style={styles.imageProgressInfo}>
               <Text style={styles.imageProgressTitle}>
-                {imagePreviewPath ? 'Refining Image' : 'Generating Image'}
+                {imagePreviewPath ? 'Уточняю изображение' : 'Создаю изображение'}
               </Text>
               {imageGenerationStatus && (
                 <Text style={styles.imageProgressStatus}>{imageGenerationStatus}</Text>
@@ -323,11 +323,11 @@ export const ImageViewerModal: React.FC<{
             )}
             <TouchableOpacity style={styles.imageViewerButton} onPress={onSave}>
               <Icon name="download" size={24} color={colors.text} />
-              <Text style={styles.imageViewerButtonText}>Save</Text>
+              <Text style={styles.imageViewerButtonText}>Сохранить</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.imageViewerButton} onPress={onClose}>
               <Icon name="x" size={24} color={colors.text} />
-              <Text style={styles.imageViewerButtonText}>Close</Text>
+              <Text style={styles.imageViewerButtonText}>Закрыть</Text>
             </TouchableOpacity>
           </View>
         </View>
