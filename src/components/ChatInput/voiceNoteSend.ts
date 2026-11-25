@@ -150,10 +150,10 @@ export function buildVoiceNoteHandlers(deps: VoiceNoteHandlerDeps) {
   const onAutoSend = deps.isAudioMode || deps.autoSendVoiceInput
     ? (
         text: string,
-        audio: { uri: string; format: 'wav' | 'mp3'; durationSeconds: number },
+        audio?: { uri: string; format: 'wav' | 'mp3'; durationSeconds: number },
       ) => {
         if (deps.isAudioMode) {
-          sendVoiceNote(text, buildVoiceAttachment(audio));
+          sendVoiceNote(text, audio?.uri ? buildVoiceAttachment(audio) : undefined);
         } else if (isStandalone()) {
           // The system assistant sends recognized text only; regular Audio Mode may
           // preserve its audio attachment for multimodal models.

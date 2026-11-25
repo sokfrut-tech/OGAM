@@ -5,6 +5,9 @@
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE" />
         </intent>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
     </queries>
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -17,6 +20,8 @@
 
     <!-- For voice recording -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- For explicit timer and alarm actions via system AlarmClock UI -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
 
     <!-- Requested only when the user opens the QR scanner. -->
     <uses-permission android:name="android.permission.CAMERA" />

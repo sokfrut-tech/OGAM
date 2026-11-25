@@ -34,6 +34,7 @@ import {
 import { deriveVoiceButtonState } from './derive';
 import { useWhisperStore } from '../../stores';
 import { useMicPermissionDenied } from '../../hooks/useMicPermissionDenied';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 import logger from '../../utils/logger';
 import {
   buildVoiceRecordGesture,
@@ -123,15 +124,17 @@ const MicDeniedButton: React.FC<{ asSendButton: boolean }> = ({ asSendButton }) 
         testID="voice-record-button-mic-denied"
         style={styles.buttonWrapper}
         accessibilityRole="button"
-        accessibilityLabel="Microphone access is off"
+        accessibilityLabel={isJarvisStandaloneRuntime ? 'Доступ к микрофону отключён' : 'Microphone access is off'}
         onPress={() =>
           setAlertState(
             showAlert(
-              'Microphone Access Is Off',
-              'Turn on microphone access for Off Grid AI in Settings to talk instead of type.',
+              isJarvisStandaloneRuntime ? 'Нет доступа к микрофону' : 'Microphone Access Is Off',
+              isJarvisStandaloneRuntime
+                ? 'Разрешите доступ к микрофону для Jarvis Ai в настройках телефона, чтобы диктовать и общаться голосом.'
+                : 'Turn on microphone access for Off Grid AI in Settings to talk instead of type.',
               [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Open Settings', onPress: openSettings },
+                { text: isJarvisStandaloneRuntime ? 'Отмена' : 'Cancel', style: 'cancel' },
+                { text: isJarvisStandaloneRuntime ? 'Открыть настройки' : 'Open Settings', onPress: openSettings },
               ],
             ),
           )
@@ -309,17 +312,20 @@ export const VoiceRecordButton: React.FC<VoiceRecordButtonProps> = ({
   ).current;
 
   const handleUnavailableTap = () => {
+    const modelIdToDownload = isJarvisStandaloneRuntime ? 'base' : DOWNLOAD_MODEL_ID;
     setAlertState(
       showAlert(
-        'Download Voice Model',
-        `Download Whisper Base to enable voice input? (${DOWNLOAD_MODEL_SIZE_MB} MB)`,
+        isJarvisStandaloneRuntime ? 'Скачать офлайн-модель речи' : 'Download Voice Model',
+        isJarvisStandaloneRuntime
+          ? `Скачать Whisper Base (99 языков, включая русский, ${DOWNLOAD_MODEL_SIZE_MB} МБ) для полностью офлайн-диктовки?`
+          : `Download Whisper Base to enable voice input? (${DOWNLOAD_MODEL_SIZE_MB} MB)`,
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: isJarvisStandaloneRuntime ? 'Отмена' : 'Cancel', style: 'cancel' },
           {
-            text: 'Download',
+            text: isJarvisStandaloneRuntime ? 'Скачать' : 'Download',
             onPress: () => {
               setAlertState(hideAlert());
-              downloadModel(DOWNLOAD_MODEL_ID).catch(err => {
+              downloadModel(modelIdToDownload).catch(err => {
                 logger.error('[VoiceRecordButton] Download failed:', err);
               });
             },

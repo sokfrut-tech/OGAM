@@ -11,9 +11,23 @@ import { JarvisVideoSettingsSection } from '../components/jarvisPro/JarvisVideoS
 import { JarvisVoicePanel } from '../screens/jarvisPro/JarvisVoicePanel';
 import { JarvisVideoPanel } from '../screens/jarvisPro/JarvisVideoPanel';
 import { JarvisProToolsScreen } from '../screens/jarvisPro/JarvisProToolsScreen';
+import {
+  JarvisAudioComposer,
+  JarvisAudioEmptyHero,
+  JarvisAudioMessage,
+  JarvisChatModeToggle,
+  JarvisQuickSettingsAudioRow,
+} from '../screens/jarvisPro/JarvisVoiceModeComponents';
+import {
+  JarvisAnimateImageAction,
+  JarvisGalleryVideoSection,
+  JarvisVideoMessageCard,
+  JarvisVideoStatusBanner,
+} from '../screens/jarvisPro/JarvisVideoSlotComponents';
 import { jarvisTtsService } from '../services/jarvisPro/jarvisTtsService';
 import { jarvisVideoService } from '../services/jarvisPro/jarvisVideoService';
 import { registerJarvisMcpExtension } from '../services/jarvisPro/jarvisMcpService';
+import { registerJarvisPhoneActionsExtension } from '../services/jarvisPro/jarvisPhoneActionsToolExtension';
 import {
   discardDeferredJarvisImage,
   finishDeferredJarvisImage,
@@ -22,7 +36,7 @@ import {
 } from '../services/jarvisPro/jarvisImageToolExtension';
 import { isJarvisStandaloneRuntime } from '../i18n';
 import { modelResidencyManager } from '../services/modelResidency';
-import { useAppStore } from '../stores';
+import { useAppStore, useUiModeStore } from '../stores';
 
 /**
  * Registers all open-source Pro capabilities (offline RU TTS, local Wan video,
@@ -48,11 +62,24 @@ export function activateJarvisOpenCapabilities(): void {
   registerHook(HOOKS.audioStopForExit, () => {
     jarvisTtsService.stop().catch(() => {});
   });
+  registerHook(HOOKS.audioOnStreamingToken, (content: string) => {
+    jarvisTtsService.onStreamingToken(content);
+  });
   registerHook(HOOKS.audioOnStreamingEnd, (conversationId?: string) => {
     if (conversationId) {
       jarvisTtsService.speakOnStreamEnd(conversationId);
+    } else {
+      jarvisTtsService.resetStreamingSpeech();
     }
   });
+  registerHook(HOOKS.audioOnAppBackground, () => {
+    jarvisTtsService.stop().catch(() => {});
+  });
+  registerHook(HOOKS.audioAugmentPrompt, (basePrompt: string) =>
+    useUiModeStore.getState().interfaceMode === 'audio'
+      ? `${basePrompt}\n\nРежим голосового диалога: отвечай коротко, естественно и по делу, без markdown-разметки и длинных таблиц.`
+      : basePrompt,
+  );
 
   // Video & deferred image hooks (native liboffgrid_video.so + generate_image tool)
   registerHook(HOOKS.videoIsBusy, () => jarvisVideoService.isBusy());
@@ -76,14 +103,24 @@ export function activateJarvisOpenCapabilities(): void {
     discardDeferredJarvisImage(conversationId);
   });
 
-  // UI slots
+  // UI slots (all 16 open-source voice, settings, video & gallery slots)
   registerSlot(SLOTS.messageSpeakButton, JarvisSpeakButton);
+  registerSlot(SLOTS.chatInputModeToggle, JarvisChatModeToggle);
+  registerSlot(SLOTS.quickSettingsAudioRow, JarvisQuickSettingsAudioRow);
+  registerSlot(SLOTS.chatEmptyAudio, JarvisAudioEmptyHero);
+  registerSlot(SLOTS.chatInputAudioMode, JarvisAudioComposer);
+  registerSlot(SLOTS.messageAudioMode, JarvisAudioMessage);
   registerSlot(SLOTS.generationSettingsTts, JarvisTtsSettingsSection);
   registerSlot(SLOTS.generationSettingsTtsSummary, JarvisTtsSettingsSummary);
   registerSlot(SLOTS.generationSettingsVideo, JarvisVideoSettingsSection);
   registerSlot(SLOTS.modelsScreenVoiceTab, JarvisVoicePanel);
   registerSlot(SLOTS.modelsScreenVideoTab, JarvisVideoPanel);
   registerSlot(SLOTS.modelSelectorVideoTab, JarvisVideoPanel);
+  registerSlot(SLOTS.videoStatus, JarvisVideoStatusBanner);
+  registerSlot(SLOTS.imageAnimateAction, JarvisAnimateImageAction);
+  registerSlot(SLOTS.messageVideoActions, JarvisVideoMessageCard);
+  registerSlot(SLOTS.galleryVideoSection, JarvisGalleryVideoSection);
+  useUiModeStore.getState().setVoiceSummary('Jarvis TTS · RU');
 
   // Pro Tools + MCP screen
   registerScreen({
@@ -92,9 +129,10 @@ export function activateJarvisOpenCapabilities(): void {
     options: { headerShown: false },
   });
 
-  // User HTTP JSON-RPC MCP tool extension + image generation tool
+  // User HTTP JSON-RPC MCP tool extension, image generation tool, and Android phone actions
   registerJarvisMcpExtension();
   registerJarvisImageExtension();
+  registerJarvisPhoneActionsExtension();
 
   // Warm local video pack discovery asynchronously
   jarvisVideoService.scanDownloadedVideoPacks().catch(() => {});

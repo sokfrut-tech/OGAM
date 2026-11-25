@@ -340,9 +340,16 @@ async function finishDeferred(conversationId: string, stopped: boolean): Promise
   const req = deferredRequests.get(conversationId);
   deferredRequests.delete(conversationId);
   if (!req || stopped) return;
+  let initImagePath: string | undefined;
+  if (req.startImage === 'last_image') {
+    const images = useAppStore.getState().generatedImages;
+    const convMatch = [...images].reverse().find(img => img.conversationId === conversationId);
+    initImagePath = (convMatch ?? images[images.length - 1])?.imagePath;
+  }
   await generateVideo({
     prompt: req.prompt,
     conversationId,
+    ...(initImagePath ? { initImagePath } : {}),
   });
 }
 

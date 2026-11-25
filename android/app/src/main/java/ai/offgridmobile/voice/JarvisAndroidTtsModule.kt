@@ -130,6 +130,22 @@ class JarvisAndroidTtsModule(
 
   @ReactMethod
   fun speak(text: String, languageTag: String?, rate: Double, voiceId: String?, promise: Promise) {
+    speakInternal(text, languageTag, rate, voiceId, TextToSpeech.QUEUE_FLUSH, promise)
+  }
+
+  @ReactMethod
+  fun speakQueued(text: String, languageTag: String?, rate: Double, voiceId: String?, promise: Promise) {
+    speakInternal(text, languageTag, rate, voiceId, TextToSpeech.QUEUE_ADD, promise)
+  }
+
+  private fun speakInternal(
+    text: String,
+    languageTag: String?,
+    rate: Double,
+    voiceId: String?,
+    queueMode: Int,
+    promise: Promise,
+  ) {
     val clean = text.trim()
     if (clean.isEmpty()) {
       promise.resolve(false)
@@ -166,7 +182,7 @@ class JarvisAndroidTtsModule(
         engine.setSpeechRate(speechRate)
         val utteranceId = UUID.randomUUID().toString()
         val params = Bundle()
-        val result = engine.speak(clean.take(3800), TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+        val result = engine.speak(clean.take(3800), queueMode, params, utteranceId)
         promise.resolve(result == TextToSpeech.SUCCESS)
       } catch (error: Throwable) {
         promise.reject("TTS_SPEAK_FAILED", error.message ?: "Could not start TTS.", error)

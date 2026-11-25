@@ -1022,20 +1022,45 @@ async function dispatchResolvedTurn(
         ...(opts.styleId ? { mediaStyleId: opts.styleId } : {}),
       });
     const shownBefore = videoFailureShown();
+    const attachedImage = opts.attachments?.find(a => a.type === 'image');
     try {
       await videoSeam.generate({
         prompt: opts.text,
         conversationId: opts.conversationId,
+        ...(attachedImage?.uri ? { initImagePath: attachedImage.uri } : {}),
         ...(opts.styleId ? { styleId: opts.styleId } : {}),
       });
     } catch (error) {
       // A clip that ran and failed is on its own failure card. One refused before it started (the
       // video rules, a film already being made) is said here; it is never left unhandled.
       logger.warn('[ROUTE-SM] video turn did not run:', error);
-      if (videoFailureShown() === shownBefore)
-        deps.setAlertState(
-          showAlert('Could not make the video', error instanceof Error ? error.message : String(error)),
-        );
+      if (videoFailureShown() === shownBefore) {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (isJarvisStandaloneRuntime && /видеомодел/i.test(msg)) {
+          deps.setAlertState(
+            showAlert('Нужна видеомодель', msg, [
+              { text: 'Закрыть', style: 'cancel' },
+              {
+                text: 'Скачать видеомодель',
+                onPress: () => {
+                  deps.setAlertState(hideAlert());
+                  deps.navigation.navigate('Main', {
+                    screen: 'ModelsTab',
+                    params: { initialTab: 'video' },
+                  });
+                },
+              },
+            ]),
+          );
+        } else {
+          deps.setAlertState(
+            showAlert(
+              isJarvisStandaloneRuntime ? 'Не удалось создать видео' : 'Could not make the video',
+              msg,
+            ),
+          );
+        }
+      }
     } finally {
       generationService.drainQueue();
     }

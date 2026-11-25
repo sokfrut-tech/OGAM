@@ -22,6 +22,7 @@ import { isJarvisStandaloneRuntime, t } from '../i18n';
 import type { RootStackParamList } from '../navigation/types';
 import { imageGenerationService } from '../services/imageGenerationService';
 import { hasCyrillic } from '../services/jarvisPro/russianPromptBridge';
+import { jarvisSttService } from '../services/jarvisPro/jarvisSttService';
 import { resolveMobileImageParameters } from '../services/imageParameterPolicy';
 import type { ImageGenerationState } from '../services/imageGenerationService';
 import { enhanceImagePrompt } from '../services/imagePromptEnhancement';
@@ -47,6 +48,47 @@ const INITIAL_STATE: ImageGenerationState = {
   result: null,
 };
 
+interface NativeDictationParams {
+  language: string;
+  setRecording: (value: boolean) => void;
+  setNativeRecording: (value: boolean) => void;
+  setVoicePreview: (value: string) => void;
+  appendPrompt: (text: string) => void;
+  onError: (message: string) => void;
+}
+
+/** Dictate an image prompt via Android SpeechRecognizer when Whisper is not downloaded yet. */
+async function startNativeImageDictation(params: NativeDictationParams): Promise<void> {
+  params.setRecording(true);
+  params.setNativeRecording(true);
+  params.setVoicePreview('');
+  const started = await jarvisSttService.startListening({
+    language: params.language,
+    preferOffline: true,
+    onPartial: text => params.setVoicePreview(text),
+    onResult: text => {
+      params.setRecording(false);
+      params.setNativeRecording(false);
+      params.setVoicePreview('');
+      if (text.trim()) params.appendPrompt(text.trim());
+    },
+    onError: message => {
+      params.setRecording(false);
+      params.setNativeRecording(false);
+      params.setVoicePreview('');
+      params.onError(message);
+    },
+    onEnd: () => {
+      params.setRecording(false);
+      params.setNativeRecording(false);
+    },
+  });
+  if (!started) {
+    params.setRecording(false);
+    params.setNativeRecording(false);
+  }
+}
+
 export const ImageGenScreen: React.FC = () => {
   const navigation = useNavigation<Navigation>();
   const { colors } = useTheme();
@@ -69,6 +111,7 @@ export const ImageGenScreen: React.FC = () => {
   const [previewBusy, setPreviewBusy] = useState(false);
   const [previewStatus, setPreviewStatus] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
+  const [nativeRecording, setNativeRecording] = useState(false);
   const [voicePreview, setVoicePreview] = useState('');
   const [imageState, setImageState] = useState<ImageGenerationState>(INITIAL_STATE);
 
@@ -92,6 +135,7 @@ export const ImageGenScreen: React.FC = () => {
   }, [app.activeImageModelId, app.downloadedImageModels]);
 
   useEffect(() => () => {
+    void jarvisSttService.cancel();
     if (whisperService.isCurrentlyTranscribing()) {
       void whisperService.stopTranscription();
     }
@@ -122,6 +166,17 @@ export const ImageGenScreen: React.FC = () => {
     if (recording || previewBusy || imageState.isGenerating) return;
     if (Platform.OS !== 'android' && Platform.OS !== 'ios') return;
     if (!whisper.downloadedModelId) {
+      if (isJarvisStandaloneRuntime && Platform.OS === 'android' && jarvisSttService.isNativeModulePresent()) {
+        await startNativeImageDictation({
+          language: whisper.transcriptionLanguage,
+          setRecording,
+          setNativeRecording,
+          setVoicePreview,
+          appendPrompt: text => setPrompt(current => [current.trim(), text].filter(Boolean).join(' ')),
+          onError: message => Alert.alert(t('image.voiceFailed'), message),
+        });
+        return;
+      }
       Alert.alert(t('image.whisperRequiredTitle'), t('image.whisperRequiredBody'));
       navigation.navigate('Main', { screen: 'ModelsTab', params: { initialTab: 'voice' } });
       return;
@@ -157,17 +212,22 @@ export const ImageGenScreen: React.FC = () => {
       const message = error instanceof Error ? error.message : String(error);
       Alert.alert(t('image.voiceFailed'), message);
     }
-  }, [imageState.isGenerating, navigation, previewBusy, recording, whisper.downloadedModelId]);
+  }, [imageState.isGenerating, navigation, previewBusy, recording, whisper.downloadedModelId, whisper.transcriptionLanguage]);
 
   const stopVoice = useCallback(async () => {
     if (!recording) return;
     try {
+      if (nativeRecording) {
+        await jarvisSttService.stopListening();
+        return;
+      }
       await whisperService.stopTranscription();
     } catch (error) {
       setRecording(false);
+      setNativeRecording(false);
       Alert.alert(t('image.stopVoiceFailed'), error instanceof Error ? error.message : String(error));
     }
-  }, [recording]);
+  }, [nativeRecording, recording]);
 
   const generate = useCallback(async () => {
     const finalPrompt = prompt.trim();
