@@ -34,12 +34,12 @@ const MODEL_TABS: ReadonlyArray<{
   label: string;
   testID?: string;
 }> = [
-  { key: 'text', label: 'Text' },
-  { key: 'embedding', label: 'Documents', testID: 'embedding-tab' },
-  { key: 'image', label: 'Image' },
-  { key: 'video', label: 'Video', testID: 'video-models-tab' },
-  { key: 'voice', label: 'Voice', testID: 'voice-models-tab' },
-  { key: 'transcription', label: 'Speech', testID: 'transcription-models-tab' },
+  { key: 'text', label: 'Текст' },
+  { key: 'embedding', label: 'Документы', testID: 'embedding-tab' },
+  { key: 'image', label: 'Изображения' },
+  { key: 'video', label: 'Видео', testID: 'video-models-tab' },
+  { key: 'voice', label: 'Голос', testID: 'voice-models-tab' },
+  { key: 'transcription', label: 'Речь', testID: 'transcription-models-tab' },
 ];
 
 interface ModelsScreenProps {
@@ -133,7 +133,7 @@ export const ModelsScreen: React.FC<ModelsScreenProps> = ({
         {/* Header */}
         <HideWhenEmbedded embedded={embedded}>
           <ScreenHeader
-            title="Models"
+            title="Модели"
             variant="tab"
             right={
               <View style={headerStyles.actions}>
@@ -163,7 +163,7 @@ export const ModelsScreen: React.FC<ModelsScreenProps> = ({
                   onPress={handleCheckForNewModels}
                   disabled={isCheckingCatalog}
                   accessibilityRole="button"
-                  accessibilityLabel="Check for new models"
+                  accessibilityLabel="Проверить наличие новых моделей"
                   accessibilityState={{ busy: isCheckingCatalog }}
                   testID="check-new-models-button"
                 >
@@ -177,7 +177,7 @@ export const ModelsScreen: React.FC<ModelsScreenProps> = ({
                   onPress={() => vm.navigation.navigate('DownloadManager')}
                   testID="downloads-icon"
                   accessibilityRole="button"
-                  accessibilityLabel={vm.downloadBadgeCount > 0 ? `Downloads, ${vm.downloadBadgeCount} not finished` : 'Downloads'}
+                  accessibilityLabel={vm.downloadBadgeCount > 0 ? `Загрузки: не завершено — ${vm.downloadBadgeCount}` : 'Загрузки'}
                 >
                   <Icon name="download" size={20} color={colors.text} />
                   {vm.downloadBadgeCount > 0 && (
