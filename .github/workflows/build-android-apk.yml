@@ -2,6 +2,17 @@ name: Build Jarvis Android APK
 
 on:
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: Android APK build type (release embeds standalone Hermes JS bundle)
+        type: choice
+        default: release
+        options:
+          - release
+          - debug
+  push:
+    branches:
+      - 'ci/jarvis-ogam-standalone-apk-*'
 
 permissions:
   contents: read
@@ -12,28 +23,36 @@ concurrency:
 
 jobs:
   build:
-    name: arm64 debug APK
+    name: arm64 ${{ inputs.build_type || 'release' }} APK
     runs-on: ubuntu-latest
     timeout-minutes: 240
+    env:
+      BUILD_TYPE: ${{ inputs.build_type || 'release' }}
     steps:
       - name: Checkout fork
         uses: actions/checkout@v4
+        with:
+          submodules: false
 
-      - name: Report build mode
-        env:
-          PRO_SUBMODULE_PAT: ${{ secrets.PRO_SUBMODULE_PAT }}
+      - name: Report standalone open-core build mode
         shell: bash
         run: |
-          if [[ -n "$PRO_SUBMODULE_PAT" ]]; then
-            echo "Building with optional Pro submodule token (standalone shared workspace disabled)."
-          else
-            echo "Building standalone open-core APK without PRO_SUBMODULE_PAT (pro/ uses proStub.js)."
-          fi
+          set -euo pipefail
+          echo "Build type: $BUILD_TYPE"
+          echo "Commit SHA: $GITHUB_SHA"
+          echo "Building standalone open-core APK (pro/ uses proStub.js, no PRO_SUBMODULE_PAT, no private off-grid-ai/* checkouts)."
+
+      - name: Free disk space for NDK and Hexagon SDK
+        shell: bash
+        run: |
+          df -h
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL || true
+          df -h
 
       - name: Set up Node workspace
         uses: ./.github/actions/setup-mobile
         with:
-          private-token: ${{ secrets.PRO_SUBMODULE_PAT }}
+          private-token: ''
           shared: 'false'
           save-caches: 'false'
 
@@ -41,7 +60,15 @@ jobs:
         uses: ./.github/actions/setup-android
         with:
           video: 'true'
-          save: 'false'
+          ccache: ${{ inputs.build_type || 'release' }}
+          save: 'true'
+
+      - name: Clean temporary Hexagon SDK and shaderc build trees
+        shell: bash
+        run: |
+          rm -rf .video-build/hexagon-sdk .video-build/hexagon-sdk.tar.xz .video-build/hexagon-build .video-build/shaderc-source
+          docker system prune -af || true
+          df -h
 
       - name: Verify bundled Qualcomm QNN runtime assets
         run: bash scripts/verify-qnn-assets.sh
@@ -51,25 +78,96 @@ jobs:
         with:
           packages: platform-tools
 
-      - name: Build arm64 debug APK
-        run: |
-          cd android
-          ./gradlew --no-daemon assembleDebug -PreactNativeArchitectures=arm64-v8a
-
-      - name: Verify APK and write checksum
+      - name: Build arm64 APK
+        env:
+          CMAKE_C_COMPILER_LAUNCHER: ccache
+          CMAKE_CXX_COMPILER_LAUNCHER: ccache
         shell: bash
         run: |
-          APK="android/app/build/outputs/apk/debug/app-debug.apk"
-          test -s "$APK"
-          sha256sum "$APK" | tee android/app/build/outputs/apk/debug/app-debug.apk.sha256
-          ls -lh "$APK"
+          set -euo pipefail
+          if [[ "$BUILD_TYPE" == "debug" ]]; then
+            TASK="assembleDebug"
+          else
+            TASK="assembleRelease"
+          fi
+          cd android
+          ./gradlew --no-daemon "$TASK" -PreactNativeArchitectures=arm64-v8a
 
-      - name: Upload APK and checksum
+      - name: Verify APK, inspect contents and write checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC_APK="android/app/build/outputs/apk/${BUILD_TYPE}/app-${BUILD_TYPE}.apk"
+          test -s "$SRC_APK"
+
+          OUT_DIR="android/app/build/outputs/jarvis-apk"
+          mkdir -p "$OUT_DIR"
+          APK="${OUT_DIR}/Jarvis-OGAM-arm64-${BUILD_TYPE}.apk"
+          cp "$SRC_APK" "$APK"
+
+          (cd "$OUT_DIR" && sha256sum "Jarvis-OGAM-arm64-${BUILD_TYPE}.apk") | tee "${APK}.sha256"
+
+          ZIP_LIST="$(mktemp)"
+          MANIFEST_TREE="$(mktemp)"
+          BADGING_OUT="$(mktemp)"
+          trap 'rm -f "$ZIP_LIST" "$MANIFEST_TREE" "$BADGING_OUT"' EXIT
+
+          unzip -l "$APK" > "$ZIP_LIST"
+
+          if [[ "$BUILD_TYPE" == "release" ]]; then
+            grep -Fq "assets/index.android.bundle" "$ZIP_LIST"
+          fi
+          grep -Fq "assets/qnnlibs/libQnnHtp.so" "$ZIP_LIST"
+          grep -Fq "assets/qnnlibs/libQnnHtpV73.so" "$ZIP_LIST"
+          grep -Fq "assets/video-hexagon/liboffgrid-video-htp-v73.so" "$ZIP_LIST"
+          grep -Fq "lib/arm64-v8a/liboffgrid_video.so" "$ZIP_LIST"
+
+          SO_LIST="$(grep -oE 'lib/arm64-v8a/[^ ]+\.so' "$ZIP_LIST" | sort)"
+          SO_COUNT="$(printf '%s\n' "$SO_LIST" | grep -c '\.so$')"
+          test "$SO_COUNT" -gt 0
+
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name apksigner -type f | sort -V | tail -n 1)"
+          test -n "$APKSIGNER"
+
+          AAPT2="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name aapt2 -type f | sort -V | tail -n 1)"
+          test -n "$AAPT2"
+
+          "$AAPT2" dump badging "$APK" > "$BADGING_OUT"
+          "$AAPT2" dump xmltree "$APK" --file AndroidManifest.xml > "$MANIFEST_TREE"
+          grep -Fq "JarvisVoiceInteractionService" "$MANIFEST_TREE"
+
+          {
+            echo "=== APK SIZE & SHA256 ==="
+            ls -lh "$APK"
+            cat "${APK}.sha256"
+            echo ""
+            echo "=== BUNDLED ASSETS CHECK ==="
+            if [[ "$BUILD_TYPE" == "release" ]]; then
+              grep -F "assets/index.android.bundle" "$ZIP_LIST"
+            fi
+            grep -F "assets/qnnlibs/libQnnHtp" "$ZIP_LIST" | head -n 5
+            grep -F "assets/video-hexagon/" "$ZIP_LIST"
+            echo ""
+            echo "=== ARM64 NATIVE LIBRARIES (${SO_COUNT}) ==="
+            printf '%s\n' "$SO_LIST"
+            echo ""
+            echo "=== APKSIGNER VERIFY ==="
+            "$APKSIGNER" verify --verbose --print-certs "$APK"
+            echo ""
+            echo "=== AAPT2 BADGING SUMMARY ==="
+            grep -E '^(package:|sdkVersion:|targetSdkVersion:|application-label|native-code:)' "$BADGING_OUT"
+            echo ""
+            echo "=== JARVIS MANIFEST SERVICE ==="
+            grep -F "JarvisVoiceInteractionService" "$MANIFEST_TREE"
+          } | tee "${OUT_DIR}/apk-inspection.txt"
+
+      - name: Upload APK, checksum and inspection report
         uses: actions/upload-artifact@v4
         with:
-          name: Jarvis-OGAM-arm64-debug
+          name: Jarvis-OGAM-arm64-${{ inputs.build_type || 'release' }}
           path: |
-            android/app/build/outputs/apk/debug/app-debug.apk
-            android/app/build/outputs/apk/debug/app-debug.apk.sha256
+            android/app/build/outputs/jarvis-apk/Jarvis-OGAM-arm64-*.apk
+            android/app/build/outputs/jarvis-apk/Jarvis-OGAM-arm64-*.apk.sha256
+            android/app/build/outputs/jarvis-apk/apk-inspection.txt
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30

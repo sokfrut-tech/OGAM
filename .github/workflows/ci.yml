@@ -55,7 +55,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7 "$RUNNER_TEMP"
-          "$RUNNER_TEMP/actionlint" -no-color -shellcheck= .github/workflows/uat-dev.yml .github/workflows/ci.yml
+          "$RUNNER_TEMP/actionlint" -no-color -shellcheck= .github/workflows/uat-dev.yml .github/workflows/ci.yml .github/workflows/build-android-apk.yml
 
       - name: Lint (eslint)
         if: ${{ !cancelled() }}
