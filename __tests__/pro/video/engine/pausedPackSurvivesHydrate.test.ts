@@ -18,7 +18,7 @@ const KEY = `video:${WAN}`;
 
 it('a paused pack keeps its row through a relaunch and a foreground hydrate', async () => {
   const first = await bootPhoneVideo();
-  const { CATALOG } = require('@offgrid/models');
+  const { CATALOG } = require('../../../../src/utils/modelCatalogCore');
   const model = CATALOG.find((entry: { id: string }) => entry.id === WAN);
   first.provider.start!({ modelType: 'video', model }).catch(() => undefined);
   const firstStore = require('../../../../src/stores/downloadStore').useDownloadStore;

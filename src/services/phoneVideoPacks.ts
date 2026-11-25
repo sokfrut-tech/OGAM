@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { CATALOG } from '@offgrid/models';
+import { CATALOG } from '../utils/modelCatalogCore';
 import type { ModelEntry } from '../types/modelCatalog';
 import { isVideoWeightAvailableOn, videoArchitecture, videoModelDefaults, videoPackError, videoTakesStartImage } from '../utils/videoPackPolicy';
 

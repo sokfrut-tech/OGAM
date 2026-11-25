@@ -64,7 +64,7 @@ it('downloads the model on this phone when the computer has none, then Extend go
   await rtl.waitFor(() => expect(app.boundary.download!.active().length).toBeGreaterThan(0));
   expect(app.models.pulls).toEqual([]);
   // What a finished download leaves on the phone: the pack, installed.
-  const { CATALOG } = require('@offgrid/models');
+  const { CATALOG } = require('../../../src/utils/modelCatalogCore');
   const { useAppStore } = require('../../../src/stores');
   const pack = CATALOG.find((model: { id: string }) => model.id === app.boundary.download!.active()[0].modelId?.replace(/^video:/, ''));
   rtl.act(() => {
@@ -123,7 +123,7 @@ it('on Android, a Turbo already on the phone is named as too slow here, beside t
   const { view, rtl } = app;
   await makeClipInChat(app, CLIP);
   // Turbo on the phone (from a sync, say): Android runs Wan on the CPU, where Turbo is far too slow.
-  const { CATALOG } = require('@offgrid/models');
+  const { CATALOG } = require('../../../src/utils/modelCatalogCore');
   const { useAppStore } = require('../../../src/stores');
   const turbo = CATALOG.find((model: { id: string }) => model.id === 'hum-ma/Wan2.2-TI2V-5B-Turbo-GGUF');
   rtl.act(() => {

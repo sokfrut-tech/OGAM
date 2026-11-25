@@ -47,6 +47,7 @@ export interface ModelEntry {
   releaseDate?: string;
   engine?: string;
   videoModes?: string[];
+  imageModes?: string[];
   tags?: string[];
   files: ModelFileEntry[];
 }

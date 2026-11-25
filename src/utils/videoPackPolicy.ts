@@ -140,3 +140,81 @@ export function isVideoWeightAvailableOn(weight: string, os: string): boolean {
   if (/[-_.]android(?:[-_.]|$)/i.test(trimmed) && os !== 'android') return false;
   return true;
 }
+
+export interface TemplateStoryboardShot {
+  id: string;
+  index: number;
+  title: string;
+  prompt: string;
+  durationSeconds: number;
+}
+
+export interface TemplateStoryboard {
+  title: string;
+  summary: string;
+  shots: TemplateStoryboardShot[];
+}
+
+/** Deterministic fallback storyboard produced when no local text model is loaded. */
+export function templateStoryboard(sentence: string): TemplateStoryboard {
+  const clean = sentence.trim() || 'A quiet scene in motion';
+  return {
+    title: clean.length > 48 ? `${clean.slice(0, 45).trimEnd()}...` : clean,
+    summary: `Three-shot visual progression for: ${clean}`,
+    shots: [
+      {
+        id: 'shot-1',
+        index: 0,
+        title: 'Establishing shot',
+        prompt: `Wide opening shot establishing the scene: ${clean}`,
+        durationSeconds: 3,
+      },
+      {
+        id: 'shot-2',
+        index: 1,
+        title: 'Action focus',
+        prompt: `Medium moving shot highlighting the central subject: ${clean}`,
+        durationSeconds: 3,
+      },
+      {
+        id: 'shot-3',
+        index: 2,
+        title: 'Closing detail',
+        prompt: `Close atmospheric final shot resolving: ${clean}`,
+        durationSeconds: 3,
+      },
+    ],
+  };
+}
+
+export interface DesktopVideoModelInfo {
+  id: string;
+  name: string;
+  supported_durations: number[];
+  supported_aspect_ratios: string[];
+  supported_resolutions: string[];
+  supported_frame_images: string[];
+  max_seconds: number;
+  width: number;
+  height: number;
+  fps: number;
+}
+
+/** OpenAI/Desktop-compatible capability descriptor for a server-hosted video model. */
+export function videoModelInfo(modelId: string): DesktopVideoModelInfo {
+  const arch = videoArchitecture(modelId);
+  const defaults = videoModelDefaults(modelId);
+  const takesStartImage = videoTakesStartImage(modelId) || arch === 'wan22';
+  return {
+    id: modelId,
+    name: modelId,
+    supported_durations: [3, 5],
+    supported_aspect_ratios: ['16:9', '9:16', '1:1'],
+    supported_resolutions: [`${defaults.width}x${defaults.height}`],
+    supported_frame_images: takesStartImage ? ['first_frame'] : [],
+    max_seconds: 5,
+    width: defaults.width,
+    height: defaults.height,
+    fps: defaults.fps,
+  };
+}

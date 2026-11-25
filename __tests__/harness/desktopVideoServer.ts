@@ -9,7 +9,7 @@
  * job, which then fails with error.code 'cancelled'. GET /v1/videos/models lists the model's limits.
  * The model switcher is /v1/models/catalog, /installed, /active and /activate.
  */
-import { videoModelInfo } from '@offgrid/models';
+import { videoModelInfo } from '../../src/utils/videoPackPolicy';
 import type { NativeFileSystemBoundary } from './nativeFileSystem';
 
 export const DESKTOP_VIDEO_ENDPOINT = 'http://192.168.1.62:7878'; // NOSONAR - private LAN test fixture

@@ -140,7 +140,7 @@ describe('delete', () => {
 
   it('cancelling a video model download removes every file it put on the phone', async () => {
     const current = await bootPhoneVideo();
-    const { CATALOG } = require('@offgrid/models');
+    const { CATALOG } = require('../../../../src/utils/modelCatalogCore');
     const model = CATALOG.find((entry: { id: string }) => entry.id === WAN);
     const { videoModelDirectory } = require('../../../../src/services/videoModelFiles');
     const directory = videoModelDirectory(WAN);

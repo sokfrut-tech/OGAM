@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useAppStore } from '../../stores';
 import { useDownloadStore } from '../../stores/downloadStore';
 import { makeModelKey } from '../../utils/modelKey';
-import { CATALOG } from '@offgrid/models';
+import { CATALOG } from '../../utils/modelCatalogCore';
 import { determineCredibility } from '../../utils/modelNamingCore';
 import { devicePicks, type DevicePick } from '../../services/devicePicks';
 import { useWithRemoteCatalog } from '../../stores/modelCatalogStore';

@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer';
 import { Platform } from 'react-native';
-import { CATALOG } from '@offgrid/models';
+import { CATALOG } from '../utils/modelCatalogCore';
 import type { MobileWhisperCatalogModel } from '../types/modelCatalog';
 import {
   searchHuggingFace,

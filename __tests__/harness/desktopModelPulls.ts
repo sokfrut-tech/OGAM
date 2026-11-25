@@ -15,7 +15,8 @@
  * `goSilent()` is a computer that stops answering (asleep, off the network): every request waits until the
  * phone closes it, as a real fetch does, and `answer()` brings it back. `aborted` lists what the phone closed.
  */
-import { CATALOG, templateStoryboard } from '@offgrid/models';
+import { CATALOG } from '../../src/utils/modelCatalogCore';
+import { templateStoryboard } from '../../src/utils/videoPackPolicy';
 import { DESKTOP_VIDEO_ENDPOINT, DESKTOP_VIDEO_MODEL } from './desktopVideoServer';
 
 interface Progress {

@@ -12,7 +12,7 @@ import DeviceInfo from 'react-native-device-info';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { CATALOG } from '@offgrid/models';
+import { CATALOG } from '../../utils/modelCatalogCore';
 import { fitLabel } from '../../utils/modelFitBudget';
 import { splitGgufModelName } from '../../utils/modelNamingCore';
 import { fileExceedsBudget, modelFitTier, textModelBudget } from '../../services/memoryBudget';

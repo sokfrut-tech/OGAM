@@ -76,7 +76,7 @@ describe('Models search leaves out uploads of a model this engine cannot load', 
   afterEach(() => restoreFetch());
 
   it('a Hugging Face upload of K2 Horizon is offered only when the engine is new enough', async () => {
-    const { CATALOG } = require('@offgrid/models');
+    const { CATALOG } = require('../../../src/utils/modelCatalogCore');
     const needsNewer = CATALOG.find((e: { id: string }) => e.id === CATALOG_REPO);
 
     const restoreFetches: (() => void)[] = [];

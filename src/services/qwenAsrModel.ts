@@ -6,7 +6,7 @@
  * its two files live on disk and whether this phone may offer it.
  */
 import { Platform } from 'react-native';
-import { CATALOG } from '@offgrid/models';
+import { CATALOG } from '../utils/modelCatalogCore';
 import type { MobileWhisperCatalogModel, ModelEntry } from '../types/modelCatalog';
 import {
   isTranscriptionEngineAvailableOn,

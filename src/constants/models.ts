@@ -1,4 +1,4 @@
-import { CATALOG, type MobileTextCatalogModel, type ModelEntry } from '@offgrid/models';
+import { CATALOG, type MobileTextCatalogModel, type ModelEntry } from '../utils/modelCatalogCore';
 import { textModelBudget } from '../services/memoryBudget';
 import { registerBundledCatalog } from '../stores/modelCatalogStore';
 import { engineLoadsCatalogModel } from '../services/llamaEngineSupport';

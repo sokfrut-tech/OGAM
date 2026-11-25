@@ -45,7 +45,7 @@ describe('recommended model details fail to load', () => {
     const React = require('react');
     const { render, waitFor, within, act, fireEvent } = requireRTL();
     await launchReadsDevice();
-    const { CATALOG } = require('@offgrid/models');
+    const { CATALOG } = require('../../../src/utils/modelCatalogCore');
     // A model outside this phone's picks (MiniCPM5 2B is a pick since afdb05f).
     const listed: CatalogEntry = CATALOG.find((e: CatalogEntry) => e.name === 'Qwen 3.5 2B');
     const { ModelsScreen } = require('../../../src/screens/ModelsScreen');

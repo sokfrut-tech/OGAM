@@ -41,7 +41,7 @@ async function launchReadsDevice() {
 
 /** The catalog's Qwen3-ASR files, as the downloader is asked for them. */
 function catalogFile(name: string): { sizeBytes: number; sha256: string } {
-  const { CATALOG } = require('@offgrid/models');
+  const { CATALOG } = require('../../../src/utils/modelCatalogCore');
   const entry = CATALOG.find((e: { id: string }) => e.id === 'ggml-org/Qwen3-ASR-0.6B-GGUF');
   return entry.files.find((f: { name: string }) => f.name === name);
 }

@@ -20,9 +20,6 @@ const sharedRoot = (() => {
 })();
 const syncPackagePath = path.resolve(sharedRoot, 'packages/sync');
 const automationPackagePath = path.resolve(sharedRoot, 'packages/automation');
-// @offgrid/models: cross-platform model contracts (catalog, reasoning-budget rule) shared
-// with desktop. Out-of-root like rag, prebuilt CJS in dist/.
-const modelsPackagePath = path.resolve(sharedRoot, 'packages/models');
 const sharedNodeModulesPath = path.resolve(sharedRoot, 'node_modules');
 // A git worktree links each package to the main checkout (scripts/link-worktree-deps.sh). Metro
 // indexes files by their real path, so it must also watch the folder those links point into.
@@ -45,7 +42,6 @@ const config = {
   watchFolders: [
     syncPackagePath,
     automationPackagePath,
-    modelsPackagePath,
     sharedNodeModulesPath,
     ...linkedNodeModulesPaths,
   ],
@@ -64,7 +60,6 @@ const config = {
       // Exposes src/ as @offgrid/core so @offgrid/pro can import the design system,
       // stores, and registries without a circular package dependency.
       '@offgrid/core': path.resolve(__dirname, 'src'),
-      '@offgrid/models': path.resolve(modelsPackagePath, 'dist/index.js'),
       // @offgrid/sync owns this dependency in its package manifest. Metro still needs the
       // out-of-root file dependency mapped to a watched, built CommonJS entry.
       '@offgrid/automation': path.resolve(automationPackagePath, 'dist/index.js'),
