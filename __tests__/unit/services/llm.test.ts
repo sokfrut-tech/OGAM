@@ -2308,6 +2308,84 @@ describe('LLMService', () => {
   // stopGeneration — drains activeCompletionPromise when set
   // ========================================================================
   describe('stopGeneration — drains activeCompletionPromise', () => {
+    it('keeps the native context busy and unreleased when completion ignores stop', async () => {
+      mockedRNFS.exists.mockResolvedValue(true);
+
+      let resolveCompletion!: (value: any) => void;
+      let markCompletionEntered!: () => void;
+      const completionEntered = new Promise<void>(resolve => {
+        markCompletionEntered = resolve;
+      });
+      let completionSettled = false;
+      const nativeCompletion = new Promise<any>(resolve => {
+        resolveCompletion = value => {
+          completionSettled = true;
+          resolve(value);
+        };
+      });
+      const release = jest.fn().mockResolvedValue(undefined);
+      const stopCompletion = jest.fn().mockResolvedValue(undefined);
+      const ctx = createMockLlamaContext({
+        completion: jest.fn(() => {
+          markCompletionEntered();
+          // Deliberately ignore stopCompletion: model a native JSI call that
+          // remains pending after the stop request has returned.
+          return nativeCompletion;
+        }),
+        stopCompletion,
+        release,
+      });
+      mockedInitLlama.mockResolvedValue(ctx as any);
+      await llmService.loadModel('/models/test.gguf');
+
+      const generation = llmService.generateResponse([
+        createUserMessage('A request whose native completion will remain pending'),
+      ]);
+      await completionEntered;
+
+      let stopSettled = false;
+      const stopping = llmService.stopGeneration().then(() => {
+        stopSettled = true;
+      });
+
+      try {
+        await new Promise(resolve => setTimeout(resolve, 10));
+        expect(stopCompletion).toHaveBeenCalled();
+        expect(stopSettled).toBe(false);
+        await expect(llmService.waitForIdle(10)).resolves.toBe(false);
+
+        const unloading = llmService.unloadModel();
+        await new Promise(resolve => setTimeout(resolve, 10));
+        expect(release).not.toHaveBeenCalled();
+        expect(completionSettled).toBe(false);
+
+        // Test cleanup models the native call eventually unwinding. Only then
+        // may Stop and unload finish and the context be released.
+        resolveCompletion({
+          text: 'completed after delayed native unwind',
+          content: 'completed after delayed native unwind',
+          tokens_predicted: 6,
+          tokens_evaluated: 4,
+          timings: { predicted_per_token_ms: 50, predicted_per_second: 20 },
+        });
+        await expect(generation).resolves.toContain('completed after delayed native unwind');
+        await Promise.all([stopping, unloading]);
+        expect(stopSettled).toBe(true);
+        expect(release).toHaveBeenCalledTimes(1);
+      } finally {
+        if (!completionSettled) {
+          resolveCompletion({
+            text: 'test cleanup',
+            content: 'test cleanup',
+            tokens_predicted: 2,
+            tokens_evaluated: 2,
+            timings: {},
+          });
+        }
+        await Promise.allSettled([generation, stopping]);
+      }
+    });
+
     it('awaits activeCompletionPromise and clears it during stopGeneration', async () => {
       mockedRNFS.exists.mockResolvedValue(true);
       const ctx = createMockLlamaContext();
