@@ -5,8 +5,12 @@ on:
   push:
     branches:
       - test/native-completion-hang-2026-11-26
+      - fix/native-generation-watchdog-2026-11-26
     paths:
       - '__tests__/unit/services/llm.test.ts'
+      - 'src/services/llm.ts'
+      - 'src/services/llmToolGeneration.ts'
+      - 'src/screens/ChatScreen/ChatMessageArea.tsx'
       - '.github/workflows/focused-native-completion-test.yml'
       - 'package-lock.json'
       - '.github/actions/setup-mobile/action.yml'
