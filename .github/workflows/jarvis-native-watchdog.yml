@@ -1,0 +1,48 @@
+name: Jarvis native generation watchdog regression
+
+on:
+  push:
+    branches:
+      - fix/jarvis-native-watchdog-2026-11-26
+    paths:
+      - 'src/services/llm.ts'
+      - 'src/services/llmToolGeneration.ts'
+      - 'src/screens/ChatScreen/ChatMessageArea.tsx'
+      - '__tests__/unit/services/llm.test.ts'
+      - '.github/workflows/jarvis-native-watchdog.yml'
+      - 'package-lock.json'
+      - '.github/actions/setup-mobile/action.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jarvis-native-watchdog-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-native-watchdog:
+    name: Lint and focused LLM tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node workspace
+        uses: ./.github/actions/setup-mobile
+        with:
+          private-token: ${{ secrets.PRO_SUBMODULE_PAT }}
+          shared: 'true'
+          save-caches: 'false'
+
+      - name: Lint changed TypeScript files
+        run: npx eslint src/services/llm.ts src/services/llmToolGeneration.ts src/screens/ChatScreen/ChatMessageArea.tsx __tests__/unit/services/llm.test.ts
+
+      - name: Type check the app
+        run: npx tsc --noEmit
+
+      - name: Run LLM service unit tests
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: npx jest __tests__/unit/services/llm.test.ts --runInBand --no-coverage --forceExit
