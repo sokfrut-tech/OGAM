@@ -2347,6 +2347,7 @@ describe('LLMService', () => {
       const stopping = llmService.stopGeneration().then(() => {
         stopSettled = true;
       });
+      let unloading: Promise<void> | null = null;
 
       try {
         await new Promise(resolve => setTimeout(resolve, 10));
@@ -2354,7 +2355,7 @@ describe('LLMService', () => {
         expect(stopSettled).toBe(false);
         await expect(llmService.waitForIdle(10)).resolves.toBe(false);
 
-        const unloading = llmService.unloadModel();
+        unloading = llmService.unloadModel();
         await new Promise(resolve => setTimeout(resolve, 10));
         expect(release).not.toHaveBeenCalled();
         expect(completionSettled).toBe(false);
@@ -2382,7 +2383,7 @@ describe('LLMService', () => {
             timings: {},
           });
         }
-        await Promise.allSettled([generation, stopping]);
+        await Promise.allSettled([generation, stopping, ...(unloading ? [unloading] : [])]);
       }
     });
 
