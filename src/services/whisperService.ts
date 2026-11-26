@@ -16,6 +16,7 @@ import { remoteMediaRuntime } from './remoteMediaRuntime';
 import { featureUsed, generationStarted } from './analytics/analytics';
 import { modelRef } from './analytics/values';
 import { fileName } from './analytics/scrub';
+import { isJarvisStandaloneRuntime } from '../i18n';
 import { QwenAsrEngine } from './qwenAsrEngine';
 import { isQwenAsrModelId, QWEN_ASR_MODEL_ID } from './qwenAsrModel';
 
@@ -270,7 +271,7 @@ class WhisperService {
       maxLen?: number;
     },
   ): Promise<void> {
-    const language = options?.language || 'en';
+    const language = options?.language || (isJarvisStandaloneRuntime ? 'ru' : 'en');
     logger.log(`[WhisperService] start (context=${!!this.context})`);
     logger.log('[WhisperService] isTranscribing:', this.isTranscribing);
 
@@ -573,7 +574,7 @@ class WhisperService {
       throw new Error('No Whisper model loaded');
     }
 
-    const language = options?.language || 'en';
+    const language = options?.language || (isJarvisStandaloneRuntime ? 'ru' : 'en');
     logger.log(
       `[WhisperService] Transcribing file with language=${language} model=${
         this.currentModelPath ?? 'unknown'

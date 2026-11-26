@@ -27,6 +27,7 @@ import { resolveMobileImageParameters } from '../services/imageParameterPolicy';
 import type { ImageGenerationState } from '../services/imageGenerationService';
 import { enhanceImagePrompt } from '../services/imagePromptEnhancement';
 import { whisperService } from '../services/whisperService';
+import { isEnglishOnlyWhisperModel } from '../services/whisperModels';
 import { useAppStore } from '../stores/appStore';
 import { useWhisperStore } from '../stores/whisperStore';
 import { MAX_IMAGE_STEPS } from '../utils/imageGenAdvice';
@@ -64,7 +65,7 @@ async function startNativeImageDictation(params: NativeDictationParams): Promise
   params.setVoicePreview('');
   const started = await jarvisSttService.startListening({
     language: params.language,
-    preferOffline: true,
+    preferOffline: false,
     onPartial: text => params.setVoicePreview(text),
     onResult: text => {
       params.setRecording(false);
@@ -165,7 +166,11 @@ export const ImageGenScreen: React.FC = () => {
   const startVoice = useCallback(async () => {
     if (recording || previewBusy || imageState.isGenerating) return;
     if (Platform.OS !== 'android' && Platform.OS !== 'ios') return;
-    if (!whisper.downloadedModelId) {
+    const incompatibleEnModel =
+      isJarvisStandaloneRuntime &&
+      whisper.transcriptionLanguage === 'ru' &&
+      isEnglishOnlyWhisperModel(whisper.downloadedModelId);
+    if (!whisper.downloadedModelId || incompatibleEnModel) {
       if (isJarvisStandaloneRuntime && Platform.OS === 'android' && jarvisSttService.isNativeModulePresent()) {
         await startNativeImageDictation({
           language: whisper.transcriptionLanguage,

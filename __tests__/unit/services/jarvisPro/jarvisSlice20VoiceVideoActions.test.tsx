@@ -404,7 +404,7 @@ describe('Jarvis Slice 20: Native STT, Voice Mode, Video Slots & Phone Actions',
 
     const heroUi = render(<JarvisAudioEmptyHero />);
     expect(heroUi.getByText('Голосовой режим Jarvis Ai')).toBeTruthy();
-    expect(heroUi.getByText('Jarvis TTS · RU')).toBeTruthy();
+    expect(heroUi.getByText(/Jarvis TTS · RU/)).toBeTruthy();
 
     const onStart = jest.fn();
     const onStopRec = jest.fn();

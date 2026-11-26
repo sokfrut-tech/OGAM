@@ -35,9 +35,9 @@ test('Native Kotlin modules satisfy Slice 20 safety and lifecycle contracts', ()
   assert.match(actions, /setTorchMode/);
 });
 
-test('Standalone VoiceRecordButton defaults fallback Whisper model to multilingual base', () => {
+test('Standalone VoiceRecordButton defaults fallback Whisper model to multilingual small', () => {
   const voiceBtn = readRel('src/components/VoiceRecordButton/index.tsx');
-  assert.match(voiceBtn, /const modelIdToDownload = isJarvisStandaloneRuntime \? 'base' : DOWNLOAD_MODEL_ID/);
+  assert.match(voiceBtn, /const modelIdToDownload = isJarvisStandaloneRuntime \? 'small' : DOWNLOAD_MODEL_ID/);
 });
 
 test('activateJarvisOpenCapabilities registers all 16 open-source slots and PhoneActions extension', () => {

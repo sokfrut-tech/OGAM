@@ -1,6 +1,6 @@
 import { videoSeam } from '../bootstrap/videoSeam';
 /** GenerationService - Handles LLM generation independently of UI lifecycle */
-import { llmService } from './llm';
+import { llmService, type LLMGenerationDiagnostics } from './llm';
 import { getActiveEngineService, prepareActiveConversation, stopAllTextEngines } from './engines';
 import { activeModelService } from './activeModelService';
 import { remoteServerManager } from './remoteServerManager';
@@ -734,6 +734,16 @@ class GenerationService {
     if (hasQueuedItems) {
       setTimeout(() => this.processNextInQueue(), 100);
     }
+  }
+
+  getNativeGenerationDiagnostics(): LLMGenerationDiagnostics {
+    return llmService.getGenerationDiagnostics();
+  }
+
+  subscribeNativeGenerationDiagnostics(
+    listener: (diagnostics: LLMGenerationDiagnostics) => void,
+  ): () => void {
+    return llmService.subscribeGenerationDiagnostics(listener);
   }
 }
 

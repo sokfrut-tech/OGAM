@@ -6,6 +6,7 @@ import { useWhisperStore, useAppStore, useRemoteServerStore } from '../../stores
 import { activeModelService } from '../../services/activeModelService';
 import { audioRecorderService } from '../../services/audioRecorderService';
 import { whisperService } from '../../services/whisperService';
+import { isEnglishOnlyWhisperModel } from '../../services/whisperModels';
 import { recordingController } from '../../services/recordingController';
 import { useSilenceEndpoint, type SilenceEndpoint } from './useSilenceEndpoint';
 import { finaliseRecording, type RecordedAudio } from './finaliseRecording';
@@ -154,7 +155,7 @@ async function beginNativeAndroidStt(params: NativeAndroidSttParams): Promise<vo
   params.setIsRecordingNativeStt(true);
   const started = await jarvisSttService.startListening({
     language: params.transcriptionLanguage,
-    preferOffline: true,
+    preferOffline: false,
     onPartial: text => params.setNativePartialResult(text),
     onResult: text => {
       handledTerminal = true;
@@ -261,11 +262,17 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
   // Voice layout and recorder from observing two different store snapshots.
   const isInAudioInterfaceMode = (): boolean => interfaceMode === 'audio';
 
+  const incompatibleEnglishWhisper =
+    isJarvisStandaloneRuntime &&
+    transcriptionLanguage === 'ru' &&
+    isEnglishOnlyWhisperModel(downloadedModelId);
+  const effectiveLocalModelId = incompatibleEnglishWhisper ? null : downloadedModelId;
+
   // Use file-based transcription path when: Audio Mode + Whisper available + not direct audio model
   const shouldUseFilePath = (): boolean =>
-    isInAudioInterfaceMode() && !!downloadedModelId && !supportsDirectAudio();
+    isInAudioInterfaceMode() && !!effectiveLocalModelId && !supportsDirectAudio();
 
-  const ensureWhisper = createWhisperReadiness(downloadedModelId, remoteTranscriptionAvailable);
+  const ensureWhisper = createWhisperReadiness(effectiveLocalModelId, remoteTranscriptionAvailable);
 
   // A failed start must return the session to idle as well as clear Jarvis's one-shot flag.
   // Otherwise the state machine remains in listen with no microphone actually open.
@@ -387,7 +394,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
     }
 
     if (
-      !downloadedModelId &&
+      !effectiveLocalModelId &&
       isJarvisStandaloneRuntime &&
       Platform.OS === 'android' &&
       nativeSttAvailable
@@ -409,6 +416,14 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
         setDirectError,
         settleFailedCaptureStart,
       });
+      return;
+    }
+
+    if (incompatibleEnglishWhisper) {
+      setDirectError(
+        'Выбрана англоязычная модель речи (.en). Для русского скачайте Whisper Small (RU) или Qwen3-ASR в «Модели → Транскрибация».',
+      );
+      settleFailedCaptureStart();
       return;
     }
 

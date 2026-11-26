@@ -134,6 +134,8 @@ export interface ToolGenerationDeps {
   /** The service's one verdict on how the completion ended (cut off at the cap, or ended early). */
   recordCompletionEnd: (cr: CompletionEndFields | null | undefined) => { lastTruncated?: boolean; lastEndedEarly?: boolean };
   setIsGenerating: (v: boolean) => void;
+  onNativeStart?: () => void;
+  onNativeProgress?: (data: any) => void;
 }
 
 export async function generateWithToolsImpl(
@@ -174,7 +176,9 @@ export async function generateWithToolsImpl(
       ...buildThinkingCompletionParams(deps.isThinkingEnabled, deps.isGemma4Model, settings.reasoningBudget),
     };
     logger.log(`[LLM-Tools] input messages=${completionParams.messages?.length ?? 0} tools=${options.tools?.length ?? 0}`);
+    deps.onNativeStart?.();
     const completionResult: any = await safeCompletion(deps.context, () => deps.context.completion(completionParams as any, (data: any) => {
+      deps.onNativeProgress?.(data);
       if (!generating) return;
       if (data.tool_calls) {
         for (const tc of data.tool_calls) {

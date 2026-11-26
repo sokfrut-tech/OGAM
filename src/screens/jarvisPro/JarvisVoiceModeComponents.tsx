@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { NavigationContext } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import { CustomAlert, hideAlert, type AlertState } from '../../components/CustomAlert';
 import { QuickSettingsPopover } from '../../components/ChatInput/Popovers';
@@ -7,7 +8,11 @@ import { JarvisSpeakButton } from '../../components/jarvisPro/JarvisSpeakButton'
 import { TouchableOpacity } from '../../components/Touchable';
 import { SPACING, TYPOGRAPHY } from '../../constants';
 import { jarvisTtsService } from '../../services/jarvisPro/jarvisTtsService';
-import { useUiModeStore } from '../../stores';
+import {
+  isEnglishOnlyWhisperModel,
+  transcriptionModelName,
+} from '../../services/whisperModels';
+import { useUiModeStore, useWhisperStore } from '../../stores';
 import { useTheme, useThemedStyles } from '../../theme';
 import type { ThemeColors } from '../../theme';
 import { cardSurface } from '../../theme/surface';
@@ -239,10 +244,24 @@ export const JarvisQuickSettingsAudioRow: React.FC<{
   );
 };
 
+function describeSttLabel(downloadedModelId: string | null, lang: string): string {
+  if (isEnglishOnlyWhisperModel(downloadedModelId)) {
+    return `Внимание: ${downloadedModelId} (только EN)`;
+  }
+  if (downloadedModelId) {
+    return `Распознавание: ${transcriptionModelName(downloadedModelId)} (${lang.toUpperCase()})`;
+  }
+  return `Распознавание: Android STT (${lang.toUpperCase()})`;
+}
+
 export const JarvisAudioEmptyHero: React.FC = () => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const navigation = useContext(NavigationContext);
   const voiceSummary = useUiModeStore(s => s.voiceSummary);
+  const downloadedModelId = useWhisperStore(s => s.downloadedModelId);
+  const transcriptionLanguage = useWhisperStore(s => s.transcriptionLanguage);
+  const needsRussianLocalModel = !downloadedModelId || isEnglishOnlyWhisperModel(downloadedModelId);
 
   return (
     <View style={styles.heroContainer} testID="jarvis-audio-empty-hero">
@@ -255,9 +274,24 @@ export const JarvisAudioEmptyHero: React.FC = () => {
       </Text>
       <View style={styles.heroPill}>
         <Text style={styles.heroPillText}>
-          {voiceSummary ?? 'Русский STT + TTS'}
+          {`${describeSttLabel(downloadedModelId, transcriptionLanguage)} · ${voiceSummary ?? 'Jarvis TTS · RU'}`}
         </Text>
       </View>
+      {needsRussianLocalModel && (
+        <TouchableOpacity
+          testID="jarvis-voice-open-stt-models"
+          style={styles.sideButton}
+          onPress={() =>
+            navigation?.navigate('Main' as never, {
+              screen: 'ModelsTab',
+              params: { initialTab: 'transcription' },
+            } as never)
+          }
+        >
+          <Icon name="download" size={14} color={colors.primary} />
+          <Text style={styles.sideButtonText}>Скачать офлайн Whisper Small (RU)</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

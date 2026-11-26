@@ -131,6 +131,8 @@ jobs:
         run: node --experimental-strip-types --test scripts/__tests__/jarvis-russian-prompts.node.test.mjs
       - name: Verify Jarvis Slice 20 native STT, Voice Mode, Video slots, and Phone Actions contracts
         run: node --test scripts/__tests__/jarvis-slice20-capabilities.node.test.mjs
+      - name: Verify Jarvis Slice 21 Russian STT accuracy, migration, and watchdog contracts
+        run: node --test scripts/__tests__/jarvis-slice21-stt-watchdog.node.test.mjs
       - name: Generate complete source/config inventory
         run: node scripts/audit-offgrid-imports.mjs --output=ogam-import-audit.json
       - name: Upload audit evidence

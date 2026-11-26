@@ -312,12 +312,12 @@ export const VoiceRecordButton: React.FC<VoiceRecordButtonProps> = ({
   ).current;
 
   const handleUnavailableTap = () => {
-    const modelIdToDownload = isJarvisStandaloneRuntime ? 'base' : DOWNLOAD_MODEL_ID;
+    const modelIdToDownload = isJarvisStandaloneRuntime ? 'small' : DOWNLOAD_MODEL_ID;
     setAlertState(
       showAlert(
         isJarvisStandaloneRuntime ? 'Скачать офлайн-модель речи' : 'Download Voice Model',
         isJarvisStandaloneRuntime
-          ? `Скачать Whisper Base (99 языков, включая русский, ${DOWNLOAD_MODEL_SIZE_MB} МБ) для полностью офлайн-диктовки?`
+          ? 'Скачать Whisper Small (русский + 99 языков, 466 МБ) для точной офлайн-диктовки?'
           : `Download Whisper Base to enable voice input? (${DOWNLOAD_MODEL_SIZE_MB} MB)`,
         [
           { text: isJarvisStandaloneRuntime ? 'Отмена' : 'Cancel', style: 'cancel' },

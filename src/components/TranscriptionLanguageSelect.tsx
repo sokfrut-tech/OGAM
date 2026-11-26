@@ -3,7 +3,9 @@ import { transcriptionLanguages } from '../utils/transcriptionLanguages';
 import { useWhisperStore } from '../stores/whisperStore';
 import { SettingsOptionSelect } from './SettingsOptionSelect';
 import { callHook, HOOKS } from '../bootstrap/hookRegistry';
+import { isJarvisStandaloneRuntime } from '../i18n';
 import { isQwenAsrModelId } from '../services/qwenAsrModel';
+import { isEnglishOnlyWhisperModel } from '../services/whisperModels';
 
 interface TranscriptionLanguageSelectProps {
   testID?: string;
@@ -29,8 +31,14 @@ export const TranscriptionLanguageSelect: React.FC<TranscriptionLanguageSelectPr
     : options[0]?.value ?? 'en';
 
   useEffect(() => {
-    if (supportedValue !== language) setLanguage(supportedValue);
-  }, [language, setLanguage, supportedValue]);
+    const keepRuForIncompatibleEnModel =
+      isJarvisStandaloneRuntime &&
+      language === 'ru' &&
+      isEnglishOnlyWhisperModel(downloadedModelId);
+    if (!keepRuForIncompatibleEnModel && supportedValue !== language) {
+      setLanguage(supportedValue);
+    }
+  }, [downloadedModelId, language, setLanguage, supportedValue]);
 
   const selectLanguage = (nextLanguage: string) => {
     setLanguage(nextLanguage);
@@ -39,16 +47,21 @@ export const TranscriptionLanguageSelect: React.FC<TranscriptionLanguageSelectPr
     }
   };
 
+  const englishOnlyDescription = isJarvisStandaloneRuntime
+    ? 'Эта модель поддерживает только английский — для русского скачайте Whisper Small (RU) или Qwen3-ASR.'
+    : 'This model supports English.';
+  const multiDescription = isJarvisStandaloneRuntime
+    ? 'Выберите язык речи (рекомендуется русский) или автоопределение.'
+    : 'Choose a language or use auto-detect.';
+
   return (
     <SettingsOptionSelect
       testID={testID}
-      label="Language"
+      label={isJarvisStandaloneRuntime ? 'Язык распознавания речи' : 'Language'}
       value={supportedValue}
       options={options}
       onChange={selectLanguage}
-      description={options.length === 1
-        ? 'This model supports English.'
-        : 'Choose a language or use auto-detect.'}
+      description={options.length === 1 ? englishOnlyDescription : multiDescription}
     />
   );
 };

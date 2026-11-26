@@ -1,7 +1,7 @@
 export { hardwareService } from './hardware';
 export { huggingFaceService } from './huggingface';
 export { modelManager } from './modelManager';
-export { llmService } from './llm';
+export { llmService, type LLMGenerationDiagnostics } from './llm';
 export { localDreamGeneratorService as onnxImageGeneratorService } from './localDreamGenerator';
 export { intentClassifier, isVideoRequest } from './intentClassifier';
 export { authService } from './authService';

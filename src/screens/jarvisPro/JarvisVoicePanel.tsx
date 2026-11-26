@@ -1,15 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { NavigationContext } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import { AppSwitch } from '../../components/AppSwitch';
 import { TouchableOpacity } from '../../components/Touchable';
 import { SPACING, TYPOGRAPHY } from '../../constants';
 import { SCROLL_DEPTH_PROPS } from '../../constants/scrollDepth';
 import {
+  jarvisSttService,
+  type JarvisSttEngineInfo,
+} from '../../services/jarvisPro/jarvisSttService';
+import {
   jarvisTtsService,
   type JarvisTtsVoice,
 } from '../../services/jarvisPro/jarvisTtsService';
-import { useJarvisProStore } from '../../stores';
+import {
+  isEnglishOnlyWhisperModel,
+  transcriptionModelName,
+} from '../../services/whisperModels';
+import { useJarvisProStore, useWhisperStore } from '../../stores';
 import { useTheme, useThemedStyles } from '../../theme';
 import type { ThemeColors } from '../../theme';
 import { cardSurface } from '../../theme/surface';
@@ -122,11 +131,30 @@ const createStyles = (colors: ThemeColors) => ({
   },
 });
 
+function describeVoicePanelStt(
+  downloadedSttId: string | null,
+  sttLanguage: string,
+  sttInfo: JarvisSttEngineInfo | null,
+  showRemoteModels: boolean,
+): string {
+  const remoteSuffix = showRemoteModels
+    ? ' Также доступны удалённые голосовые серверы в настройках.'
+    : '';
+  if (isEnglishOnlyWhisperModel(downloadedSttId)) {
+    return `Активна английская модель (${downloadedSttId}) — русскую речь не понимает. Язык: ${sttLanguage}.${remoteSuffix}`;
+  }
+  if (downloadedSttId) {
+    return `Активная модель: ${transcriptionModelName(downloadedSttId)} (язык: ${sttLanguage}).${remoteSuffix}`;
+  }
+  return `Системный Android STT (${sttInfo?.servicePackage ?? 'Google / OEM'}, язык: ${sttLanguage}).${remoteSuffix}`;
+}
+
 export const JarvisVoicePanel: React.FC<JarvisVoicePanelProps> = ({
   showRemoteModels = false,
 }) => {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
+  const navigation = useContext(NavigationContext);
   const autoSpeak = useJarvisProStore(s => s.ttsAutoSpeak);
   const rate = useJarvisProStore(s => s.ttsRate);
   const selectedVoiceId = useJarvisProStore(s => s.ttsVoiceId);
@@ -134,18 +162,23 @@ export const JarvisVoicePanel: React.FC<JarvisVoicePanelProps> = ({
   const setAutoSpeak = useJarvisProStore(s => s.setTtsAutoSpeak);
   const setRate = useJarvisProStore(s => s.setTtsRate);
   const setVoiceId = useJarvisProStore(s => s.setTtsVoiceId);
+  const downloadedSttId = useWhisperStore(s => s.downloadedModelId);
+  const sttLanguage = useWhisperStore(s => s.transcriptionLanguage);
 
   const [ttsReady, setTtsReady] = useState<boolean | null>(null);
   const [voices, setVoices] = useState<JarvisTtsVoice[]>([]);
+  const [sttInfo, setSttInfo] = useState<JarvisSttEngineInfo | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const ok = await jarvisTtsService.canSpeak();
       const loadedVoices = ok ? await jarvisTtsService.listVoices() : [];
+      const engine = await jarvisSttService.getEngineInfo();
       if (cancelled) return;
       setTtsReady(ok);
       setVoices(loadedVoices);
+      setSttInfo(engine);
     })().catch(() => {});
     return () => {
       cancelled = true;
@@ -278,14 +311,23 @@ export const JarvisVoicePanel: React.FC<JarvisVoicePanelProps> = ({
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Распознавание речи (Whisper)</Text>
-        <Text style={styles.body}>
-          Модели распознавания голоса (STT) для микрофона находятся во вкладке
-          «Модели → Распознавание».
-          {showRemoteModels
-            ? ' Также доступны удалённые голосовые серверы в настройках.'
-            : ''}
+        <Text style={styles.sectionTitle}>Распознавание речи (STT)</Text>
+        <Text style={styles.body} testID="jarvis-voice-stt-summary">
+          {describeVoicePanelStt(downloadedSttId, sttLanguage, sttInfo, showRemoteModels)}
         </Text>
+        <TouchableOpacity
+          testID="jarvis-voice-open-stt-models"
+          style={styles.primaryButton}
+          onPress={() =>
+            navigation?.navigate('Main' as never, {
+              screen: 'ModelsTab',
+              params: { initialTab: 'transcription' },
+            } as never)
+          }
+        >
+          <Icon name="mic" size={15} color={colors.onPrimary} />
+          <Text style={styles.primaryButtonText}>Модели распознавания (Whisper / Qwen3-ASR)</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );

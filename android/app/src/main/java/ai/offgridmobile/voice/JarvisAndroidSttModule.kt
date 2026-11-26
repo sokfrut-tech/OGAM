@@ -1,8 +1,12 @@
 package ai.offgridmobile.voice
 
+import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.speech.RecognitionListener
+import android.speech.RecognitionService
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import com.facebook.react.bridge.Arguments
@@ -15,7 +19,8 @@ import com.facebook.react.modules.core.DeviceEventManagerModule
 
 /**
  * Built-in Android SpeechRecognizer bridge for immediate Russian/multilingual voice input
- * out of the box, with automatic online fallback when an offline language pack is absent.
+ * out of the box. Prefers Google Speech Services over OEM recognizers (such as Breeno/ColorOS)
+ * so Russian dictation is routed to a true Russian ASR backend instead of EN/ZH fallbacks.
  */
 class JarvisAndroidSttModule(
   private val reactContext: ReactApplicationContext,
@@ -23,10 +28,53 @@ class JarvisAndroidSttModule(
 
   private var speechRecognizer: SpeechRecognizer? = null
   private var activeLanguage: String = "ru-RU"
+  private var activeServicePackage: String = "default"
   private var retriedOnline: Boolean = false
   private var activeSession: Boolean = false
 
   override fun getName(): String = "JarvisAndroidSttModule"
+
+  companion object {
+    private val PREFERRED_GOOGLE_PACKAGES = listOf(
+      "com.google.android.tts",
+      "com.google.android.as",
+      "com.google.android.googlequicksearchbox",
+    )
+    private val CYRILLIC_REGEX = Regex("[А-Яа-яЁё]")
+  }
+
+  private fun queryRecognitionServices() = runCatching {
+    val pm = reactContext.packageManager
+    val query = Intent(RecognitionService.SERVICE_INTERFACE)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      pm.queryIntentServices(query, PackageManager.ResolveInfoFlags.of(0))
+    } else {
+      @Suppress("DEPRECATION")
+      pm.queryIntentServices(query, 0)
+    }
+  }.getOrDefault(emptyList())
+
+  private fun resolvePreferredRecognitionComponent(): Pair<ComponentName?, String> {
+    val services = queryRecognitionServices()
+    for (pkg in PREFERRED_GOOGLE_PACKAGES) {
+      val match = services.firstOrNull { it.serviceInfo?.packageName == pkg }
+      val info = match?.serviceInfo
+      if (info != null) {
+        return ComponentName(info.packageName, info.name) to info.packageName
+      }
+    }
+    val fallbackPkg = services.firstOrNull()?.serviceInfo?.packageName ?: "default"
+    return null to fallbackPkg
+  }
+
+  private fun pickBestMatch(matches: List<String>?, languageTag: String): String {
+    if (matches.isNullOrEmpty()) return ""
+    if (languageTag.startsWith("ru", ignoreCase = true)) {
+      val cyrillic = matches.firstOrNull { !it.isNullOrBlank() && CYRILLIC_REGEX.containsMatchIn(it) }
+      if (!cyrillic.isNullOrBlank()) return cyrillic.trim()
+    }
+    return matches.firstOrNull { !it.isNullOrBlank() }?.trim().orEmpty()
+  }
 
   private fun emit(eventName: String, build: (com.facebook.react.bridge.WritableMap) -> Unit) {
     if (!reactContext.hasActiveReactInstance()) return
@@ -57,10 +105,16 @@ class JarvisAndroidSttModule(
       return
     }
 
-    val recognizer = SpeechRecognizer.createSpeechRecognizer(reactContext)
+    val (preferredComponent, resolvedPkg) = resolvePreferredRecognitionComponent()
+    val recognizer = if (preferredComponent != null) {
+      SpeechRecognizer.createSpeechRecognizer(reactContext, preferredComponent)
+    } else {
+      SpeechRecognizer.createSpeechRecognizer(reactContext)
+    }
     speechRecognizer = recognizer
     activeSession = true
     activeLanguage = languageTag
+    activeServicePackage = resolvedPkg
 
     recognizer.setRecognitionListener(object : RecognitionListener {
       override fun onReadyForSpeech(params: Bundle?) {
@@ -104,14 +158,14 @@ class JarvisAndroidSttModule(
       override fun onResults(results: Bundle?) {
         activeSession = false
         val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-        val best = matches?.firstOrNull()?.trim().orEmpty()
+        val best = pickBestMatch(matches, activeLanguage)
         emit("JarvisSttResult") { it.putString("text", best) }
         emit("JarvisSttState") { it.putString("state", "ended") }
       }
 
       override fun onPartialResults(partialResults: Bundle?) {
         val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-        val partial = matches?.firstOrNull()?.trim().orEmpty()
+        val partial = pickBestMatch(matches, activeLanguage)
         if (partial.isNotEmpty()) {
           emit("JarvisSttPartial") { it.putString("text", partial) }
         }
@@ -121,10 +175,13 @@ class JarvisAndroidSttModule(
     })
 
     val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+      putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, reactContext.packageName)
       putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
       putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageTag)
+      putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, languageTag)
+      putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, true)
       putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-      putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+      putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
       if (preferOffline) {
         putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
       }
@@ -150,6 +207,22 @@ class JarvisAndroidSttModule(
     UiThreadUtil.runOnUiThread {
       promise.resolve(
         runCatching { SpeechRecognizer.isRecognitionAvailable(reactContext) }.getOrDefault(false),
+      )
+    }
+  }
+
+  @ReactMethod
+  fun getEngineInfo(promise: Promise) {
+    UiThreadUtil.runOnUiThread {
+      val available = runCatching { SpeechRecognizer.isRecognitionAvailable(reactContext) }.getOrDefault(false)
+      val (_, pkg) = resolvePreferredRecognitionComponent()
+      val isGoogle = PREFERRED_GOOGLE_PACKAGES.contains(pkg)
+      promise.resolve(
+        Arguments.createMap().apply {
+          putBoolean("available", available)
+          putString("servicePackage", pkg)
+          putBoolean("isGoogleService", isGoogle)
+        },
       )
     }
   }

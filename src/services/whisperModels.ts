@@ -37,6 +37,10 @@ export function whisperDisplayName(model: { name: string; lang: 'en' | 'multi' }
 registerBundledCatalog('transcription', WHISPER_MODELS);
 
 /** A local transcription model by id: a Whisper model from `whisperModels`, else Qwen3-ASR. */
+export function isEnglishOnlyWhisperModel(modelId: string | null | undefined): boolean {
+  return Boolean(modelId && /\.en$/i.test(modelId.trim()));
+}
+
 export function findTranscriptionModel(
   whisperModels: readonly MobileWhisperCatalogModel[],
   modelId: string | null | undefined,
