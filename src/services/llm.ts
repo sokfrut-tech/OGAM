@@ -678,6 +678,7 @@ class LLMService {
   }
   async generateResponseWithTools(messages: Message[], options: { tools: any[]; onStream?: StreamCallback; onComplete?: CompleteCallback }): Promise<{ fullResponse: string; toolCalls: ToolCall[]; interrupted?: boolean }> {
     if (this.releasingContext) throw new Error('No model loaded');
+    if (this.isGenerating) throw new Error('Generation already in progress');
     this.beginGenerationDiagnostics();
     if (!this.isGenerating) this.stopRequested = false;
     const work = this.trackNativeWork(generateWithToolsImpl({
