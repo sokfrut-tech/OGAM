@@ -835,8 +835,11 @@ describe('LLMService', () => {
         expect(llmService.getGenerationDiagnostics().phase).toBe('stopping');
         expect(stopSettled).toBe(false);
 
+        // Stop clears the diagnostic timer. Switch back to real timers before testing
+        // unload because awaitMemoryReclaim uses a bounded native-memory polling delay.
+        jest.useRealTimers();
         unloading = llmService.unloadModel();
-        await Promise.resolve();
+        await new Promise(resolve => setTimeout(resolve, 10));
         expect(release).not.toHaveBeenCalled();
         expect(completionSettled).toBe(false);
 
