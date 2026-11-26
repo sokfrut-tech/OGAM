@@ -22,6 +22,7 @@ import {
 } from '../../components';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
 import { generationService } from '../../services';
+import { llmService, type LLMGenerationDiagnostics } from '../../services/llm';
 import type { QueueActions } from '../../components/ChatInput/Toolbar';
 import { RestyleSheet } from '../../components/MediaStyles/RestyleSheet';
 import { EmptyChat, ImageProgressIndicator } from './ChatScreenComponents';
@@ -156,6 +157,34 @@ const ModelStatusBar: React.FC<{
     );
   }
   return null;
+};
+
+/**
+ * A native completion may keep the JSI context occupied after visible tokens stop.
+ * This status comes from the LLM service lifecycle, not a guessed UI spinner timer.
+ */
+const NativeGenerationNotice: React.FC<{ styles: any; colors: any }> = ({ styles, colors }) => {
+  const [diagnostics, setDiagnostics] = useState<LLMGenerationDiagnostics>(
+    () => llmService.getGenerationDiagnostics(),
+  );
+  useEffect(
+    () => llmService.subscribeGenerationDiagnostics(setDiagnostics),
+    [],
+  );
+  if (diagnostics.phase !== 'delayed' && diagnostics.phase !== 'stopping') return null;
+  const stopping = diagnostics.phase === 'stopping';
+  return (
+    <Animated.View entering={FadeIn.duration(200)}>
+      <View style={styles.pendingSettingsBar}>
+        <Icon name={stopping ? 'clock' : 'alert-circle'} size={16} color={colors.warning} />
+        <Text style={styles.pendingSettingsText}>
+          {stopping
+            ? 'Stop requested. Waiting for the native model operation to finish before another request can run.'
+            : 'No model updates for 60 seconds. It may still be processing; use Stop to cancel this reply.'}
+        </Text>
+      </View>
+    </Animated.View>
+  );
 };
 
 /**
@@ -457,6 +486,7 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
           onStop={chat.handleStop}
         />
       )}
+      <NativeGenerationNotice styles={styles} colors={colors} />
       <ModelStatusBar
         // While generating for this chat the loading state is shown inside the
         // reply bubble ("Loading <model>…"), so don't also show it in this bar.
