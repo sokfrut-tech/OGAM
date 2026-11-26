@@ -2443,6 +2443,7 @@ describe('LLMService', () => {
       const generation = llmService.generateResponse([
         createUserMessage('A request that will temporarily stop producing native callbacks'),
       ]);
+      let stopping: Promise<void> | null = null;
 
       try {
         await completionEntered;
@@ -2462,7 +2463,7 @@ describe('LLMService', () => {
         expect(llmService.getGenerationDiagnostics().phase).toBe('delayed');
 
         let stopSettled = false;
-        const stopping = llmService.stopGeneration().then(() => { stopSettled = true; });
+        stopping = llmService.stopGeneration().then(() => { stopSettled = true; });
         await Promise.resolve();
         expect(llmService.getGenerationDiagnostics().phase).toBe('stopping');
         expect(stopSettled).toBe(false);
@@ -2491,7 +2492,7 @@ describe('LLMService', () => {
           });
         }
         unsubscribe();
-        await Promise.allSettled([generation]);
+        await Promise.allSettled([generation, ...(stopping ? [stopping] : [])]);
         jest.clearAllTimers();
         jest.useRealTimers();
       }
