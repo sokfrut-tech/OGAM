@@ -834,6 +834,10 @@ describe('LLMService', () => {
         await Promise.resolve();
         expect(llmService.getGenerationDiagnostics().phase).toBe('stopping');
         expect(stopSettled).toBe(false);
+        await expect(llmService.generateResponse([
+          createUserMessage('a second turn must wait for the native operation to settle'),
+        ])).rejects.toThrow('Generation already in progress');
+        expect(ctx.completion).toHaveBeenCalledTimes(1);
 
         // Stop clears the diagnostic timer. Switch back to real timers before testing
         // unload because awaitMemoryReclaim uses a bounded native-memory polling delay.
