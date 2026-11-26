@@ -1,0 +1,39 @@
+name: Focused native completion regression
+
+on:
+  push:
+    branches:
+      - test/native-completion-hang-2026-11-26
+    paths:
+      - '__tests__/unit/services/llm.test.ts'
+      - '.github/workflows/focused-native-completion-test.yml'
+      - 'package-lock.json'
+      - '.github/actions/setup-mobile/action.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: focused-native-completion-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-llm-test:
+    name: focused llm.test.ts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node workspace
+        uses: ./.github/actions/setup-mobile
+        with:
+          private-token: ''
+          shared: 'false'
+          save-caches: 'false'
+
+      - name: Run only the LLM service unit tests
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: npx jest __tests__/unit/services/llm.test.ts --runInBand --no-coverage --forceExit
