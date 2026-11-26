@@ -32,8 +32,8 @@ jobs:
       - name: Set up Node workspace
         uses: ./.github/actions/setup-mobile
         with:
-          private-token: ''
-          shared: 'false'
+          private-token: ${{ secrets.PRO_SUBMODULE_PAT }}
+          shared: 'true'
           save-caches: 'false'
 
       - name: Lint changed TypeScript files
