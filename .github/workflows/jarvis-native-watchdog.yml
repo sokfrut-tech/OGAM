@@ -39,6 +39,9 @@ jobs:
       - name: Lint changed TypeScript files
         run: npx eslint src/services/llm.ts src/services/llmToolGeneration.ts src/screens/ChatScreen/ChatMessageArea.tsx __tests__/unit/services/llm.test.ts
 
+      - name: Type check the app
+        run: npx tsc --noEmit
+
       - name: Run LLM service unit tests
         env:
           NODE_OPTIONS: --max-old-space-size=4096
