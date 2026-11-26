@@ -2354,6 +2354,10 @@ describe('LLMService', () => {
         expect(stopCompletion).toHaveBeenCalled();
         expect(stopSettled).toBe(false);
         await expect(llmService.waitForIdle(10)).resolves.toBe(false);
+        await expect(llmService.generateResponse([
+          createUserMessage('A second request must not enter the occupied native context'),
+        ])).rejects.toThrow('Generation already in progress');
+        expect(ctx.completion).toHaveBeenCalledTimes(1);
 
         unloading = llmService.unloadModel();
         await new Promise(resolve => setTimeout(resolve, 10));
