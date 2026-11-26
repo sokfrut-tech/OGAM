@@ -1,5 +1,6 @@
 name: Focused native completion regression
 
+# Deliberately isolated: one Jest file, no native builds or paid services.
 on:
   push:
     branches:
