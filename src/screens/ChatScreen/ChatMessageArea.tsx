@@ -182,8 +182,8 @@ const NativeGenerationNotice: React.FC<{ styles: any; colors: any }> = ({ styles
         <Icon name={stopping ? 'clock' : 'alert-circle'} size={16} color={colors.warning} />
         <Text style={styles.pendingSettingsText}>
           {stopping
-            ? 'Stop requested. Waiting for the native model operation to finish before another request can run.'
-            : 'No model updates for 60 seconds. It may still be processing; use Stop to cancel this reply.'}
+            ? 'Остановка запрошена. Ждём завершения операции модели. Новый запрос пока нельзя запустить.'
+            : 'Ответ не обновлялся 60 секунд. Возможно, модель ещё обрабатывает запрос. Нажмите «Стоп», чтобы остановить генерацию.'}
         </Text>
       </View>
     </Animated.View>
