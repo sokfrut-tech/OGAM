@@ -9,7 +9,7 @@ import { initLlama } from 'llama.rn';
 import { NativeModules, Platform } from 'react-native';
 import RNFS from 'react-native-fs';
 import DeviceInfo from 'react-native-device-info';
-import { llmService } from '../../../src/services/llm';
+import { llmService, LLM_NATIVE_STALL_TIMEOUT_MS } from '../../../src/services/llm';
 import { useAppStore } from '../../../src/stores/appStore';
 import { resetStores } from '../../utils/testHelpers';
 import { createMockLlamaContext } from '../../utils/testHelpers';
@@ -2406,6 +2406,95 @@ describe('LLMService', () => {
       await llmService.stopGeneration();
 
       expect((llmService as any).activeCompletionPromise).toBeNull();
+    });
+
+    it('surfaces native silence, recovers on callback, and keeps Stop pending until native settlement', async () => {
+      mockedRNFS.exists.mockResolvedValue(true);
+
+      let resolveCompletion!: (value: any) => void;
+      let markCompletionEntered!: () => void;
+      let nativeOnToken!: (data: any) => void;
+      const completionEntered = new Promise<void>(resolve => {
+        markCompletionEntered = resolve;
+      });
+      let completionSettled = false;
+      const nativeCompletion = new Promise<any>(resolve => {
+        resolveCompletion = value => {
+          completionSettled = true;
+          resolve(value);
+        };
+      });
+      const ctx = createMockLlamaContext({
+        completion: jest.fn((_params: any, onToken: (data: any) => void) => {
+          nativeOnToken = onToken;
+          markCompletionEntered();
+          return nativeCompletion;
+        }),
+        stopCompletion: jest.fn().mockResolvedValue(undefined),
+      });
+      mockedInitLlama.mockResolvedValue(ctx as any);
+      await llmService.loadModel('/models/test.gguf');
+
+      jest.useFakeTimers();
+      const observedPhases: string[] = [];
+      const unsubscribe = llmService.subscribeGenerationDiagnostics(diagnostics => {
+        observedPhases.push(diagnostics.phase);
+      });
+      const generation = llmService.generateResponse([
+        createUserMessage('A request that will temporarily stop producing native callbacks'),
+      ]);
+
+      try {
+        await completionEntered;
+        expect(llmService.getGenerationDiagnostics().phase).toBe('waiting');
+        jest.advanceTimersByTime(LLM_NATIVE_STALL_TIMEOUT_MS);
+        expect(llmService.getGenerationDiagnostics().phase).toBe('delayed');
+        expect(ctx.stopCompletion).not.toHaveBeenCalled();
+        expect(observedPhases).toContain('delayed');
+
+        // A callback proves the native stream resumed. The service clears the warning and
+        // starts watching the next quiet interval without retaining any generated text.
+        nativeOnToken({ token: 'progress', content: 'progress' });
+        expect(llmService.getGenerationDiagnostics().phase).toBe('streaming');
+        expect(llmService.getGenerationDiagnostics().tokenCount).toBe(1);
+
+        jest.advanceTimersByTime(LLM_NATIVE_STALL_TIMEOUT_MS);
+        expect(llmService.getGenerationDiagnostics().phase).toBe('delayed');
+
+        let stopSettled = false;
+        const stopping = llmService.stopGeneration().then(() => { stopSettled = true; });
+        await Promise.resolve();
+        expect(llmService.getGenerationDiagnostics().phase).toBe('stopping');
+        expect(stopSettled).toBe(false);
+        expect(completionSettled).toBe(false);
+
+        // No timeout may free the JSI context: only the original native promise settling
+        // allows the generation, Stop and subsequent unload to drain.
+        resolveCompletion({
+          text: 'native completion finally settled',
+          content: 'native completion finally settled',
+          tokens_predicted: 2,
+          tokens_evaluated: 3,
+          timings: {},
+        });
+        await Promise.all([generation, stopping]);
+        expect(stopSettled).toBe(true);
+        expect(llmService.getGenerationDiagnostics().phase).toBe('idle');
+      } finally {
+        if (!completionSettled) {
+          resolveCompletion({
+            text: 'test cleanup',
+            content: 'test cleanup',
+            tokens_predicted: 1,
+            tokens_evaluated: 1,
+            timings: {},
+          });
+        }
+        unsubscribe();
+        await Promise.allSettled([generation]);
+        jest.clearAllTimers();
+        jest.useRealTimers();
+      }
     });
   });
 
