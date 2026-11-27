@@ -7,7 +7,7 @@ import { useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
-import { boostPromoLink, type BoostPromoSurface } from '@offgrid/models';
+import { boostPromoLink, type BoostPromoSurface } from '../utils/boostPromo';
 import { boostPromo } from '../services/analytics/analytics';
 import { OfflineError, openWebSheet } from '../services/proCheckout';
 

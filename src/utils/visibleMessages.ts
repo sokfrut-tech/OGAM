@@ -1,4 +1,4 @@
-import { chatListPreviewLine } from '@offgrid/sync';
+import { chatListPreviewLine } from './chatSyncPrimitives';
 import type { Message } from '../types';
 
 /**

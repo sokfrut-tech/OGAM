@@ -34,7 +34,7 @@ import {
   toolLimitFinalAnswerInstruction,
   toolPromptChars,
   toolResultCharBudget,
-} from '@offgrid/models';
+} from '../utils/toolLoopBudget';
 const currentMaxToolSteps = (): number => {
   const configured = useAppStore.getState().settings.maxToolCalls;
   return normalizeMaxToolCalls(configured);
@@ -201,9 +201,10 @@ function parseGemmaToolCallBody(raw: string, toolCalls: ToolCall[]): void {
   args = normalizeToolArgs(args);
 
   if (name === 'web_search' && !args.query && args.queries) {
+    const { queries, ...restArgs } = args;
     args = {
-      ...args,
-      query: Array.isArray(args.queries) ? args.queries[0] : args.queries,
+      ...restArgs,
+      query: Array.isArray(queries) ? queries[0] : queries,
     };
   }
   toolCalls.push({
@@ -389,7 +390,7 @@ async function executeToolCallSafely(
     : exts.find(e => e.canHandle(tc.name));
   const start = Date.now();
   try {
-    const raw = ext ? await ext.execute(tc) : await executeToolCall(tc);
+    const raw = ext ? await ext.execute(tc) : await executeToolCall(tc, enabledBuiltInToolIds);
     return normalizeToolResult(tc, raw);
   } catch (err) {
     logger.error(

@@ -7,6 +7,14 @@ import { useThemedStyles } from '../theme';
 import type { ThemeColors, ThemeShadows } from '../theme';
 import { SPACING, TYPOGRAPHY, PRO_AHA_FEATURES } from '../constants';
 import { getPricingCopy } from '../utils/proPricing';
+import { isJarvisStandaloneRuntime } from '../i18n';
+
+const JARVIS_PRO_FEATURES_RU = [
+  'Русская офлайн-озвучка ответов (TTS)',
+  'Локальная генерация видео (Wan 2.1)',
+  'Инструменты ИИ и пользовательские MCP-серверы',
+  'Открытые и русскоязычные модели GGUF без цензуры',
+];
 
 interface ProAhaSheetProps {
   visible: boolean;
@@ -23,14 +31,27 @@ export const ProAhaSheet: React.FC<ProAhaSheetProps> = ({ visible, onClose, onRe
     onRegister();
   };
 
+  const featuresList = isJarvisStandaloneRuntime ? JARVIS_PRO_FEATURES_RU : PRO_AHA_FEATURES;
+  const sheetTitle = isJarvisStandaloneRuntime ? 'Jarvis Ai Pro' : 'Off Grid AI Pro';
+  const headline = isJarvisStandaloneRuntime
+    ? 'Все инструменты Pro уже активны локально.'
+    : 'It already knows what you did today.';
+  const subheadline = isJarvisStandaloneRuntime
+    ? 'Никаких подписок, ограничений и внешних сайтов.'
+    : pricing.sheetSubheadline;
+  const footerText = isJarvisStandaloneRuntime
+    ? 'Работает автономно на вашем устройстве.'
+    : pricing.sheetFooter;
+  const ctaText = isJarvisStandaloneRuntime ? 'Открыть Jarvis Ai Pro' : pricing.cta;
+
   return (
-    <AppSheet sheet="pro-aha" visible={visible} onClose={onClose} enableDynamicSizing title="Off Grid AI Pro">
+    <AppSheet sheet="pro-aha" visible={visible} onClose={onClose} enableDynamicSizing title={sheetTitle}>
       <View style={styles.content}>
-        <Text style={styles.headline}>It already knows what you did today.</Text>
-        <Text style={styles.subheadline}>{pricing.sheetSubheadline}</Text>
+        <Text style={styles.headline}>{headline}</Text>
+        <Text style={styles.subheadline}>{subheadline}</Text>
 
         <View style={styles.featureList}>
-          {PRO_AHA_FEATURES.map(feature => (
+          {featuresList.map(feature => (
             <View key={feature} style={styles.featureRow}>
               <Icon name="check" size={14} color={styles.checkIcon.color} />
               <Text style={styles.featureText}>{feature}</Text>
@@ -38,10 +59,10 @@ export const ProAhaSheet: React.FC<ProAhaSheetProps> = ({ visible, onClose, onRe
           ))}
         </View>
 
-        <Text style={styles.guarantee}>{pricing.sheetFooter}</Text>
+        <Text style={styles.guarantee}>{footerText}</Text>
 
         <TouchableOpacity style={styles.ctaButton} onPress={handleCta}>
-          <Text style={styles.ctaText}>{pricing.cta}</Text>
+          <Text style={styles.ctaText}>{ctaText}</Text>
         </TouchableOpacity>
       </View>
     </AppSheet>

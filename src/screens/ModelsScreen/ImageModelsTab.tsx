@@ -4,7 +4,7 @@ import { TouchableOpacity } from '../../components/Touchable';
 import { LoadingDots } from '../../components/LoadingDots';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
-import { determineCredibility } from '@offgrid/models';
+import { determineCredibility } from '../../utils/modelNamingCore';
 import { ModelCard } from '../../components';
 import { GROUPED_CARD_ROW, ListGroup } from '../../components/ListGroup';
 import { SearchField } from '../../components/SearchField';
@@ -21,7 +21,8 @@ import { ImagePicksRow, imagePicks, imageFamilyName } from './ImagePicksRow';
 import { ImageFilterBar } from './ImageFilterBar';
 import { BackendFilter, ImageFilterDimension } from './types';
 import { formatBytes, getImageModelCompatibility, hfModelToDescriptor } from './utils';
-import { standardImageModelDefaults } from '@offgrid/models';
+import { isJarvisStandaloneRuntime } from '../../i18n';
+import { standardImageModelDefaults } from '../../utils/imageParameterCore';
 import { sdCppCpuMinutesPerImage } from '../../services/sdCppPlacement';
 import { modelDownloadService } from '../../services/modelDownloadService';
 import { uniformDownloadId } from '../../services/modelDownloadService/uniformId';
@@ -59,7 +60,9 @@ export const ImageModelCardItem: React.FC<ImageModelCardProps> = ({
   isRecommendedModel, handleDownloadImageModel, handleCancelImageDownload,
 }) => {
   const recommended = isRecommendedModel(model);
-  const { isCompatible, incompatibleReason } = getImageModelCompatibility(model, imageRec);
+  const rawCompatibility = getImageModelCompatibility(model, imageRec);
+  const isCompatible = isJarvisStandaloneRuntime ? true : rawCompatibility.isCompatible;
+  const incompatibleReason = isJarvisStandaloneRuntime ? undefined : rawCompatibility.incompatibleReason;
   // Single source of truth: live download status read from useDownloadStore
   // via the stable image:<id> modelKey. Replaces drilled imageModelDownloading
   // and imageModelProgress props.
@@ -188,17 +191,18 @@ const ImageModelsScrollContent: React.FC<ScrollContentProps> = ({
   // A pick is shown once, in the row above; the list leaves out every variant of a picked model.
   // Where sd.cpp runs only on the CPU, its models stay listed but are not picks: Local Dream is.
   const compatible = availableHFModels.filter(model =>
-    getImageModelCompatibility(model, imageRec).isCompatible && !(model.backend === 'sd' && imageRec?.sdCppOnCpu));
+    isJarvisStandaloneRuntime ||
+    (getImageModelCompatibility(model, imageRec).isCompatible && !(model.backend === 'sd' && imageRec?.sdCppOnCpu)));
   const pickedFamilies = new Set(imagePicks(compatible, ramGB, isRecommendedModel).map(({ item }) => imageFamilyName(item.displayName)));
   const listedModels = filteredHFModels.filter(model => !pickedFamilies.has(imageFamilyName(model.displayName)));
 
   let emptyMessage: string;
   if (imageSearchQuery.trim()) {
-    emptyMessage = 'No models match your search';
+    emptyMessage = isJarvisStandaloneRuntime ? 'Модели по запросу не найдены' : 'No models match your search';
   } else if (hasActiveImageFilters) {
-    emptyMessage = 'No models match your filters';
+    emptyMessage = isJarvisStandaloneRuntime ? 'Нет моделей под выбранные фильтры' : 'No models match your filters';
   } else {
-    emptyMessage = 'No models available';
+    emptyMessage = isJarvisStandaloneRuntime ? 'Нет доступных моделей' : 'No models available';
   }
 
   return (
@@ -208,7 +212,9 @@ const ImageModelsScrollContent: React.FC<ScrollContentProps> = ({
           <TouchableOpacity style={styles.recHint} onPress={() => setShowRecHint(false)} activeOpacity={0.7}>
             <Icon name="info" size={11} color={colors.textMuted} />
             <Text style={styles.recHintText}>
-              Showing the best fits for this phone. Tap{' '}★{' '}to see all.
+              {isJarvisStandaloneRuntime
+                ? 'Показаны оптимальные модели. Нажмите ★, чтобы увидеть все.'
+                : 'Showing the best fits for this phone. Tap \u2605 to see all.'}
             </Text>
           </TouchableOpacity>
         )}
@@ -248,7 +254,9 @@ const ImageModelsScrollContent: React.FC<ScrollContentProps> = ({
         {hfModelsLoading && (
           <View style={styles.hfLoadingContainer}>
             <LoadingDots color={colors.primary} />
-            <Text style={styles.loadingText}>Loading models...</Text>
+            <Text style={styles.loadingText}>
+              {isJarvisStandaloneRuntime ? 'Загрузка моделей...' : 'Loading models...'}
+            </Text>
           </View>
         )}
 
@@ -256,7 +264,9 @@ const ImageModelsScrollContent: React.FC<ScrollContentProps> = ({
           <View style={styles.hfErrorContainer}>
             <Text style={styles.hfErrorText}>{hfModelsError}</Text>
             <TouchableOpacity style={styles.retryButton} onPress={() => loadHFModels(true)}>
-              <Text style={styles.retryButtonText}>Retry</Text>
+              <Text style={styles.retryButtonText}>
+                {isJarvisStandaloneRuntime ? 'Повторить' : 'Retry'}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -311,7 +321,7 @@ export const ImageModelsTab: React.FC<Props> = ({
         <View style={[styles.searchContainer, styles.searchContainerNoPadding]}>
           <SearchField
             style={styles.searchField}
-            placeholder="Search models"
+            placeholder={isJarvisStandaloneRuntime ? 'Поиск моделей изображений' : 'Search models'}
             value={imageSearchQuery}
             onChangeText={setImageSearchQuery}
           />

@@ -40,7 +40,7 @@
  * per-load, user-confirmed way to push past whatever budget is in effect.
  */
 import { Platform } from 'react-native';
-import { fitTier, PHONE_FIT_BUDGET, phoneFitBudget, type FitBudget, type FitTier } from '@offgrid/models';
+import { fitTier, PHONE_FIT_BUDGET, phoneFitBudget, type FitBudget, type FitTier } from '../utils/modelFitBudget';
 
 /**
  * How the residency manager handles multiple models:

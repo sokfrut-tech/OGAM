@@ -41,7 +41,7 @@ async function launchReadsDevice() {
 
 /** The catalog's Qwen3-ASR files, as the downloader is asked for them. */
 function catalogFile(name: string): { sizeBytes: number; sha256: string } {
-  const { CATALOG } = require('@offgrid/models');
+  const { CATALOG } = require('../../../src/utils/modelCatalogCore');
   const entry = CATALOG.find((e: { id: string }) => e.id === 'ggml-org/Qwen3-ASR-0.6B-GGUF');
   return entry.files.find((f: { name: string }) => f.name === name);
 }
@@ -182,6 +182,25 @@ describe('dictation with Qwen3-ASR selected', () => {
     await h.rtl.waitFor(() => {
       expect(view.getByTestId('chat-input').props.value ?? '').toBe('hello world');
     }, { timeout: 4000 });
+    expect(view.queryByTestId('transcription-notice')).toBeNull();
+  });
+
+  it('sends Russian as the pinned language through the primary ChatInput Qwen3-ASR path', async () => {
+    const h = await setupChatScreen({ navigation: 'real', engine: 'llama', platform: 'android', whisper: true, llamaAudio: true });
+    engineReportsShippedBuild();
+    await selectQwenAsr(h);
+    await chooseLanguage(h, 'ru');
+    h.render();
+    const view = h.view!;
+
+    h.boundary.llama!.scriptCompletion({ text: 'Привет, мир' });
+    await dictate(h);
+
+    await h.rtl.waitFor(() => {
+      expect(view.getByTestId('chat-input').props.value ?? '').toBe('Привет, мир');
+    }, { timeout: 4000 });
+    const prompts = h.boundary.llama!.calls.completion.map(([params]) => String((params as { prompt?: string }).prompt ?? ''));
+    expect(prompts.some(prompt => prompt.endsWith('language Russian<asr_text>'))).toBe(true);
     expect(view.queryByTestId('transcription-notice')).toBeNull();
   });
 

@@ -1,8 +1,6 @@
 import { statFile } from '../../utils/fileStat';
-import {
-  ogamModelTransferBlocker,
-  type TransferredModelManifest,
-} from '@offgrid/sync';
+import { ogamModelTransferBlocker } from '../../utils/syncEntityCore';
+import type { TransferredModelManifest } from '../../types/syncContracts';
 import type { DownloadedModel, ModelFile } from '../../types';
 import {
   buildDownloadedModel,

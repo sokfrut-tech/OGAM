@@ -23,7 +23,8 @@ import { generateWithToolsImpl } from './llmToolGeneration';
 import type { ToolCall } from './tools/types';
 import type { MultimodalSupport, LLMPerformanceSettings, LLMPerformanceStats } from './llmTypes';
 import logger from '../utils/logger';
-import { stateCacheBudgetMb, MOBILE_BACKEND_ROWS, splitGgufPartNames, type MobileBackend } from '@offgrid/models';
+import { stateCacheBudgetMb, MOBILE_BACKEND_ROWS, type MobileBackend } from '../utils/mobileRuntimePolicy';
+import { splitGgufPartNames } from '../utils/ggufSplitFiles';
 import { saveKvSession, loadKvSession } from './kvSessionStore';
 import { readModelFileType } from './modelHeader';
 import { installedMtpHeadPath } from './mtpHeads';
@@ -33,6 +34,27 @@ import type { StreamToken } from './llmStreamTypes';
 export type { StreamToken };
 type StreamCallback = (data: StreamToken) => void;
 type CompleteCallback = (result: { content: string; reasoningContent: string }) => void;
+
+export type LLMGenerationDiagnosticPhase =
+  | 'idle'
+  | 'preparing'
+  | 'waiting'
+  | 'thinking'
+  | 'streaming'
+  | 'delayed'
+  | 'stopping';
+
+export interface LLMGenerationDiagnostics {
+  phase: LLMGenerationDiagnosticPhase;
+  startedAt: number | null;
+  nativeStartedAt: number | null;
+  lastProgressAt: number | null;
+  callbackCount: number;
+  tokenCount: number;
+}
+
+export const LLM_NATIVE_STALL_TIMEOUT_MS = 60_000;
+type LLMGenerationDiagnosticListener = (diagnostics: LLMGenerationDiagnostics) => void;
 const resolveGpuBackend = (enabled: boolean, devices: string[]): string =>
   !enabled ? 'CPU' : (Platform.OS === 'ios' ? 'Metal' : (devices.join(', ') || 'OpenCL'));
 /** A model's bytes on disk: every part of a split model, which llama.cpp loads from the first part's path. */
@@ -76,6 +98,12 @@ class LLMService {
   private multimodalSupport: MultimodalSupport | null = null;
   private multimodalInitialized: boolean = false;
   private performanceStats: LLMPerformanceStats = { lastTokensPerSecond: 0, lastDecodeTokensPerSecond: 0, lastTimeToFirstToken: 0, lastGenerationTime: 0, lastTokenCount: 0 };
+  private generationDiagnostics: LLMGenerationDiagnostics = {
+    phase: 'idle', startedAt: null, nativeStartedAt: null, lastProgressAt: null,
+    callbackCount: 0, tokenCount: 0,
+  };
+  private readonly generationDiagnosticListeners = new Set<LLMGenerationDiagnosticListener>();
+  private nativeStallTimer: ReturnType<typeof setTimeout> | null = null;
   private currentSettings: LLMPerformanceSettings = { nThreads: Platform.OS === 'android' ? 6 : 4, nBatch: 512, contextLength: 2048 };
   private gpuEnabled: boolean = false;
   private gpuReason: string = '';
@@ -103,6 +131,115 @@ class LLMService {
     // eslint-disable-next-line no-void
     void settled.then(() => { this.nativeWork.delete(settled); });
     return work;
+  }
+  private publishGenerationDiagnostics(): void {
+    const snapshot = { ...this.generationDiagnostics };
+    this.generationDiagnosticListeners.forEach(listener => listener(snapshot));
+  }
+  getGenerationDiagnostics(): LLMGenerationDiagnostics {
+    return { ...this.generationDiagnostics };
+  }
+  subscribeGenerationDiagnostics(listener: LLMGenerationDiagnosticListener): () => void {
+    this.generationDiagnosticListeners.add(listener);
+    listener(this.getGenerationDiagnostics());
+    return () => this.generationDiagnosticListeners.delete(listener);
+  }
+  private beginGenerationDiagnostics(): void {
+    if (this.nativeStallTimer) clearTimeout(this.nativeStallTimer);
+    this.nativeStallTimer = null;
+    this.generationDiagnostics = {
+      phase: 'preparing', startedAt: Date.now(), nativeStartedAt: null, lastProgressAt: null,
+      callbackCount: 0, tokenCount: 0,
+    };
+    this.publishGenerationDiagnostics();
+  }
+  private nativeCompletionStarted(): void {
+    if (this.generationDiagnostics.phase === 'idle') this.beginGenerationDiagnostics();
+    const now = Date.now();
+    this.generationDiagnostics = {
+      ...this.generationDiagnostics, phase: 'waiting',
+      nativeStartedAt: now, lastProgressAt: now,
+    };
+    this.publishGenerationDiagnostics();
+    this.scheduleNativeStallCheck(LLM_NATIVE_STALL_TIMEOUT_MS);
+  }
+  private nativeCompletionProgress(data: any): void {
+    if (this.generationDiagnostics.phase === 'idle' || this.generationDiagnostics.phase === 'stopping') return;
+    const previousPhase = this.generationDiagnostics.phase;
+    this.generationDiagnostics = {
+      ...this.generationDiagnostics,
+      phase: data?.reasoning_content ? 'thinking' : 'streaming',
+      lastProgressAt: Date.now(),
+      callbackCount: this.generationDiagnostics.callbackCount + 1,
+      tokenCount: this.generationDiagnostics.tokenCount + (data?.token ? 1 : 0),
+    };
+    // Publish only lifecycle transitions, not every token. This avoids driving React renders
+    // at token frequency on mobile while keeping the live diagnostic counters current.
+    if (previousPhase === 'waiting' || previousPhase === 'delayed') {
+      if (previousPhase === 'delayed') {
+        logger.log('[LLM][WATCHDOG] Native stream resumed after a quiet period');
+        this.scheduleNativeStallCheck(LLM_NATIVE_STALL_TIMEOUT_MS);
+      }
+      this.publishGenerationDiagnostics();
+    }
+  }
+  private scheduleNativeStallCheck(delayMs: number): void {
+    if (this.nativeStallTimer) clearTimeout(this.nativeStallTimer);
+    this.nativeStallTimer = setTimeout(() => {
+      this.nativeStallTimer = null;
+      const current = this.generationDiagnostics;
+      if (current.phase === 'idle' || current.phase === 'stopping' || current.nativeStartedAt === null) return;
+      const lastProgressAt = current.lastProgressAt ?? current.nativeStartedAt;
+      const quietMs = Date.now() - lastProgressAt;
+      if (quietMs < LLM_NATIVE_STALL_TIMEOUT_MS) {
+        this.scheduleNativeStallCheck(LLM_NATIVE_STALL_TIMEOUT_MS - quietMs);
+        return;
+      }
+      this.generationDiagnostics = { ...current, phase: 'delayed' };
+      this.publishGenerationDiagnostics();
+      const settings = useAppStore.getState().settings;
+      const gpuBackend = this.activeGpuLayers > 0
+        ? resolveGpuBackend(true, this.gpuDevices)
+        : 'CPU';
+      const modelName = this.currentModelPath?.split('/').pop() ?? 'unknown';
+      logger.warn('[LLM][WATCHDOG] No native stream callbacks for at least 60 seconds', {
+        model: modelName,
+        backend: gpuBackend,
+        gpuLayers: this.activeGpuLayers,
+        requestedGpuLayers: this.requestedGpuLayers,
+        contextLength: this.currentSettings.contextLength,
+        threads: settings.nThreads,
+        batch: settings.nBatch,
+        callbacks: current.callbackCount,
+        tokens: current.tokenCount,
+        quietMs,
+      });
+      // One memory snapshot per detected quiet period; no polling loop and no prompt/content data.
+      void hardwareService.getAppMemoryUsage().then(memory => {
+        logger.warn('[LLM][WATCHDOG] Memory snapshot (MB)', {
+          total: Math.round(memory.total / (1024 * 1024)),
+          available: Math.round(memory.available / (1024 * 1024)),
+          used: Math.round(memory.used / (1024 * 1024)),
+        });
+      }).catch(error => logger.warn('[LLM][WATCHDOG] Memory snapshot unavailable', error));
+    }, delayMs);
+  }
+  private markGenerationStopping(): void {
+    if (this.generationDiagnostics.phase === 'idle') return;
+    if (this.nativeStallTimer) clearTimeout(this.nativeStallTimer);
+    this.nativeStallTimer = null;
+    this.generationDiagnostics = { ...this.generationDiagnostics, phase: 'stopping' };
+    this.publishGenerationDiagnostics();
+  }
+  private finishGenerationDiagnostics(): void {
+    if (this.nativeStallTimer) clearTimeout(this.nativeStallTimer);
+    this.nativeStallTimer = null;
+    if (this.generationDiagnostics.phase === 'idle') return;
+    this.generationDiagnostics = {
+      phase: 'idle', startedAt: null, nativeStartedAt: null, lastProgressAt: null,
+      callbackCount: 0, tokenCount: 0,
+    };
+    this.publishGenerationDiagnostics();
   }
   /** The loaded context, or an error when there is none or it is being released. */
   /** The context with a completion that honours a Stop asked for before it started, or as it starts. */
@@ -392,6 +529,7 @@ class LLMService {
     this.releasingContext = true;
     try {
       if (this.isGenerating) {
+        this.markGenerationStopping();
         try { await context.stopCompletion(); } catch (e) { logger.log('[LLM] Stop during unload:', e); }
       }
       // Wait for every native call on this context, including one that had not reached the engine yet.
@@ -434,19 +572,31 @@ class LLMService {
     return { lastTruncated: end === 'token-limit', lastEndedEarly: end === 'ended-early' };
   }
   getLoadedModelPath(): string | null { return this.currentModelPath; }
-  async generateResponse(messages: Message[], options?: { onStream?: StreamCallback; onComplete?: CompleteCallback; disableThinking?: boolean; maxTokens?: number }): Promise<string> {
+  async generateResponse(messages: Message[], options?: { onStream?: StreamCallback; onComplete?: CompleteCallback; disableThinking?: boolean; maxTokens?: number; rawPrompt?: string; prefillText?: string }): Promise<string> {
     const { onStream, onComplete, ...opts } = options ?? {};
+    if (opts.rawPrompt !== undefined && !opts.rawPrompt.trim()) {
+      throw new Error('Raw prompt must not be empty');
+    }
+    if (opts.rawPrompt !== undefined && opts.prefillText !== undefined) {
+      throw new Error('Raw prompt and chat prefill cannot be used together');
+    }
+    if (opts.prefillText !== undefined && messages[messages.length - 1]?.role !== 'assistant') {
+      throw new Error('Chat prefill requires the last message to be an assistant prefix');
+    }
     const ctx = this.stopAware(this.usableContext());
     if (this.isGenerating) throw new Error('Generation already in progress');
+    this.beginGenerationDiagnostics();
     this.isGenerating = true;
     this.stopRequested = false;
     const completionWork = this.trackNativeWork((async () => {
-      const managed = await this.manageContextWindow(messages);
-      const usable = await this.dropMissingImageAttachments(managed);
+      // Raw mode sends the caller's prompt string directly to llama.rn. It never converts
+      // messages, adds the app system prompt, or wraps the text in a chat template.
+      const managed = opts.rawPrompt !== undefined ? [] : await this.manageContextWindow(messages);
+      const usable = opts.rawPrompt !== undefined ? [] : await this.dropMissingImageAttachments(managed);
       const hasImages = usable.some(m => modelImageAttachments(m.attachments).length > 0);
       if (hasImages && !this.multimodalInitialized) logger.warn('[LLM] Images attached but multimodal not initialized - falling back to text-only');
-      logger.log('[LLM] Generation mode:', this.hasVisionInputs(usable) ? 'VISION' : 'TEXT-ONLY');
-      const oaiMessages = this.convertToOAIMessages(usable);
+      logger.log('[LLM] Generation mode:', opts.rawPrompt !== undefined ? 'RAW' : this.hasVisionInputs(usable) ? 'VISION' : 'TEXT-ONLY');
+      const oaiMessages = opts.rawPrompt !== undefined ? undefined : this.convertToOAIMessages(usable);
       const { settings } = useAppStore.getState();
       const startTime = Date.now();
       let firstTokenMs = 0, tokenCount = 0, firstReceived = false;
@@ -458,10 +608,27 @@ class LLMService {
       const thinkingOn = this.isThinkingEnabled() && !opts?.disableThinking;
       // A utility caller may need more room than the chat setting (a model that thinks before a rewrite).
       const completionSettings = opts?.maxTokens ? { ...settings, maxTokens: opts.maxTokens } : settings;
-      const completionParams = { messages: oaiMessages, ...buildCompletionParams(completionSettings, { disableCtxShift: this.shouldDisableCtxShift() }), ...buildThinkingCompletionParams(thinkingOn, this.isGemma4Model(), settings.reasoningBudget) };
+      const completionParams = {
+        ...(opts.rawPrompt !== undefined
+          ? { prompt: opts.rawPrompt, force_pure_content: true }
+          : {
+              messages: oaiMessages,
+              ...(opts.prefillText !== undefined ? { prefill_text: opts.prefillText } : {}),
+            }),
+        ...buildCompletionParams(completionSettings, { disableCtxShift: this.shouldDisableCtxShift() }),
+        ...buildThinkingCompletionParams(thinkingOn, this.isGemma4Model(), settings.reasoningBudget),
+      };
       logger.log(`[LLM][THINKING] thinkingSupported=${this.thinkingSupported}, thinkingEnabled=${useAppStore.getState().settings.thinkingEnabled}, isThinkingEnabled=${this.isThinkingEnabled()}, enable_thinking=${(completionParams as any).enable_thinking}, reasoning_format=${(completionParams as any).reasoning_format}`);
-      logger.log(`[WIRE-LLAMA-PARAMS] ${JSON.stringify({ model: this.currentModelPath, params: { ...completionParams, messages: undefined } })}`); // [WIRE] settings→native params (temp/thinking/etc), messages elided
+      const loggedParams = {
+        ...completionParams,
+        messages: undefined,
+        ...(opts.rawPrompt !== undefined ? { prompt: `[redacted ${opts.rawPrompt.length} chars]` } : {}),
+        ...(opts.prefillText !== undefined ? { prefill_text: `[redacted ${opts.prefillText.length} chars]` } : {}),
+      };
+      logger.log(`[WIRE-LLAMA-PARAMS] ${JSON.stringify({ model: this.currentModelPath, params: loggedParams })}`); // [WIRE] content-bearing prompts are redacted
+      this.nativeCompletionStarted();
       const completionResult = await safeCompletion(ctx, () => ctx.completion(completionParams, (data: any) => {
+        this.nativeCompletionProgress(data);
         if (__wire.length < 500) __wire.push({ token: data.token, content: data.content, reasoning_content: data.reasoning_content, tool_calls: data.tool_calls }); // [WIRE]
         if (!this.isGenerating || !data.token) return;
         if (!firstReceived) { firstReceived = true; firstTokenMs = Date.now() - startTime; logger.log(`[LLM][THINKING] First token — hasContent=${!!data.content}, hasReasoning=${!!data.reasoning_content}`); }
@@ -492,10 +659,27 @@ class LLMService {
       return result.content;
     })());
     this.activeCompletionPromise = completionWork.then(() => { }, () => { });
-    try { return await completionWork; } finally { this.isGenerating = false; this.activeCompletionPromise = null; }
+    try { return await completionWork; } finally { this.isGenerating = false; this.activeCompletionPromise = null; this.finishGenerationDiagnostics(); }
+  }
+  /** Generate from a caller-owned prompt exactly as supplied, with no app/system prompt or chat template. */
+  async generateRawPrompt(
+    prompt: string,
+    options?: { onStream?: StreamCallback; onComplete?: CompleteCallback; disableThinking?: boolean; maxTokens?: number },
+  ): Promise<string> {
+    return this.generateResponse([], { ...options, rawPrompt: prompt });
+  }
+  /** Continue an assistant prefix using llama.rn's native chat prefill parser. */
+  async generatePrefillResponse(
+    messages: Message[],
+    prefillText: string,
+    options?: { onStream?: StreamCallback; onComplete?: CompleteCallback; disableThinking?: boolean; maxTokens?: number },
+  ): Promise<string> {
+    return this.generateResponse(messages, { ...options, prefillText });
   }
   async generateResponseWithTools(messages: Message[], options: { tools: any[]; onStream?: StreamCallback; onComplete?: CompleteCallback }): Promise<{ fullResponse: string; toolCalls: ToolCall[]; interrupted?: boolean }> {
     if (this.releasingContext) throw new Error('No model loaded');
+    if (this.isGenerating) throw new Error('Generation already in progress');
+    this.beginGenerationDiagnostics();
     if (!this.isGenerating) this.stopRequested = false;
     const work = this.trackNativeWork(generateWithToolsImpl({
       context: this.context ? this.stopAware(this.context) : null, isGenerating: this.isGenerating,
@@ -507,6 +691,8 @@ class LLMService {
         this.convertToOAIMessages(await this.dropMissingImageAttachments(msgs)),
       setPerformanceStats: (s) => { this.performanceStats = s; },
       recordCompletionEnd: (cr) => this.recordCompletionEnd(cr),
+      onNativeStart: () => this.nativeCompletionStarted(),
+      onNativeProgress: (data) => this.nativeCompletionProgress(data),
       setIsGenerating: (v) => { this.isGenerating = v; },
     }, messages, {
       tools: options.tools,
@@ -515,7 +701,7 @@ class LLMService {
         ? ((onComplete) => (fullResponse: string, reasoningContent: string) => onComplete({ content: fullResponse, reasoningContent }))(options.onComplete) : undefined,
     }));
     this.activeCompletionPromise = work.then(() => { }, () => { });
-    try { return await work; } finally { this.activeCompletionPromise = null; }
+    try { return await work; } finally { this.activeCompletionPromise = null; this.finishGenerationDiagnostics(); }
   }
   /** No-op pass-through — lets llama.rn's native ctx_shift handle overflow for KV cache reuse. */
   private async manageContextWindow(messages: Message[], _extraReserve = 0): Promise<Message[]> {
@@ -549,6 +735,7 @@ class LLMService {
   async generateWithMaxTokens(messages: Message[], maxTokens: number): Promise<string> {
     const ctx = this.stopAware(this.usableContext());
     if (this.isGenerating) throw new Error('Generation already in progress');
+    this.beginGenerationDiagnostics();
     this.isGenerating = true;
     this.stopRequested = false;
     let fullResponse = '';
@@ -558,14 +745,15 @@ class LLMService {
         await this.dropMissingImageAttachments(messages),
       );
       const { settings } = useAppStore.getState();
+      this.nativeCompletionStarted();
       const cr = await safeCompletion(ctx, () => ctx.completion(
         { messages: oaiMessages, ...buildCompletionParams(settings, { disableCtxShift: this.shouldDisableCtxShift() }), n_predict: maxTokens },
-        (data) => { if (this.isGenerating && data.token) fullResponse += data.token; },
+        (data) => { this.nativeCompletionProgress(data); if (this.isGenerating && data.token) fullResponse += data.token; },
       ), 'generateWithMaxTokens');
       this.recordCompletionEnd(cr);
     })());
     this.activeCompletionPromise = completionWork.then(() => { }, () => { });
-    try { await completionWork; return fullResponse.trim(); } finally { this.isGenerating = false; this.activeCompletionPromise = null; }
+    try { await completionWork; return fullResponse.trim(); } finally { this.isGenerating = false; this.activeCompletionPromise = null; this.finishGenerationDiagnostics(); }
   }
   /** Ephemeral, tools-free routing pass for two-pass tool selection (not user-facing). */
   async generateToolSelection(systemPrompt: string, userText: string): Promise<string> {
@@ -582,6 +770,7 @@ class LLMService {
   }
   async stopGeneration(): Promise<void> {
     if (this.isGenerating || this.activeCompletionPromise !== null) this.stopRequested = true;
+    this.markGenerationStopping();
     if (this.context) { try { await this.context.stopCompletion(); } catch (e) { logger.log('[LLM] Stop error:', e); } }
     // Declare idle only AFTER the in-flight completion actually unwinds — llama cannot honor a
     // stop during prefill (a 2.6k-token KB prefill unwound ~9s on-device), so clearing the flag

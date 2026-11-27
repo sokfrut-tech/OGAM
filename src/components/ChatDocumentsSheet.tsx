@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { TouchableOpacity } from './Touchable';
 import Icon from 'react-native-vector-icons/Feather';
-import type { StoredDocument } from '@offgrid/rag/documents';
+import type { StoredDocument } from '../utils/ragDocumentsCore';
 import { AppSheet } from './AppSheet';
 import { useTheme, useThemedStyles } from '../theme';
 import type { ThemeColors, ThemeShadows } from '../theme';

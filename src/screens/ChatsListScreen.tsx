@@ -20,6 +20,7 @@ import { PairedComputerSearchFooter } from '../components/PairedComputerSearchFo
 import { pairedComputer } from '../services/pairedComputerSearch';
 import { useFocusTrigger } from '../hooks/useFocusTrigger';
 import { useTheme, useThemedStyles } from '../theme';
+import { isJarvisStandaloneRuntime, t } from '../i18n';
 import type { ThemeColors, ThemeShadows } from '../theme';
 import { TYPOGRAPHY, SPACING } from '../constants';
 import { useChatStore, useProjectStore, useAppStore, useRemoteServerStore } from '../stores';
@@ -40,7 +41,11 @@ type NavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<RootStackParamList>
 >;
 
-const SEARCH_BAR = { placeholder: 'Search chats', clearLabel: 'Clear chat search', testID: 'chat-search-input' };
+const SEARCH_BAR = {
+  placeholder: isJarvisStandaloneRuntime ? 'Поиск чатов' : 'Search chats',
+  clearLabel: isJarvisStandaloneRuntime ? 'Очистить поиск' : 'Clear chat search',
+  testID: 'chat-search-input',
+};
 
 export const ChatsListScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -327,7 +332,7 @@ export const ChatsListScreen: React.FC = () => {
       {/* The living field behind the tab, resting while the tab is hidden. */}
       <ScreenField />
       <ScreenHeader
-        title="Chats"
+        title={t('chats.title')}
         variant="tab"
         right={
           selecting ? (
@@ -363,7 +368,7 @@ export const ChatsListScreen: React.FC = () => {
                 />
               ) : null}
               <Button
-                title="New"
+                title={t('common.new')}
                 variant="primary"
                 size="small"
                 onPress={handleNewChat}
@@ -384,19 +389,19 @@ export const ChatsListScreen: React.FC = () => {
             </View>
           </AnimatedEntry>
           <AnimatedEntry index={1} staggerMs={60} trigger={focusTrigger}>
-            <Text style={styles.emptyTitle}>No chats yet</Text>
+            <Text style={styles.emptyTitle}>{t('chats.noChats')}</Text>
           </AnimatedEntry>
           <AnimatedEntry index={2} staggerMs={60} trigger={focusTrigger}>
             <Text style={styles.emptyText}>
               {hasModels
-                ? 'Start a new conversation to begin chatting with your local AI.'
-                : 'Download a model from the Models tab to start chatting.'}
+                ? t('chats.emptyWithModels')
+                : t('chats.emptyNoModels')}
             </Text>
           </AnimatedEntry>
           {hasModels && (
             <AnimatedListItem index={3} staggerMs={60} trigger={focusTrigger} hapticType="impactLight" style={styles.emptyButton} onPress={handleNewChat}>
               <Icon name="plus" size={18} color={colors.primary} />
-              <Text style={styles.emptyButtonText}>New chat</Text>
+              <Text style={styles.emptyButtonText}>{t('chats.newChat')}</Text>
             </AnimatedListItem>
           )}
         </View>
@@ -405,9 +410,9 @@ export const ChatsListScreen: React.FC = () => {
           {searchBar}
           {selecting ? (
             <View style={styles.selectionBar}>
-              <Text style={styles.selectionCount}>{selectedIds.size} selected</Text>
+              <Text style={styles.selectionCount}>{t('chats.selectedCount', { count: selectedIds.size })}</Text>
               <Button
-                title={allVisibleSelected ? 'Clear' : 'Select all'}
+                title={allVisibleSelected ? t('common.clear') : t('common.selectAll')}
                 variant="ghost"
                 size="small"
                 onPress={() => {

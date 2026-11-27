@@ -8,7 +8,7 @@
 import { Platform } from 'react-native';
 import { initLlama, type LlamaContext } from 'llama.rn';
 import logger from '../utils/logger';
-import { transcriptionLanguages } from '@offgrid/speech';
+import { transcriptionLanguages } from '../utils/transcriptionLanguages';
 import { QWEN_ASR_MODEL_ID, type QwenAsrFiles } from './qwenAsrModel';
 
 /** Room for a few minutes of audio (the encoder emits about 13 tokens a second) and the transcript. */

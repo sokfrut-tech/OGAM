@@ -12,7 +12,9 @@ import DeviceInfo from 'react-native-device-info';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { CATALOG, fitLabel, splitGgufModelName } from '@offgrid/models';
+import { CATALOG } from '../../utils/modelCatalogCore';
+import { fitLabel } from '../../utils/modelFitBudget';
+import { splitGgufModelName } from '../../utils/modelNamingCore';
 import { fileExceedsBudget, modelFitTier, textModelBudget } from '../../services/memoryBudget';
 import { Card, ModelCard } from '../../components';
 import { AnimatedEntry } from '../../components/AnimatedEntry';
@@ -33,6 +35,7 @@ import { TextFiltersSection } from './TextFiltersSection';
 import { FilterState, SortOption } from './types';
 import { SORT_OPTIONS } from './constants';
 import { formatNumber, getTextModelCompatibility, modelFactChips, modelSpeedBadges } from './utils';
+import { isJarvisStandaloneRuntime, t } from '../../i18n';
 import { buildCuratedLiteRTFiles, curatedLiteRTDownloadWarning, getCuratedLiteRTEntry, LITERT_PARENT_ID, useCuratedLiteRTEntries } from '../../services/curatedLiteRTRegistry';
 import { useWithRemoteCatalog } from '../../stores/modelCatalogStore';
 import { liteRTFileMeta, liteRTRecommendedModel, LITERT_PARENT_RECOMMENDED } from './litertRecommended';
@@ -51,9 +54,9 @@ function hasNonSortFilters(fs: FilterState): boolean {
 }
 
 function getEmptyText(hasSearched: boolean, hasActiveFilters: boolean): string {
-  if (!hasSearched) return 'No recommended models available.';
-  if (hasActiveFilters) return 'No models match your filters. Try adjusting or clearing them.';
-  return 'No models found. Try a different search term.';
+  if (!hasSearched) return t('models.noRecommended');
+  if (hasActiveFilters) return t('models.noMatchFilters');
+  return t('models.noSearchResults');
 }
 
 type Props = Pick<ModelsScreenViewModel,
@@ -173,7 +176,13 @@ const ModelDetailView: React.FC<DetailProps> = ({
   // Every file this phone can run, best first for this phone (the recommended quant leads). A vision
   // file's projector downloads and loads with it, so the fit counts both, as the picks and load check do.
   const runnableFiles = modelFiles
-    .filter(f => f.size > 0 && !fileExceedsBudget(downloadBytes(f), ramGB, textModelBudget()) && (filterState.quant === 'all' || f.name.includes(filterState.quant)))
+    .filter(
+      f =>
+        f.size > 0 &&
+        (isJarvisStandaloneRuntime ||
+          !fileExceedsBudget(downloadBytes(f), ramGB, textModelBudget())) &&
+        (filterState.quant === 'all' || f.name.includes(filterState.quant)),
+    )
     .sort((a, b) => {
       if (selectedModel.id === LITERT_PARENT_ID) return a.size - b.size; // curated: small-first
       // Tier: the preferred download quant (Q4_0 on Android CPU/NPU, else Q4_K_M) → GPU/NPU
@@ -234,7 +243,10 @@ const ModelDetailView: React.FC<DetailProps> = ({
           bytesPerSecond: s.progress.bytesPerSecond,
         } : undefined}
         isRepairingVision={s.repairingVision}
-        isCompatible={!fileExceedsBudget(downloadBytes(item), ramGB, textModelBudget())} testID={`file-card-${index}`}
+        isCompatible={
+          isJarvisStandaloneRuntime ||
+          !fileExceedsBudget(downloadBytes(item), ramGB, textModelBudget())
+        } testID={`file-card-${index}`}
         // "Runs well" is the default and goes unsaid; only a tight fit is worth a word on the card.
         sizeLabel={sizeLabelOf(item)}
         facts={modelFitTier(downloadBytes(item), ramGB, textModelBudget()) === 'tight' ? [fitLabel('tight')] : undefined}
@@ -314,7 +326,7 @@ const ModelDetailView: React.FC<DetailProps> = ({
           renderItem={renderFileItem}
           keyExtractor={item => item.name}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={<Card style={styles.emptyCard}><Text style={styles.emptyText}>No compatible files found for this model.</Text></Card>}
+          ListEmptyComponent={<Card style={styles.emptyCard}><Text style={styles.emptyText}>{t('models.noCompatibleFiles')}</Text></Card>}
           ListFooterComponent={selectedModel.id !== LITERT_PARENT_ID && runnableFiles.length > choices.length ? (
             <TouchableOpacity onPress={() => setShowAllFiles(v => !v)} testID="all-files-toggle">
               <Text style={styles.sectionSubtitle}>{showAllFiles ? 'Fewer sizes' : 'All files'}</Text>
@@ -347,7 +359,9 @@ interface ModelListItemProps {
 }
 /** A model card as a row of the grouped list: no box of its own (the group draws the surface). */
 const ModelListItem: React.FC<ModelListItemProps> = ({ item, index, focusTrigger, isDownloaded, isActive, isTrending, onPress, onDownload, rowStyle }) => {
-  const { isCompatible, incompatibleReason } = getTextModelCompatibility(item);
+  const { isCompatible, incompatibleReason } = isJarvisStandaloneRuntime
+    ? { isCompatible: true, incompatibleReason: undefined }
+    : getTextModelCompatibility(item);
   const isLiteRTParent = item.id === LITERT_PARENT_ID;
   const recommended = isLiteRTParent ? LITERT_PARENT_RECOMMENDED : undefined;
   // Aggregate ALL in-flight entries for this model (main+mmproj / grouped LiteRT) into
@@ -444,7 +458,7 @@ export const TextModelsTab: React.FC<Props> = (props) => {
     // The model you talk to is marked "In use" on its row, the same way every other kind marks it.
     const isActive = downloadedModels.some(model => model.id === activeTextModelId && isFamilyFile(model));
     return (
-      <ModelListItem item={item} index={index} focusTrigger={focusTrigger} isDownloaded={isDownloaded} isActive={isActive} isTrending={trendingAsModelInfo.some(t => t.id === item.id)} onPress={directDownload ?? (() => handleSelectModel(item))} onDownload={directDownload} rowStyle={[GROUPED_CARD_ROW, listGroupRowEnds(index, listData.length)]} />
+      <ModelListItem item={item} index={index} focusTrigger={focusTrigger} isDownloaded={isDownloaded} isActive={isActive} isTrending={trendingAsModelInfo.some(trend => trend.id === item.id)} onPress={directDownload ?? (() => handleSelectModel(item))} onDownload={directDownload} rowStyle={[GROUPED_CARD_ROW, listGroupRowEnds(index, listData.length)]} />
     );
   };
 
@@ -505,7 +519,7 @@ export const TextModelsTab: React.FC<Props> = (props) => {
       <View style={[styles.searchContainer, styles.searchContainerRaised]} testID="text-model-search-row">
         <SearchField
           style={styles.searchField}
-          placeholder="Search models"
+          placeholder={isJarvisStandaloneRuntime ? 'Поиск моделей' : 'Search models'}
           value={searchQuery}
           onChangeText={setSearchQuery}
           onSubmitEditing={handleSearch}
@@ -573,6 +587,7 @@ export const TextModelsTab: React.FC<Props> = (props) => {
       ) : (
         <FlatList
           {...LIST_CLIPPING_PROPS}
+          initialNumToRender={24}
           data={listData}
           renderItem={renderModelItem}
           ItemSeparatorComponent={ListGroupSeparator}
@@ -585,7 +600,7 @@ export const TextModelsTab: React.FC<Props> = (props) => {
             <>
               <DevicePicksRow ramGB={ramGB} onChat={() => navigation.navigate('Chat', {})} />
               <BoostPromoCard surface="models" />
-              {moreModels.length > 0 && <Text style={styles.recommendedTitle}>More models</Text>}
+              {moreModels.length > 0 && <Text style={styles.recommendedTitle}>{t('models.moreModels')}</Text>}
               {onboardingLiteRTCards}
             </>
           )}

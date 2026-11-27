@@ -4,7 +4,7 @@ import {
   pickDirectory,
 } from '@react-native-documents/picker';
 import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
-import type { AmbientDirectoryAccessCopy } from '@offgrid/sync';
+import type { AmbientDirectoryAccessCopy } from '../../types/syncContracts';
 
 /**
  * The grant Android uses for its Downloads folder, where there is no folder grant to hold.
@@ -40,6 +40,7 @@ interface SyncDirectorySourceNativeModule {
     sourceId: string,
     destinationName: string,
   ): Promise<NativeStagedDirectoryFile>;
+  documentUri(grant: string, sourceId: string): Promise<string>;
 }
 
 interface DownloadsAccessState {
@@ -211,5 +212,17 @@ export const nativeDirectorySourceBoundary = {
       return downloads.stage(sourceId, destinationName);
     }
     return nativeModule().stage(grant, sourceId, destinationName);
+  },
+
+  /** Resolve a SAF item to its content URI so RNFS can copy it once into model-owned storage. */
+  documentUri(grant: string, sourceId: string): Promise<string> {
+    if (isMediaStoreGrant(grant)) {
+      return Promise.reject(new Error('Downloads MediaStore items use their existing content URI.'));
+    }
+    const boundary = nativeModule();
+    if (!boundary.documentUri) {
+      return Promise.reject(new Error('Direct SAF document access is unavailable in this build.'));
+    }
+    return boundary.documentUri(grant, sourceId);
   },
 };

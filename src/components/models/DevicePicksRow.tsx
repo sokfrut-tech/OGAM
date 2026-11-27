@@ -2,12 +2,14 @@ import React, { useMemo } from 'react';
 import { useAppStore } from '../../stores';
 import { useDownloadStore } from '../../stores/downloadStore';
 import { makeModelKey } from '../../utils/modelKey';
-import { CATALOG, determineCredibility } from '@offgrid/models';
+import { CATALOG } from '../../utils/modelCatalogCore';
+import { determineCredibility } from '../../utils/modelNamingCore';
 import { devicePicks, type DevicePick } from '../../services/devicePicks';
 import { useWithRemoteCatalog } from '../../stores/modelCatalogStore';
 import { startModelDownload } from '../../services/startModelDownload';
 import { activeModelService } from '../../services/activeModelService';
 import { PicksRow, type PickItem, type PickState } from './PicksRow';
+import { t } from '../../i18n';
 
 /** The chat picks: the shared catalog and picking rule; a finished pick becomes the active chat
  *  model and offers "Chat now". */
@@ -22,7 +24,7 @@ export const DevicePicksRow: React.FC<{ ramGB: number; onChat: () => void }> = (
     // A file name is unique in the models folder: the stable key for "is this pick downloaded".
     const downloaded = downloadedModels.find(m => m.fileName === pick.file.name);
     if (downloaded && activeModelId === downloaded.id) {
-      return { kind: 'active', next: { label: 'Chat now', icon: 'message-circle', onPress: onChat } };
+      return { kind: 'active', next: { label: t('models.chatNow'), icon: 'message-circle', onPress: onChat } };
     }
     if (downloaded) return { kind: 'use', onUse: () => activeModelService.selectTextModel(downloaded.id) };
     const entry = downloads[makeModelKey(pick.model.id, pick.file.name)];

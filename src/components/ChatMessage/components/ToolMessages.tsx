@@ -10,7 +10,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { TouchableOpacity } from '../../Touchable';
 import Icon from 'react-native-vector-icons/Feather';
-import { parseSearchBlock } from '@offgrid/rag/documents';
+import { parseSearchBlock } from '../../../utils/ragDocumentsCore';
 import { useTheme } from '../../../theme';
 import { useAccordionExpanded, useAccordionStore } from '../../../stores';
 import { SLOTS, useSlot } from '../../../bootstrap/slotRegistry';

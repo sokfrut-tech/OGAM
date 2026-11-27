@@ -3,9 +3,10 @@ import { View, Text } from 'react-native';
 import { TouchableOpacity } from '../Touchable';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 import Icon from 'react-native-vector-icons/Feather';
-import type { ChatQueueHold } from '@offgrid/sync';
+import type { ChatQueueHold } from '../../utils/chatQueue';
 import { useThemedStyles } from '../../theme';
 import { createStyles } from './styles';
+import { isJarvisStandaloneRuntime, t } from '../../i18n';
 
 /** The messages waiting behind the running reply in this chat, and why they wait, if held. */
 export interface QueueView {
@@ -29,10 +30,15 @@ interface QueueRowProps {
 
 const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 
-const HOLD_LABEL: Record<NonNullable<ChatQueueHold>, string> = {
-  stop: 'Paused after Stop',
-  failure: 'Paused after an error',
-};
+const HOLD_LABEL: Record<NonNullable<ChatQueueHold>, string> = isJarvisStandaloneRuntime
+  ? {
+      stop: 'Пауза после остановки',
+      failure: 'Пауза после ошибки',
+    }
+  : {
+      stop: 'Paused after Stop',
+      failure: 'Paused after an error',
+    };
 
 /**
  * Messages written while a reply runs, above the composer. Each can go now (the reply stops and it
@@ -53,7 +59,7 @@ export const QueueRow: React.FC<QueueRowProps> = ({ queue, actions }) => {
     >
       <View style={styles.queueRow}>
         <View style={styles.queueBadge}>
-          <Text style={styles.queueBadgeText}>{items.length} queued</Text>
+          <Text style={styles.queueBadgeText}>{t('chat.queueCount', { count: items.length })}</Text>
           {held ? <Text style={styles.queuePreview}>{HOLD_LABEL[held]}</Text> : null}
         </View>
         {held ? (
@@ -65,7 +71,7 @@ export const QueueRow: React.FC<QueueRowProps> = ({ queue, actions }) => {
             onPress={actions?.onResume}
             hitSlop={HIT_SLOP}
           >
-            <Text style={styles.queueResumeText}>Send</Text>
+            <Text style={styles.queueResumeText}>{t('chat.send')}</Text>
           </TouchableOpacity>
         ) : null}
         <TouchableOpacity

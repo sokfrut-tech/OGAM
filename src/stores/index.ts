@@ -7,3 +7,5 @@ export { useUiModeStore } from './uiModeStore';
 ;
 export { useRemoteServerStore } from './remoteServerStore';
 export { useAccordionStore, useAccordionExpanded } from './accordionStore';
+export { useTaskPlanStore } from './taskPlanStore';
+export { useJarvisProStore } from './jarvisProStore';

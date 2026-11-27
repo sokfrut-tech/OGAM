@@ -25,6 +25,7 @@ import { NetworkSection } from './ModelDownloadHelpers';
 import logger from '../utils/logger';
 import { ModelsScreen } from './ModelsScreen';
 import { AliveScreen } from '../components/AliveScreen';
+import { isJarvisStandaloneRuntime, t } from '../i18n';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'AdvancedSetup'> };
 
@@ -136,14 +137,22 @@ export const AdvancedSetupScreen: React.FC<Props> = ({ navigation }) => {
       // guard, the auto-check that owns it will settle the reachable list, so we do not alert.
       const noServersPresent = added === 0 && useRemoteServerStore.getState().servers.length === 0;
       if (noServersPresent && ran && reachable.size === 0) {
-        setAlertState(showAlert(
-          'No Servers Found',
-          'Make sure you\'re on the same WiFi network as your server and that it\'s running. Off Grid AI Desktop serves its models to this phone over your network.',
-          [
-            { text: 'Dismiss', style: 'cancel' },
-            { text: 'Get Off Grid AI Desktop', onPress: () => Linking.openURL(withUtm(OFF_GRID_DESKTOP_URL, 'model-download')).catch(() => {}) },
-          ],
-        ));
+        if (isJarvisStandaloneRuntime) {
+          setAlertState(showAlert(
+            'Серверы не найдены',
+            'Убедитесь, что смартфон и компьютер находятся в одной Wi-Fi сети, а Ollama или LM Studio запущены.',
+            [{ text: 'Понятно', style: 'cancel' }],
+          ));
+        } else {
+          setAlertState(showAlert(
+            'No Servers Found',
+            'Make sure you\'re on the same WiFi network as your server and that it\'s running. Off Grid AI Desktop serves its models to this phone over your network.',
+            [
+              { text: 'Dismiss', style: 'cancel' },
+              { text: 'Get Off Grid AI Desktop', onPress: () => Linking.openURL(withUtm(OFF_GRID_DESKTOP_URL, 'model-download')).catch(() => {}) },
+            ],
+          ));
+        }
       }
     } catch (e) {
       logger.warn('[ModelDownload] Scan failed:', (e as Error).message);
@@ -164,7 +173,12 @@ export const AdvancedSetupScreen: React.FC<Props> = ({ navigation }) => {
       setConnectedServerId(server.id);
       const models = discoveredModels[server.id] || result.models || [];
       if (models.length === 0) {
-        setAlertState(showAlert('Connected — No Models Found', `${server.name} is reachable but has no models loaded. Start a model in Off Grid AI Desktop, Ollama, or LM Studio, then reconnect.`));
+        setAlertState(showAlert(
+          isJarvisStandaloneRuntime ? 'Подключено — модели не найдены' : 'Connected — No Models Found',
+          isJarvisStandaloneRuntime
+            ? `${server.name} отвечает, но список загруженных моделей пуст. Загрузите модель в Ollama или LM Studio и повторите.`
+            : `${server.name} is reachable but has no models loaded. Start a model in Off Grid AI Desktop, Ollama, or LM Studio, then reconnect.`,
+        ));
         return;
       }
       const textModel = models.find(m => !m.capabilities.supportsVision) || models[0];
@@ -181,7 +195,7 @@ export const AdvancedSetupScreen: React.FC<Props> = ({ navigation }) => {
     <AliveScreen style={styles.container} edges={['top', 'bottom']}>
       <View testID="model-download-loading" style={styles.loadingContainer}>
         <LoadingDots color={colors.primary} size={8} />
-        <Text style={styles.loadingText}>Analyzing your device...</Text>
+        <Text style={styles.loadingText}>{t('onboarding.analyzing')}</Text>
       </View>
     </AliveScreen>
   );
@@ -191,9 +205,9 @@ export const AdvancedSetupScreen: React.FC<Props> = ({ navigation }) => {
       <View testID="model-download-screen" style={styles.container}>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.title}>Advanced setup</Text>
+            <Text style={styles.title}>{t('onboarding.advancedTitle')}</Text>
             <Text style={styles.subtitle}>
-              Run a model from your network or on this device.
+              {t('onboarding.advancedSubtitle')}
             </Text>
           </View>
 
@@ -210,11 +224,11 @@ export const AdvancedSetupScreen: React.FC<Props> = ({ navigation }) => {
             colors={colors}
           />
 
-          <Text style={styles.sectionTitle}>On this device</Text>
+          <Text style={styles.sectionTitle}>{t('onboarding.onThisDevice')}</Text>
 
           <View style={styles.deviceCard}>
             <View style={styles.deviceInfo}>
-              <Text style={styles.deviceLabel}>Your device</Text>
+              <Text style={styles.deviceLabel}>{t('onboarding.yourDevice')}</Text>
               <Text style={styles.deviceValue}>{deviceInfo?.deviceModel}</Text>
             </View>
             <View style={styles.deviceInfo}>
@@ -224,7 +238,7 @@ export const AdvancedSetupScreen: React.FC<Props> = ({ navigation }) => {
                 * device reported a different number on every launch and the figure could not be
                 * compared with a model's size - which is the only reason it is on this screen. Total
                 * is a property of the device, so "12 GB" means the same thing tomorrow. */}
-              <Text style={styles.deviceLabel}>Total memory</Text>
+              <Text style={styles.deviceLabel}>{t('onboarding.totalMemory')}</Text>
               <Text style={styles.deviceValue}>{hardwareService.formatBytes(deviceInfo?.totalMemory || 0)}</Text>
             </View>
           </View>
@@ -232,7 +246,7 @@ export const AdvancedSetupScreen: React.FC<Props> = ({ navigation }) => {
         </ScrollView>
 
         <View style={styles.footer}>
-          <Button title="Skip for Now" variant="ghost" onPress={() => navigation.replace('Main')} testID="model-download-skip" />
+          <Button title={t('onboarding.skipForNow')} variant="ghost" onPress={() => navigation.replace('Main')} testID="model-download-skip" />
         </View>
 
         <CustomAlert visible={alertState.visible} title={alertState.title} message={alertState.message} buttons={alertState.buttons} onClose={() => setAlertState(hideAlert())} />

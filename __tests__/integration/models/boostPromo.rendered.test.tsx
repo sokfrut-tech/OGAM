@@ -13,7 +13,7 @@ jest.mock('react-native-inappbrowser-reborn', () => ({
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import InAppBrowser from 'react-native-inappbrowser-reborn';
-import { BOOST_PROMO } from '@offgrid/models';
+import { BOOST_PROMO } from '../../../src/utils/boostPromo';
 import { BoostPromoCard } from '../../../src/components/BoostPromoCard';
 import { useAppStore } from '../../../src/stores/appStore';
 import { websiteReach } from '../../harness/websiteReach';

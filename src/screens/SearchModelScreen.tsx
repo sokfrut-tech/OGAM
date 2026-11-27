@@ -5,6 +5,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { EmbeddingModelsTab } from './ModelsScreen/EmbeddingModelsTab';
 import { useThemedStyles } from '../theme';
 import type { ThemeColors } from '../theme';
+import { t } from '../i18n';
 
 /**
  * Settings › Search Model as its own page, so Back returns to Settings. The row used to switch to the
@@ -16,7 +17,7 @@ export const SearchModelScreen: React.FC = () => {
   const styles = useThemedStyles(createStyles);
   return (
     <AliveScreen style={styles.container} testID="search-model-screen">
-      <ScreenHeader title="Document search" onBack={() => navigation.goBack()} />
+      <ScreenHeader title={t('searchModel.title')} onBack={() => navigation.goBack()} />
       <EmbeddingModelsTab />
     </AliveScreen>
   );

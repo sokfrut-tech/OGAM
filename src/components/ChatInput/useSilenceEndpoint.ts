@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react';
 import { useAppStore } from '../../stores';
 import { audioRecorderService } from '../../services/audioRecorderService';
+import { SpeechEndpointTimer } from '../../utils/speechEndpoint';
 import {
-  SpeechEndpointTimer,
   SPEECH_ONSET_LOOKBACK_MS,
   DEFAULT_SILENCE_AFTER_SPEECH_MS,
-} from '@offgrid/speech';
+} from '../../utils/voiceTurnSettings';
 import { callHook, HOOKS } from '../../bootstrap/hookRegistry';
 import { voiceSession } from '../../services/voiceSession';
 import logger from '../../utils/logger';

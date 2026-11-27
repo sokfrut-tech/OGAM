@@ -325,7 +325,7 @@ async function leaveAsV0119Did(
   const pdfSize = (await fs.module.stat(KEPT_PDF)).size;
 
   // The PDF as v0.0.119's ingest left it: read, split, embedded by MiniLM, mapped.
-  const rag = require('@offgrid/rag/documents');
+  const rag = require('../../../src/utils/ragDocumentsCore');
   const pages = [{ page: 1, text: PDF_TEXT }];
   expect(rag.pageNeedsOcr(PDF_TEXT)).toBe(false);
   const { chunks } = await rag.splitPages(documentId, 'pdf', rag.cleanPages(pages));
@@ -479,11 +479,12 @@ describe('an install upgraded from v0.0.119', () => {
     noCrash();
     back();
 
-    // ── Settings → Analytics: both switches off. v0.0.119 never asked, so nothing is shared.
+    // ── Settings → Analytics: omitted intentionally in the Jarvis fork (zero telemetry transport).
     fireEvent.press(await waitFor(() => view.getByTestId('settings-tab'), WAIT));
-    await view.findByTestId('settings-analytics', {}, WAIT);
-    expect(view.getByLabelText('Anonymous stats').props.value).toBe(false);
-    expect(view.getByLabelText('Crash reports').props.value).toBe(false);
+    await waitFor(() => expect(view.getByTestId('open-model-settings')).toBeTruthy(), WAIT);
+    expect(view.queryByTestId('settings-analytics')).toBeNull();
+    expect(view.queryByLabelText('Anonymous stats')).toBeNull();
+    expect(view.queryByLabelText('Crash reports')).toBeNull();
 
     // ── Settings → Model Settings → Image tab: the custom Image Steps value is kept.
     fireEvent.press(view.getByTestId('open-model-settings'));

@@ -4,7 +4,7 @@
  * good one, and the screen a topic opens here.
  */
 import type { ImageSourcePropType } from 'react-native';
-import { MOBILE_GUIDE_GROUPS, guideTopicsFor, type GuideTopicFacts } from '@offgrid/models';
+import { MOBILE_GUIDE_GROUPS, guideTopicsFor, type GuideTopicFacts } from '../../utils/guideCore';
 
 export interface GuideMedia {
   dark: ImageSourcePropType;

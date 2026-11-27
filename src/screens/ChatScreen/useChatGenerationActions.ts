@@ -1,5 +1,5 @@
 import { videoSeam } from '../../bootstrap/videoSeam';
-import { mediaStyle } from '@offgrid/models';
+import { mediaStyle } from '../../constants/mediaStyles';
 import { adoptDraftStyles, chatStyleId } from '../../stores/mediaStyleStore';
 import type { MediaStyleIds } from '../../services/generationService';
 /* eslint-disable max-lines -- cohesive generation-action orchestrator (send/regenerate/dispatch/route share the same GenerationDeps + session state); splitting it would scatter tightly-coupled turn logic. */
@@ -55,7 +55,7 @@ import logger from '../../utils/logger';
 import { featureUsed, messageSent, track } from '../../services/analytics/analytics';
 import { deleteChatImages, imagesNotDeletedAlert } from '../../services/chatImageCleanup';
 import { ModelReadyOutcome, ensureReadyOrAlert } from './modelReadiness';
-import { describeTurnStatus } from '@offgrid/rag/documents';
+import { describeTurnStatus } from '../../utils/ragDocumentsCore';
 import {
   prepareTurnDocuments,
   turnSources,
@@ -65,6 +65,7 @@ import { useDocumentTurnStatusStore } from '../../services/documents/progressSto
 import { shownMessages } from '../../utils/chatThread';
 import { hasSearchableKnowledge, toolsForTurn } from '../../services/documents/searchableKnowledge';
 import { resolveSystemPrompt } from '../../utils/systemPrompt';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 type SetState<T> = Dispatch<SetStateAction<T>>;
 const FALLBACK_RECENT_MESSAGE_COUNT = 2;
 
@@ -1021,35 +1022,97 @@ async function dispatchResolvedTurn(
         ...(opts.styleId ? { mediaStyleId: opts.styleId } : {}),
       });
     const shownBefore = videoFailureShown();
+    const attachedImage = opts.attachments?.find(a => a.type === 'image');
     try {
       await videoSeam.generate({
         prompt: opts.text,
         conversationId: opts.conversationId,
+        ...(attachedImage?.uri ? { initImagePath: attachedImage.uri } : {}),
         ...(opts.styleId ? { styleId: opts.styleId } : {}),
       });
     } catch (error) {
       // A clip that ran and failed is on its own failure card. One refused before it started (the
       // video rules, a film already being made) is said here; it is never left unhandled.
       logger.warn('[ROUTE-SM] video turn did not run:', error);
-      if (videoFailureShown() === shownBefore)
-        deps.setAlertState(
-          showAlert('Could not make the video', error instanceof Error ? error.message : String(error)),
-        );
+      if (videoFailureShown() === shownBefore) {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (isJarvisStandaloneRuntime && /видеомодел/i.test(msg)) {
+          deps.setAlertState(
+            showAlert('Нужна видеомодель', msg, [
+              { text: 'Закрыть', style: 'cancel' },
+              {
+                text: 'Скачать видеомодель',
+                onPress: () => {
+                  deps.setAlertState(hideAlert());
+                  deps.navigation.navigate('Main', {
+                    screen: 'ModelsTab',
+                    params: { initialTab: 'video' },
+                  });
+                },
+              },
+            ]),
+          );
+        } else {
+          deps.setAlertState(
+            showAlert(
+              isJarvisStandaloneRuntime ? 'Не удалось создать видео' : 'Could not make the video',
+              msg,
+            ),
+          );
+        }
+      }
     } finally {
       generationService.drainQueue();
     }
     return { handled: true };
   }
   const shouldGenerateImage = kind === 'image';
-  if (shouldGenerateImage && deps.activeImageModel) {
+  let targetImageModel = deps.activeImageModel;
+  if (shouldGenerateImage && !targetImageModel && isJarvisStandaloneRuntime) {
+    const firstLocalImage = useAppStore.getState().downloadedImageModels[0];
+    if (firstLocalImage) {
+      useAppStore.getState().setActiveImageModelId(firstLocalImage.id);
+      targetImageModel = firstLocalImage;
+    }
+  }
+  if (shouldGenerateImage && targetImageModel) {
     logger.log('[ROUTE-SM] dispatch → IMAGE pipeline');
-    await handleImageGenerationFn(deps, {
-      prompt: opts.text,
-      conversationId: opts.conversationId,
-      attachments: opts.attachments,
-      skipUserMessage: opts.imageSkipsUserMessage,
-      styleId: opts.styleId,
-    });
+    await handleImageGenerationFn(
+      { ...deps, activeImageModel: targetImageModel },
+      {
+        prompt: opts.text,
+        conversationId: opts.conversationId,
+        attachments: opts.attachments,
+        skipUserMessage: opts.imageSkipsUserMessage,
+        styleId: opts.styleId,
+      },
+    );
+    return { handled: true };
+  }
+  if (shouldGenerateImage && !targetImageModel && isJarvisStandaloneRuntime) {
+    deps.setAlertState(
+      showAlert(
+        'Нужна модель для рисования',
+        'Скачайте любую модель изображений во вкладке «Модели → Изображения», чтобы Jarvis Ai мог рисовать по русским запросам.',
+        [
+          {
+            text: 'Отмена',
+            style: 'cancel',
+            onPress: () => deps.setAlertState(hideAlert()),
+          },
+          {
+            text: 'Скачать модель',
+            onPress: () => {
+              deps.setAlertState(hideAlert());
+              deps.navigation?.navigate('Main', {
+                screen: 'ModelsTab',
+                params: { initialTab: 'image' },
+              });
+            },
+          },
+        ],
+      ),
+    );
     return { handled: true };
   }
   logger.log(
@@ -1160,7 +1223,12 @@ export async function handleSendFn(
   abortPreload(); // user acted — stop background warming so it can't block them
   if (!deps.hasActiveModel) {
     deps.setAlertState(
-      showAlert('No Model Selected', 'Please select a model first.'),
+      showAlert(
+        isJarvisStandaloneRuntime ? 'Модель не выбрана' : 'No Model Selected',
+        isJarvisStandaloneRuntime
+          ? 'Скачайте или выберите модель во вкладке «Модели».'
+          : 'Please select a model first.',
+      ),
     );
     return;
   }

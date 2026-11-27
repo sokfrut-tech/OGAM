@@ -1,6 +1,5 @@
-// Colours come from @offgrid/design, the one token source desktop also reads; shadows are
-// React Native's form of the same look and stay here.
-import { COLORS_LIGHT, COLORS_DARK, type ThemeColors } from '@offgrid/design';
+// Colours come from OGAM-owned designTokens; shadows are React Native's form of the same look and stay here.
+import { COLORS_LIGHT, COLORS_DARK, type ThemeColors } from './designTokens';
 
 export { COLORS_LIGHT, COLORS_DARK };
 export type { ThemeColors };

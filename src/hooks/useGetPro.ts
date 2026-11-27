@@ -7,6 +7,7 @@ import { useAppStore } from '../stores';
 import { useTheme } from '../theme';
 import { OfflineError, openProCheckout } from '../services/proCheckout';
 import { proPaywallViewed } from '../services/analytics/analytics';
+import { isJarvisStandaloneRuntime } from '../i18n';
 
 /**
  * The one "Get Pro" action. Someone without Pro goes straight to the checkout sheet: no page in
@@ -21,7 +22,7 @@ export function useGetPro(): (medium: string) => void {
   return useCallback(
     (medium: string) => {
       const s = useAppStore.getState();
-      if (selectHasProAccess(s) || s.isProActive) {
+      if (isJarvisStandaloneRuntime || selectHasProAccess(s) || s.isProActive) {
         navigation.navigate('ProDetail');
         return;
       }

@@ -1,4 +1,4 @@
-import { CATALOG } from '@offgrid/models';
+import { CATALOG } from './modelCatalogCore';
 import type { DownloadedModel, GeneratedVideo, GenerationMeta } from '../types';
 
 export const getMmProjFileSize = (m?: DownloadedModel): number =>

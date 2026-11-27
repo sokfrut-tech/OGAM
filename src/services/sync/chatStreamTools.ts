@@ -2,7 +2,7 @@ import {
   completeChatStreamTool,
   startChatStreamTool,
   type ChatStreamTool,
-} from '@offgrid/sync';
+} from '../../utils/chatStreamHelpers';
 import type { Message } from '../../types';
 
 /** Fold Mobile's persisted tool-call/result rows into the portable live stream record. */

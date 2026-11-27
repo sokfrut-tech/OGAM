@@ -1,6 +1,7 @@
 import { useHasRegisteredScreen } from '../navigation/screenRegistry';
 import { selectHasProAccess } from '../stores/proAccessSlice';
 import { useAppStore } from '../stores';
+import { isJarvisStandaloneRuntime } from '../i18n';
 
 /**
  * Single reactive source of truth for "are Pro features currently active in the
@@ -23,5 +24,5 @@ export function useIsProActive(): boolean {
   // entitled. The access check closes the short interval while async runtime
   // cleanup removes every registered Pro surface.
   const hasAccess = useAppStore(selectHasProAccess);
-  return registered && hasAccess;
+  return isJarvisStandaloneRuntime ? registered : registered && hasAccess;
 }

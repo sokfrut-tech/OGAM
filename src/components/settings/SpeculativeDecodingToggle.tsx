@@ -1,5 +1,5 @@
 import React from 'react';
-import { MOBILE_MTP_DRAFT_TOKENS } from '@offgrid/models';
+import { MOBILE_MTP_DRAFT_TOKENS } from '../../utils/modelCapabilityRules';
 import { useAppStore } from '../../stores';
 import { SliderSetting } from '../SliderSetting';
 import { SegmentedRow, BOOL_OPTIONS } from './segmentedRow';

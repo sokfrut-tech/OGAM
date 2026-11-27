@@ -5,6 +5,8 @@ import {
   Text,
   ScrollView,
   Alert,
+  Platform,
+  AppState,
 } from 'react-native';
 import { TouchableOpacity } from '../components/Touchable';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,7 +22,6 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { createStyles } from './SettingsScreen.styles';
 import { SettingsAppearanceRow } from './SettingsAppearanceRow';
 import { SettingsCommunitySections } from './SettingsCommunitySections';
-import { SettingsAnalyticsSection } from './SettingsAnalyticsSection';
 import { AnimatedEntry } from '../components/AnimatedEntry';
 import { AnimatedListItem } from '../components/AnimatedListItem';
 import { MadeWithLove } from '../components/MadeWithLove';
@@ -43,6 +44,8 @@ import { openSupportEmail } from '../utils/supportEmail';
 import { SCROLL_DEPTH_PROPS } from '../constants/scrollDepth';
 import { ScreenField } from '../components/LivingField';
 import { useGetPro } from '../hooks/useGetPro';
+import { getJarvisAssistantRoleStatus, requestJarvisAssistantRole, type JarvisAssistantRoleStatus } from '../services/jarvisAssistantRole';
+import { isJarvisStandaloneRuntime, t } from '../i18n';
 
 type NavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'SettingsTab'>,
@@ -84,6 +87,8 @@ export const SettingsScreen: React.FC = () => {
   const setShowSyncStatusBar = useAppStore(s => s.setShowSyncStatusBar);
   const [showDebugLogs, setShowDebugLogs] = useState(false);
   const [isSeedingDemo, setIsSeedingDemo] = useState(false);
+  const [assistantRoleStatus, setAssistantRoleStatus] = useState<JarvisAssistantRoleStatus | null>(null);
+  const [isRequestingAssistantRole, setIsRequestingAssistantRole] = useState(false);
   const deviceInfo = useAppStore(s => s.deviceInfo);
   // Hidden once the user dismisses it, or once Pro is active (the upsell makes no
   // sense to a paid user). hasRegisteredPro only flips true after RC verification
@@ -96,6 +101,68 @@ export const SettingsScreen: React.FC = () => {
   useEffect(() => {
     completeChecklistStep('exploredSettings');
   }, [completeChecklistStep]);
+
+  // Refresh after returning from Android's RoleManager dialog or app Settings.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    let mounted = true;
+    const refreshAssistantRole = async () => {
+      try {
+        const status = await getJarvisAssistantRoleStatus();
+        if (mounted) setAssistantRoleStatus(status);
+      } catch {
+        if (mounted) setAssistantRoleStatus(null);
+      }
+    };
+    void refreshAssistantRole();
+    const appState = AppState.addEventListener('change', next => {
+      if (next === 'active') void refreshAssistantRole();
+    });
+    const navigationFocus = navigation.addListener('focus', () => {
+      void refreshAssistantRole();
+    });
+    return () => {
+      mounted = false;
+      appState.remove();
+      navigationFocus();
+    };
+  }, [navigation]);
+
+  const handleSetJarvisAssistant = async () => {
+    if (isRequestingAssistantRole) return;
+    setIsRequestingAssistantRole(true);
+    try {
+      const status = await requestJarvisAssistantRole();
+      setAssistantRoleStatus(status);
+      if (!status.supported) {
+        Alert.alert('Jarvis system assistant', 'System-assistant integration requires Android 12 or newer. Voice dictation inside OGAM remains available on supported Android versions.');
+      } else if (!status.roleAvailable) {
+        Alert.alert('Jarvis system assistant', 'This Android/ColorOS build does not currently expose the system assistant role to OGAM.');
+      } else if (status.ready) {
+        Alert.alert('Jarvis enabled', 'Jarvis is now selected as the system assistant.');
+      } else if (status.roleHeld) {
+        Alert.alert('Jarvis selected', 'Android granted Jarvis the assistant role. The system service has not reported itself active yet; return to Settings later to refresh its status.');
+      } else {
+        Alert.alert('Jarvis not selected', 'Android did not activate Jarvis as the default assistant. You can try again or choose it in system Default apps settings.');
+      }
+    } catch (error) {
+      Alert.alert('Could not open assistant selection', error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsRequestingAssistantRole(false);
+    }
+  };
+
+  const assistantRoleDescription = !assistantRoleStatus
+    ? t('settings.assistant.checkSupport')
+    : !assistantRoleStatus.supported
+      ? t('settings.assistant.requiresAndroid12')
+      : !assistantRoleStatus.roleAvailable
+        ? t('settings.assistant.unavailable')
+        : assistantRoleStatus.ready
+          ? t('settings.assistant.ready')
+          : assistantRoleStatus.roleHeld
+            ? t('settings.assistant.notActivated')
+            : t('settings.assistant.gestureHint');
 
   const handleSendFeedback = async () => {
     const { downloadedModels, activeModelId } = useAppStore.getState();
@@ -113,7 +180,8 @@ export const SettingsScreen: React.FC = () => {
       ? `Device: ${deviceInfo.deviceModel} (${deviceInfo.systemName} ${deviceInfo.systemVersion})`
       : 'Device: Unknown';
 
-    const subject = `[Feedback] Off Grid AI v${appVersion()}`;
+    const brandLabel = isJarvisStandaloneRuntime ? 'Jarvis Ai' : 'Off Grid AI';
+    const subject = `[Feedback] ${brandLabel} v${appVersion()}`;
     const body =
       `Hi,\n\n[Describe your feedback or issue here]\n\n` +
         `---\n` +
@@ -170,7 +238,7 @@ export const SettingsScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* The living field behind the tab, resting while the tab is hidden. */}
       <ScreenField />
-      <ScreenHeader title="Settings" variant="tab" />
+      <ScreenHeader title={t('settings.title')} variant="tab" />
       <ScrollView
         {...SCROLL_DEPTH_PROPS}
         style={styles.scrollView}
@@ -192,30 +260,52 @@ export const SettingsScreen: React.FC = () => {
               themeMode={themeMode}
               onSelect={setThemeMode}
             />
+            {Platform.OS === 'android' ? (
+              <TouchableOpacity
+                style={styles.navItem}
+                onPress={handleSetJarvisAssistant}
+                disabled={isRequestingAssistantRole || assistantRoleStatus?.supported === false || assistantRoleStatus?.roleAvailable === false || assistantRoleStatus?.roleHeld === true}
+                testID="set-jarvis-system-assistant"
+                accessibilityRole="button"
+                accessibilityLabel={`Jarvis system assistant. ${assistantRoleDescription}`}
+                accessibilityState={{ disabled: isRequestingAssistantRole, busy: isRequestingAssistantRole }}
+              >
+                <View style={styles.navItemIcon}>
+                  <Icon name="mic" size={16} color={colors.textSecondary} />
+                </View>
+                <View style={styles.navItemContent}>
+                  <Text style={styles.navItemTitle}>
+                    {isRequestingAssistantRole ? t('settings.assistant.opening') : assistantRoleStatus?.ready ? t('settings.assistant.title') : assistantRoleStatus?.roleHeld ? t('settings.assistant.selected') : t('settings.assistant.set')}
+                  </Text>
+                  <Text style={styles.navItemDesc} numberOfLines={1}>{assistantRoleDescription}</Text>
+                </View>
+                <Icon name={assistantRoleStatus?.ready ? 'check' : 'chevron-right'} size={16} color={assistantRoleStatus?.ready ? colors.primary : colors.textMuted} />
+              </TouchableOpacity>
+            ) : null}
             {[
               {
                 icon: 'sliders',
-                title: 'Model settings',
-                desc: 'Instructions, replies, and speed',
+                title: t('settings.modelSettings'),
+                desc: t('settings.modelSettingsDesc'),
                 screen: 'ModelSettings' as const,
                 testID: 'open-model-settings',
               },
               {
                 // Its own page (Back returns here), showing the same picker as Models → Search.
                 icon: 'search',
-                title: 'Document search',
+                title: t('settings.docSearch'),
                 // What it does for you; the model's name is one tap in, on its own screen.
-                desc: 'How chats find the right part of a file',
+                desc: t('settings.docSearchDesc'),
                 screen: 'SearchModel' as const,
                 testID: 'open-search-model',
               },
               {
                 icon: 'wifi',
-                title: 'Remote servers',
-                desc: 'Your computer, Ollama or LM Studio',
+                title: t('settings.remoteServers'),
+                desc: t('settings.remoteServersDesc'),
                 screen: 'RemoteServers' as const,
               },
-              ...(hasSync
+              ...(hasSync && (!isJarvisStandaloneRuntime || isSyncUnlocked)
                 ? [
                     {
                       icon: 'refresh-cw',
@@ -231,26 +321,26 @@ export const SettingsScreen: React.FC = () => {
               //  { icon: 'search', title: 'Web Search', desc: 'Configure search API key for reliable results', screen: 'WebSearchSettings' as const },
               {
                 icon: 'lock',
-                title: 'Security',
-                desc: 'Passphrase and app lock',
+                title: t('settings.security'),
+                desc: t('settings.securityDesc'),
                 screen: 'SecuritySettings' as const,
               },
               {
                 icon: 'smartphone',
-                title: 'Device information',
-                desc: 'Hardware and compatibility',
+                title: t('settings.deviceInfo'),
+                desc: t('settings.deviceInfoDesc'),
                 screen: 'DeviceInfo' as const,
               },
               {
                 icon: 'hard-drive',
-                title: 'Storage',
-                desc: 'Models and data usage',
+                title: t('settings.storage'),
+                desc: t('settings.storageDesc'),
                 screen: 'StorageSettings' as const,
               },
               {
                 icon: 'cpu',
-                title: 'Engine updates',
-                desc: 'What runs your models',
+                title: t('settings.engineUpdates'),
+                desc: t('settings.engineUpdatesDesc'),
                 screen: 'EngineUpdates' as const,
                 testID: 'open-engine-updates',
               },
@@ -295,13 +385,13 @@ export const SettingsScreen: React.FC = () => {
               onPress={() => getPro('settings')}
               activeOpacity={0.75}
               accessibilityRole="button"
-              accessibilityLabel={`Off Grid AI Pro. ${proStatusLabel}`}
+              accessibilityLabel={`${t('app.proName')}. ${proStatusLabel}`}
             >
               <View style={styles.navItemIcon}>
                 <IconMC name="crown" size={16} color={colors.textSecondary} />
               </View>
               <View style={styles.navItemContent}>
-                <Text style={styles.navItemTitle}>Off Grid AI Pro</Text>
+                <Text style={styles.navItemTitle}>{t('app.proName')}</Text>
                 <Text style={styles.navItemDesc}>{proStatusLabel}</Text>
               </View>
               <Icon name="chevron-right" size={16} color={colors.textMuted} />
@@ -317,14 +407,6 @@ export const SettingsScreen: React.FC = () => {
         />
 
 
-        {/* Analytics: opt-in consent, what is shared, Report a problem */}
-        <SettingsAnalyticsSection
-          focusTrigger={focusTrigger}
-          styles={styles}
-          colors={colors}
-          onWhatWeShare={() => navigation.navigate('AnalyticsInfo')}
-        />
-
         {/* About */}
         <AnimatedEntry index={9} staggerMs={40} trigger={focusTrigger}>
           <View style={styles.navSection}>
@@ -338,9 +420,9 @@ export const SettingsScreen: React.FC = () => {
                 <Icon name="info" size={16} color={colors.textSecondary} />
               </View>
               <View style={styles.navItemContent}>
-                <Text style={styles.navItemTitle}>About</Text>
+                <Text style={styles.navItemTitle}>{t('settings.about')}</Text>
                 <Text style={styles.navItemDesc}>
-                  Version {appVersion()}
+                  {t('app.version', { version: appVersion() })}
                 </Text>
               </View>
               <Icon name="chevron-right" size={16} color={colors.textMuted} />

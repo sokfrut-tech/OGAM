@@ -26,7 +26,7 @@ export type ModelDownloadStatus =
   | 'error'; // failed; retryable
 
 export type ModelDownloadStartRequest =
-  | { modelType: 'video'; model: import('@offgrid/models').ModelEntry }
+  | { modelType: 'video'; model: import('../../types/modelCatalog').ModelEntry }
   | {
       modelType: 'text';
       modelId: string;

@@ -30,11 +30,16 @@ import type { ThemeColors, ThemeShadows } from '../../theme';
 import { TYPOGRAPHY, SPACING } from '../../constants';
 import { useWhisperStore, useAppStore } from '../../stores';
 import { useSttDownloadState } from '../../hooks/useSttDownloadState';
-import type { MobileWhisperCatalogModel } from '@offgrid/models';
+import type { MobileWhisperCatalogModel } from '../../types/modelCatalog';
 import { WHISPER_MODELS } from '../../services';
 import { addCatalogEntry, useWithRemoteCatalog } from '../../stores/modelCatalogStore';
 import { searchWhisperModels } from '../../services/huggingFaceModelBrowser';
-import { findTranscriptionModel, whisperDisplayName } from '../../services/whisperModels';
+import { isJarvisStandaloneRuntime } from '../../i18n';
+import {
+  findTranscriptionModel,
+  isEnglishOnlyWhisperModel,
+  whisperDisplayName,
+} from '../../services/whisperModels';
 import { createStyles as createModelsScreenStyles } from './styles';
 import logger from '../../utils/logger';
 import { RemoteModelOptionsSection } from '../../components/models/RemoteModelOptionsSection';
@@ -152,6 +157,62 @@ interface TranscriptionModelsTabProps {
   showRemoteModels?: boolean;
 }
 
+interface TranscriptionCatalogSectionsProps {
+  styles: ReturnType<typeof createStyles>;
+  englishModels: MobileWhisperCatalogModel[];
+  multiModels: MobileWhisperCatalogModel[];
+  asrModel: MobileWhisperCatalogModel | undefined;
+  whisperCount: number;
+  pickedIds: Set<string>;
+  renderCard: (model: MobileWhisperCatalogModel, index: number, testID?: string) => React.ReactNode;
+}
+
+const TranscriptionCatalogSections: React.FC<TranscriptionCatalogSectionsProps> = ({
+  styles,
+  englishModels,
+  multiModels,
+  asrModel,
+  whisperCount,
+  pickedIds,
+  renderCard,
+}) => {
+  const multiCards = multiModels.map((m, i) =>
+    pickedIds.has(m.id) ? null : renderCard(m, englishModels.length + i),
+  );
+  const englishCards = englishModels.map((m, i) => renderCard(m, i));
+  const asrSection = asrModel ? (
+    <>
+      <Text style={styles.sectionLabel}>
+        {isJarvisStandaloneRuntime ? 'Qwen3-ASR — русский + 30 языков' : 'Multilingual - 30 languages'}
+      </Text>
+      <ListGroup style={styles.group}>
+        {renderCard(asrModel, whisperCount, 'transcription-model-card-qwen3-asr')}
+      </ListGroup>
+    </>
+  ) : null;
+
+  if (isJarvisStandaloneRuntime) {
+    return (
+      <>
+        {asrSection}
+        <Text style={styles.sectionLabel}>Мультиязычные Whisper (русский + 99 языков)</Text>
+        <ListGroup style={styles.group}>{multiCards}</ListGroup>
+        <Text style={styles.sectionLabel}>Только английский (не понимает русский)</Text>
+        <ListGroup style={styles.group}>{englishCards}</ListGroup>
+      </>
+    );
+  }
+  return (
+    <>
+      <Text style={styles.sectionLabel}>English only</Text>
+      <ListGroup style={styles.group}>{englishCards}</ListGroup>
+      <Text style={styles.sectionLabel}>Multilingual - 99 languages</Text>
+      <ListGroup style={styles.group}>{multiCards}</ListGroup>
+      {asrSection}
+    </>
+  );
+};
+
 export const TranscriptionModelsTab: React.FC<TranscriptionModelsTabProps> = ({
   showRemoteModels = true,
 }) => {
@@ -248,12 +309,14 @@ export const TranscriptionModelsTab: React.FC<TranscriptionModelsTabProps> = ({
     (id: string) => {
       setAlertState(
         showAlert(
-          'Remove Transcription Model',
-          `Delete "${findTranscriptionModel(whisperModels, id)?.name ?? id}"? This will free up about ${formatSize(findTranscriptionModel(whisperModels, id)?.size ?? 0)}.`,
+          isJarvisStandaloneRuntime ? 'Удалить модель распознавания' : 'Remove Transcription Model',
+          isJarvisStandaloneRuntime
+            ? `Удалить «${findTranscriptionModel(whisperModels, id)?.name ?? id}»? Освободится около ${formatSize(findTranscriptionModel(whisperModels, id)?.size ?? 0)}.`
+            : `Delete "${findTranscriptionModel(whisperModels, id)?.name ?? id}"? This will free up about ${formatSize(findTranscriptionModel(whisperModels, id)?.size ?? 0)}.`,
           [
-      { text: 'Cancel', style: 'cancel' },
+            { text: isJarvisStandaloneRuntime ? 'Отмена' : 'Cancel', style: 'cancel' },
             {
-              text: 'Remove',
+              text: isJarvisStandaloneRuntime ? 'Удалить' : 'Remove',
               style: 'destructive',
               onPress: () => {
                 setAlertState(hideAlert());
@@ -347,9 +410,26 @@ export const TranscriptionModelsTab: React.FC<TranscriptionModelsTabProps> = ({
         <Text style={shared.deviceBannerText}>
           {showRemoteModels && remoteLabels.transcription
             ? `${remoteLabels.transcription} runs on your active remote server`
-            : 'Transcription runs on your phone, audio is never sent anywhere'}
+            : isJarvisStandaloneRuntime
+              ? 'Распознавание работает офлайн на телефоне — выберите Whisper Small или Qwen3-ASR для лучшего русского качества'
+              : 'Transcription runs on your phone, audio is never sent anywhere'}
         </Text>
       </View>
+
+      {isJarvisStandaloneRuntime && isEnglishOnlyWhisperModel(downloadedModelId) && (
+        <View style={styles.warningCard} testID="transcription-en-warning">
+          <Text style={styles.warningText}>
+            Сейчас выбрана англоязычная модель ({downloadedModelId}) — русскую речь она не понимает. Для русского скачайте Whisper Small (RU) или Qwen3-ASR.
+          </Text>
+          <TouchableOpacity
+            testID="transcription-install-ru-small"
+            style={styles.warningButton}
+            onPress={() => handleDownload('small')}
+          >
+            <Text style={styles.warningButtonText}>Установить Whisper Small (RU, 466 МБ)</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {whisperError && (
         <TouchableOpacity onPress={clearError}>
@@ -365,15 +445,21 @@ export const TranscriptionModelsTab: React.FC<TranscriptionModelsTabProps> = ({
         style={styles.searchField}
         value={query}
         onChangeText={setQuery}
-        placeholder="Search Hugging Face"
-        clearLabel="Clear speech model search"
+        placeholder={isJarvisStandaloneRuntime ? 'Поиск на Hugging Face' : 'Search Hugging Face'}
+        clearLabel={isJarvisStandaloneRuntime ? 'Очистить поиск моделей речи' : 'Clear speech model search'}
         testID="speech-search-input"
       />
       {query.trim() ? (
         <>
-          {searching ? <Text style={styles.status}>Searching…</Text> : null}
+          {searching ? (
+            <Text style={styles.status}>{isJarvisStandaloneRuntime ? 'Поиск…' : 'Searching…'}</Text>
+          ) : null}
           {!searching && !searchError && results.length === 0 ? (
-            <Text style={styles.status}>No models this phone can run. Try another name.</Text>
+            <Text style={styles.status}>
+              {isJarvisStandaloneRuntime
+                ? 'Подходящих моделей для этого телефона не найдено.'
+                : 'No models this phone can run. Try another name.'}
+            </Text>
           ) : null}
           {searchError ? <Text style={styles.error}>{searchError}</Text> : null}
           {results.length > 0 && (
@@ -389,23 +475,15 @@ export const TranscriptionModelsTab: React.FC<TranscriptionModelsTabProps> = ({
         state: speechPickState(item.id),
       }))} />
 
-      <Text style={styles.sectionLabel}>English only</Text>
-      <ListGroup style={styles.group}>{englishModels.map((m, i) => renderWhisperCard(m, i))}</ListGroup>
-
-      <Text style={styles.sectionLabel}>Multilingual - 99 languages</Text>
-      {/* The card keeps its catalogue position as its index, so a card means the same model whatever the picks are. */}
-      <ListGroup style={styles.group}>
-        {multiModels.map((m, i) => (pickedIds.has(m.id) ? null : renderWhisperCard(m, englishModels.length + i)))}
-      </ListGroup>
-
-      {asrModel ? (
-        <>
-          <Text style={styles.sectionLabel}>Multilingual - 30 languages</Text>
-          <ListGroup style={styles.group}>
-            {renderWhisperCard(asrModel, whisperModels.length, 'transcription-model-card-qwen3-asr')}
-          </ListGroup>
-        </>
-      ) : null}
+      <TranscriptionCatalogSections
+        styles={styles}
+        englishModels={englishModels}
+        multiModels={multiModels}
+        asrModel={asrModel}
+        whisperCount={whisperModels.length}
+        pickedIds={pickedIds}
+        renderCard={renderWhisperCard}
+      />
 
       <CustomAlert visible={alertState.visible} title={alertState.title}
         message={alertState.message} buttons={alertState.buttons}
@@ -425,6 +503,30 @@ const createStyles = (colors: ThemeColors, _shadows: ThemeShadows) =>
       letterSpacing: 0.3, marginBottom: SPACING.sm, marginTop: SPACING.xs,
     },
     error: { ...TYPOGRAPHY.bodySmall, color: colors.error, textAlign: 'center' as const, marginBottom: SPACING.md },
+    warningCard: {
+      backgroundColor: colors.surfaceLight,
+      borderColor: colors.error,
+      borderWidth: 1,
+      borderRadius: SPACING.sm,
+      padding: SPACING.md,
+      marginBottom: SPACING.md,
+      gap: SPACING.sm,
+    },
+    warningText: {
+      ...TYPOGRAPHY.bodySmall,
+      color: colors.text,
+    },
+    warningButton: {
+      backgroundColor: colors.primary,
+      borderRadius: SPACING.xs,
+      paddingVertical: SPACING.sm,
+      paddingHorizontal: SPACING.md,
+      alignItems: 'center' as const,
+    },
+    warningButtonText: {
+      ...TYPOGRAPHY.bodySmall,
+      color: colors.onPrimary,
+    },
     status: { ...TYPOGRAPHY.bodySmall, color: colors.textSecondary, marginBottom: SPACING.sm },
     search: {
       ...TYPOGRAPHY.body, color: colors.text, backgroundColor: colors.surfaceLight,

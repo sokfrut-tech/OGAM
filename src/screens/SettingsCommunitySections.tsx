@@ -14,6 +14,7 @@ import {
 import { githubStarTapped } from '../services/analytics/analytics';
 import type { ThemeColors } from '../theme';
 import type { createStyles } from './SettingsScreen.styles';
+import { isJarvisStandaloneRuntime } from '../i18n';
 
 interface SettingsCommunitySectionsProps {
   focusTrigger: number;
@@ -41,17 +42,30 @@ type CommunityRow = {
 export const SettingsCommunitySections: React.FC<
   SettingsCommunitySectionsProps
 > = ({ focusTrigger, styles, colors, onSendFeedback }) => {
+  if (isJarvisStandaloneRuntime) {
+    return null;
+  }
   const storeName = Platform.OS === 'ios' ? 'Rate on the App Store' : 'Rate on Google Play';
-  const rows: CommunityRow[] = [
-    { key: 'x', icon: <Icon name="at-sign" size={16} color={colors.textSecondary} />, title: 'Follow @alichherawalla on X', desc: 'New features first, promo discounts, the roadmap', onPress: () => Linking.openURL(FOLLOW_X_URL), testID: 'follow-on-x' },
-    { key: 'slack', icon: <IconMC name="slack" size={16} color={colors.textSecondary} />, title: 'Join the Slack community', desc: 'Get help fast and try things early', onPress: () => Linking.openURL(SLACK_INVITE_URL), testID: 'join-slack' },
-    { key: 'github', icon: <Icon name="star" size={16} color={colors.textSecondary} />, title: 'Star on GitHub', desc: 'Support the open-source project', onPress: () => { githubStarTapped('settings'); Linking.openURL(GITHUB_URL); } },
-    { key: 'feedback', icon: <Icon name="mail" size={16} color={colors.textSecondary} />, title: 'Send feedback', desc: 'Report a bug or share an idea', onPress: onSendFeedback },
-    { key: 'rate', icon: <Icon name="thumbs-up" size={16} color={colors.textSecondary} />, title: storeName, desc: 'A rating helps other people find Off Grid AI', onPress: () => rateOnStore() },
-  ];
+  const rows: CommunityRow[] = isJarvisStandaloneRuntime
+    ? [
+        {
+          key: 'feedback',
+          icon: <Icon name="mail" size={16} color={colors.textSecondary} />,
+          title: 'Отправить отзыв',
+          desc: 'Сообщить об ошибке или предложить улучшение Jarvis Ai',
+          onPress: onSendFeedback,
+        },
+      ]
+    : [
+        { key: 'x', icon: <Icon name="at-sign" size={16} color={colors.textSecondary} />, title: 'Follow @alichherawalla on X', desc: 'New features first, promo discounts, the roadmap', onPress: () => Linking.openURL(FOLLOW_X_URL), testID: 'follow-on-x' },
+        { key: 'slack', icon: <IconMC name="slack" size={16} color={colors.textSecondary} />, title: 'Join the Slack community', desc: 'Get help fast and try things early', onPress: () => Linking.openURL(SLACK_INVITE_URL), testID: 'join-slack' },
+        { key: 'github', icon: <Icon name="star" size={16} color={colors.textSecondary} />, title: 'Star on GitHub', desc: 'Support the open-source project', onPress: () => { githubStarTapped('settings'); Linking.openURL(GITHUB_URL); } },
+        { key: 'feedback', icon: <Icon name="mail" size={16} color={colors.textSecondary} />, title: 'Send feedback', desc: 'Report a bug or share an idea', onPress: onSendFeedback },
+        { key: 'rate', icon: <Icon name="thumbs-up" size={16} color={colors.textSecondary} />, title: storeName, desc: 'A rating helps other people find Off Grid AI', onPress: () => rateOnStore() },
+      ];
   return (
     <AnimatedEntry index={7} staggerMs={40} trigger={focusTrigger}>
-      <SectionLabel title="Community" />
+      <SectionLabel title={isJarvisStandaloneRuntime ? 'Обратная связь' : 'Community'} />
       <View style={styles.navSection}>
         {rows.map((row, i) => (
           <TouchableOpacity
@@ -67,7 +81,11 @@ export const SettingsCommunitySections: React.FC<
               <Text style={styles.navItemTitle}>{row.title}</Text>
               <Text style={styles.navItemDesc}>{row.desc}</Text>
             </View>
-            <Icon name="external-link" size={14} color={colors.textMuted} />
+            <Icon
+              name={isJarvisStandaloneRuntime ? 'chevron-right' : 'external-link'}
+              size={14}
+              color={colors.textMuted}
+            />
           </TouchableOpacity>
         ))}
       </View>

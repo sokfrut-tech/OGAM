@@ -26,6 +26,44 @@ describe('recordingController', () => {
     expect(h.stop).not.toHaveBeenCalled();
   });
 
+  it('does not open a voice session when no input backend is available', () => {
+    const h = handlers();
+    recordingController.registerHandlers({ ...h, canStart: () => false });
+    recordingController.start();
+    expect(h.start).not.toHaveBeenCalled();
+    expect(recordingController.getPhase()).toBe('idle');
+  });
+
+  it('allows direct-audio capture for normal taps but requires STT for system-assistant text turns', () => {
+    const h = handlers();
+    recordingController.registerHandlers({
+      ...h,
+      canStart: options => options?.requiresTranscript ? false : true,
+    });
+
+    expect(recordingController.start()).toBe('started');
+    voiceSession._resetForTesting();
+    expect(recordingController.start({ requiresTranscript: true })).toBe('unavailable');
+    expect(h.start).toHaveBeenCalledTimes(1);
+    expect(recordingController.getPhase()).toBe('idle');
+  });
+
+  it('returns unavailable and leaves the session stopped when no speech backend exists', () => {
+    const h = handlers();
+    recordingController.registerHandlers({ ...h, canStart: () => false });
+    expect(recordingController.start()).toBe('unavailable');
+    expect(recordingController.getPhase()).toBe('idle');
+    expect(h.start).not.toHaveBeenCalled();
+  });
+
+  it('reports missing recorder separately from a busy voice session', () => {
+    expect(recordingController.start()).toBe('no-recorder');
+    const h = handlers();
+    recordingController.registerHandlers(h);
+    voiceSession.dispatch('userStart');
+    expect(recordingController.start()).toBe('busy');
+  });
+
   it('toggle() stops when recording (does not start a second recording)', () => {
     const h = handlers();
     recordingController.registerHandlers(h);

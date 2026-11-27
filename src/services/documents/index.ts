@@ -8,7 +8,7 @@ import {
   estimateTokens,
   type DocumentSource,
   type Scheduler,
-} from '@offgrid/rag/documents';
+} from '../../utils/ragDocumentsCore';
 import { useChatStore } from '../../stores/chatStore';
 import logger from '../../utils/logger';
 import { HOOKS, registerHook } from '../../bootstrap/hookRegistry';

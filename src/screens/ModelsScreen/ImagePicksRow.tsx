@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { determineCredibility } from '@offgrid/models';
+import { determineCredibility } from '../../utils/modelNamingCore';
 import { useAppStore } from '../../stores';
 import { useDownloadStore, isActiveStatus } from '../../stores/downloadStore';
 import { makeImageModelKey } from '../../utils/modelKey';

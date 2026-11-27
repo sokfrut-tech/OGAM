@@ -30,6 +30,17 @@ class SyncDirectorySourceModule(
     }
 
     @ReactMethod
+    fun documentUri(grant: String, sourceId: String, promise: Promise) {
+        try {
+            val tree = Uri.parse(grant)
+            val document = DocumentsContract.buildDocumentUriUsingTree(tree, sourceId)
+            promise.resolve(document.toString())
+        } catch (error: Exception) {
+            promise.reject("directory_document_uri_failed", error)
+        }
+    }
+
+    @ReactMethod
     fun stage(grant: String, sourceId: String, destinationName: String, promise: Promise) {
         try {
             val tree = Uri.parse(grant)

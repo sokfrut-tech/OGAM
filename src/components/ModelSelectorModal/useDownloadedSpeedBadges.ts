@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { CATALOG, mtpHeadForPrimaryFile, parseMoeParams } from '@offgrid/models';
+import { CATALOG } from '../../utils/modelCatalogCore';
+import { mtpHeadForPrimaryFile } from '../../utils/mtpHeadsCore';
+import { parseMoeParams } from '../../utils/modelNamingCore';
 import { modelSupportsMtp } from '../../services/mtpDetection';
 import logger from '../../utils/logger';
 import type { DownloadedModel } from '../../types';

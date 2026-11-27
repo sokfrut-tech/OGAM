@@ -5,7 +5,7 @@ import logger from '../utils/logger';
 // them without depending on this store (utils-stay-pure). Re-exported here for back-compat — every
 // existing `from '../stores/downloadStore'` importer of these keeps working unchanged.
 import { DownloadStatus, DownloadEntry, isActiveStatus } from '../utils/downloadStatus';
-import { sampleProgressRate } from '@offgrid/ui';
+import { sampleProgressRate } from '../utils/progressCore';
 import { downloadDropped, downloadEnded, downloadStarted } from '../services/analytics/analytics';
 import { modelRef } from '../services/analytics/values';
 

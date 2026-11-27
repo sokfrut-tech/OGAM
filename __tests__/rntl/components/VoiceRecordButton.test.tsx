@@ -23,6 +23,7 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { VoiceRecordButton } from '../../../src/components/VoiceRecordButton';
+import { deriveVoiceButtonState } from '../../../src/components/VoiceRecordButton/derive';
 
 
 describe('VoiceRecordButton', () => {
@@ -462,6 +463,19 @@ describe('VoiceRecordButton', () => {
         <VoiceRecordButton {...defaultProps} asSendButton={true} isModelLoading={true} />
       );
       expect(getByTestId('voice-record-button')).toBeTruthy();
+    });
+
+    it('derives micDenied when microphone permission is denied', () => {
+      expect(
+        deriveVoiceButtonState({
+          isAvailable: true,
+          isModelLoading: false,
+          isTranscribing: false,
+          isRecording: false,
+          downloadProgressById: {},
+          isMicPermissionDenied: true,
+        }),
+      ).toEqual({ kind: 'micDenied' });
     });
   });
 });

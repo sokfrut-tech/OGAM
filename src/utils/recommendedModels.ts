@@ -1,4 +1,4 @@
-import type { MobileTextCatalogModel } from '@offgrid/models';
+import type { MobileTextCatalogModel } from '../types/modelCatalog';
 import { RECOMMENDED_MODELS, TRENDING_FAMILIES } from '../constants';
 
 type RecommendedModel = MobileTextCatalogModel;

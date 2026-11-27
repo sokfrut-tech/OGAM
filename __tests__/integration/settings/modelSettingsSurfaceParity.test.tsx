@@ -153,13 +153,16 @@ describe('model settings surface parity', () => {
 
     const slider = modelSettings.getByTestId('max-tool-calls-slider');
     expect(slider.props.value).toBe(25);
+    fireEvent(slider, 'slidingComplete', 15);
+    expect(useAppStore.getState().settings.maxToolCalls).toBe(15);
     fireEvent(slider, 'slidingComplete', 40);
-    expect(useAppStore.getState().settings.maxToolCalls).toBe(40);
+    // Jarvis caps per-reply tool steps at MAX_MAX_TOOL_CALLS = 20.
+    expect(useAppStore.getState().settings.maxToolCalls).toBe(20);
     modelSettings.unmount();
 
     const again = renderModelSettings('text');
     fireEvent.press(again.getByTestId('text-advanced-toggle'));
-    expect(again.getByTestId('max-tool-calls-slider').props.value).toBe(40);
+    expect(again.getByTestId('max-tool-calls-slider').props.value).toBe(20);
   });
 
   it('steps the thinking budget and keeps it across visits', () => {

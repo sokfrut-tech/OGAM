@@ -36,13 +36,14 @@ import { OFF_GRID_DESKTOP_URL } from '../constants';
 import { withUtm } from '../utils/utm';
 import { createStyles } from './RemoteServersScreen.styles';
 import { AliveScreen } from '../components/AliveScreen';
+import { isJarvisStandaloneRuntime } from '../i18n';
 
 const DESKTOP_URL = withUtm(OFF_GRID_DESKTOP_URL, 'remote-servers');
 // Amber for a server not checked yet: the brand's palette has no amber, so it is named here.
 const STATUS_AMBER = '#F59E0B';
 
 const SCAN_KINDS: Array<{ kind: DiscoverableServerKind; label: string; port: number }> = [
-  { kind: 'gateway', label: 'Off Grid AI Desktop', port: 7878 },
+  { kind: 'gateway', label: isJarvisStandaloneRuntime ? 'Локальный компьютер' : 'Off Grid AI Desktop', port: 7878 },
   { kind: 'ollama', label: 'Ollama', port: 11434 },
   { kind: 'lmstudio', label: 'LM Studio', port: 1234 },
 ];
@@ -179,7 +180,10 @@ export const RemoteServersScreen: React.FC = () => {
 
   return (
     <AliveScreen style={styles.container}>
-      <ScreenHeader title="Remote servers" onBack={() => navigation.goBack()} />
+      <ScreenHeader
+        title={isJarvisStandaloneRuntime ? 'Удалённые серверы' : 'Remote servers'}
+        onBack={() => navigation.goBack()}
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -289,22 +293,27 @@ export const RemoteServersScreen: React.FC = () => {
 
         {servers.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>No servers yet</Text>
-            <Text style={styles.emptyText}>
-              Off Grid AI Desktop serves your Mac&apos;s models to this phone.
-              Ollama and LM Studio work the same way.
+            <Text style={styles.emptyTitle}>
+              {isJarvisStandaloneRuntime ? 'Серверов пока нет' : 'No servers yet'}
             </Text>
-            <TouchableOpacity
-              style={styles.desktopLink}
-              onPress={openDesktopUrl}
-              accessibilityRole="link"
-              accessibilityLabel="Get Off Grid AI Desktop"
-            >
-              <Icon name="monitor" size={14} color={theme.colors.primary} />
-              <Text style={styles.desktopLinkText}>
-                Get Off Grid AI Desktop
-              </Text>
-            </TouchableOpacity>
+            <Text style={styles.emptyText}>
+              {isJarvisStandaloneRuntime
+                ? 'Подключите локальный сервер Ollama или LM Studio в вашей Wi-Fi сети или добавьте адрес вручную.'
+                : 'Off Grid AI Desktop serves your Mac\'s models to this phone. Ollama and LM Studio work the same way.'}
+            </Text>
+            {isJarvisStandaloneRuntime ? null : (
+              <TouchableOpacity
+                style={styles.desktopLink}
+                onPress={openDesktopUrl}
+                accessibilityRole="link"
+                accessibilityLabel="Get Off Grid AI Desktop"
+              >
+                <Icon name="monitor" size={14} color={theme.colors.primary} />
+                <Text style={styles.desktopLinkText}>
+                  Get Off Grid AI Desktop
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
           <>

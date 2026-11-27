@@ -1,0 +1,144 @@
+name: OGAM external dependency audit
+
+on:
+  push:
+    branches:
+      - feature/jarvis-step-2-storage-privacy
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Scan imports and external workspace references
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out OGAM only
+        uses: actions/checkout@v4
+      - name: Verify scanner tests
+        run: node --test scripts/__tests__/audit-offgrid-imports.test.mjs
+      - name: Verify standalone progress contract
+        run: node --experimental-strip-types --test scripts/__tests__/progress-core.node.test.mjs
+      - name: Verify local file-size formatting contract
+        run: node --experimental-strip-types --test scripts/__tests__/format-file-size.node.test.mjs
+      - name: Verify companion artifact classification
+        run: node --experimental-strip-types --test scripts/__tests__/model-companion-files.node.test.mjs
+      - name: Verify split GGUF filename contract
+        run: node --experimental-strip-types --test scripts/__tests__/gguf-split-files.node.test.mjs
+      - name: Verify Jarvis skill contract
+        run: node --experimental-strip-types --test scripts/__tests__/skill-contract.node.test.mjs
+      - name: Verify Jarvis task-plan graph
+        run: node --experimental-strip-types --test scripts/__tests__/task-plan.node.test.mjs
+      - name: Verify Jarvis model evaluation harness
+        run: node --test scripts/__tests__/model-eval.node.test.mjs
+      - name: Verify locale-aware transcription default
+        run: node --experimental-strip-types --test scripts/__tests__/transcription-language.node.test.mjs
+      - name: Verify Android Jarvis assistant contract
+        run: node --experimental-strip-types --test scripts/__tests__/android-assistant-contract.node.test.mjs
+      - name: Verify Jarvis assistant role UI wiring
+        run: node --experimental-strip-types --test scripts/__tests__/jarvis-assistant-role.node.test.mjs
+      - name: Verify one-shot Jarvis voice request
+        run: node --experimental-strip-types --test scripts/__tests__/jarvis-one-shot-voice.node.test.mjs
+      - name: Verify Jarvis assistant URI mapping
+        run: node --experimental-strip-types --test scripts/__tests__/jarvis-voice-linking.node.test.mjs
+      - name: Verify Jarvis PCM playback source contract
+        run: node --test scripts/__tests__/jarvis-pcm-playback.node.test.mjs
+      - name: Verify Jarvis TTS backend and speech chunker source contract
+        run: node --test scripts/__tests__/jarvis-tts-backend.node.test.mjs
+      - name: Verify OGAM-owned design tokens contract
+        run: node --experimental-strip-types --test scripts/__tests__/design-tokens.node.test.mjs
+      - name: Verify pure WAV silence trim planner
+        run: node --experimental-strip-types --test scripts/__tests__/wav-trim-plan.node.test.mjs
+      - name: Verify adaptive speech endpoint and voice turn settings
+        run: node --experimental-strip-types --test scripts/__tests__/speech-endpoint.node.test.mjs
+      - name: Verify transcription language catalogs
+        run: node --experimental-strip-types --test scripts/__tests__/transcription-languages.node.test.mjs
+      - name: Verify voice session state machine
+        run: node --experimental-strip-types --test scripts/__tests__/voice-session-machine.node.test.mjs
+      - name: Verify pure message content and anti-leak parser
+        run: node --experimental-strip-types --test scripts/__tests__/message-content.node.test.mjs
+      - name: Verify chat markdown guard and sync primitives
+        run: node --experimental-strip-types --test scripts/__tests__/chat-markdown-and-sync-primitives.node.test.mjs
+      - name: Verify branched chat thread version rules
+        run: node --experimental-strip-types --test scripts/__tests__/chat-thread-core.node.test.mjs
+      - name: Verify chat queue and stream preview helpers
+        run: node --experimental-strip-types --test scripts/__tests__/chat-queue-and-stream.node.test.mjs
+      - name: Verify OGAM-owned tool result size boundary
+        run: node --experimental-strip-types --test scripts/__tests__/tool-result-budget.node.test.mjs
+      - name: Verify OGAM-owned reasoning budget policy
+        run: node --experimental-strip-types --test scripts/__tests__/reasoning-budget.node.test.mjs
+      - name: Verify OGAM-owned tool loop budget policy
+        run: node --experimental-strip-types --test scripts/__tests__/tool-loop-budget.node.test.mjs
+      - name: Verify OGAM-owned media style catalog
+        run: node --experimental-strip-types --test scripts/__tests__/media-style-catalog.node.test.mjs
+      - name: Verify paired computer remote search contract
+        run: node --experimental-strip-types --test scripts/__tests__/remote-computer-search.node.test.mjs
+      - name: Verify standalone document ingest, search, and citation engine
+        run: node --experimental-strip-types --test scripts/__tests__/rag-documents-core.node.test.mjs
+      - name: Verify OGAM-owned Boost offer rules and copy
+        run: node --experimental-strip-types --test scripts/__tests__/boost-promo.node.test.mjs
+      - name: Verify OGAM-owned image parameter defaults and overrides
+        run: node --experimental-strip-types --test scripts/__tests__/image-parameter-core.node.test.mjs
+      - name: Verify OGAM-owned model quant and card reasoning rules
+        run: node --experimental-strip-types --test scripts/__tests__/model-capability-rules.node.test.mjs
+      - name: Verify OGAM-owned video generation intent rules
+        run: node --experimental-strip-types --test scripts/__tests__/video-intent.node.test.mjs
+      - name: Verify OGAM-owned mmproj model identity matching
+        run: node --experimental-strip-types --test scripts/__tests__/mmproj-matcher.node.test.mjs
+      - name: Verify OGAM-owned GGUF model naming and credibility rules
+        run: node --experimental-strip-types --test scripts/__tests__/model-naming-core.node.test.mjs
+      - name: Verify OGAM-owned model residency and eviction policy
+        run: node --experimental-strip-types --test scripts/__tests__/model-residency-policy.node.test.mjs
+      - name: Verify OGAM-owned mobile runtime threading, mmap, and backend policy
+        run: node --experimental-strip-types --test scripts/__tests__/mobile-runtime-policy.node.test.mjs
+      - name: Verify OGAM-owned model fit budget and remote-vision reasoning payload
+        run: node --experimental-strip-types --test scripts/__tests__/model-fit-budget.node.test.mjs
+      - name: Verify OGAM-owned MTP heads catalog and primary-file matching
+        run: node --experimental-strip-types --test scripts/__tests__/mtp-heads-core.node.test.mjs
+      - name: Verify OGAM-owned video pack policy and sync settings allowlist
+        run: node --experimental-strip-types --test scripts/__tests__/video-pack-policy.node.test.mjs
+      - name: Verify OGAM-owned transcription engine platform policy
+        run: node --experimental-strip-types --test scripts/__tests__/transcription-engine-policy.node.test.mjs
+      - name: Verify OGAM-owned remote catalog parsing, merge, and refresh
+        run: node --experimental-strip-types --test scripts/__tests__/remote-catalog-core.node.test.mjs
+      - name: Verify OGAM-owned SD image pack rules and checkpoint header validation
+        run: node --experimental-strip-types --test scripts/__tests__/sd-image-pack-policy.node.test.mjs
+      - name: Verify OGAM-owned Hugging Face search, split-GGUF collapse, and strict mmproj pairing
+        run: node --experimental-strip-types --test scripts/__tests__/hugging-face-core.node.test.mjs
+      - name: Verify OGAM-owned guide topics, progressive typing reveal, and grounded mobile flows
+        run: node --experimental-strip-types --test scripts/__tests__/guide-core.node.test.mjs
+      - name: Verify OGAM-owned model catalog, device picks, and complete @offgrid/models removal
+        run: node --experimental-strip-types --test scripts/__tests__/model-catalog-core.node.test.mjs
+      - name: Verify OGAM-owned Pro entitlement and activation failure projection rules
+        run: node --experimental-strip-types --test scripts/__tests__/pro-entitlement-core.node.test.mjs
+      - name: Verify OGAM-owned Personal Mesh entities and model transfer admission rules
+        run: node --experimental-strip-types --test scripts/__tests__/sync-entity-core.node.test.mjs
+      - name: Verify OGAM-owned synced message context serialization and turn projection
+        run: node --experimental-strip-types --test scripts/__tests__/sync-message-context-core.node.test.mjs
+      - name: Verify OGAM-owned streaming SHA-512 checksum and HKDF-SHA256 blob material
+        run: node --experimental-strip-types --test scripts/__tests__/sync-checksum-core.node.test.mjs
+      - name: Verify OGAM-owned mDNS discovery, pairing-code rules, and discovery orchestrator
+        run: node --experimental-strip-types --test scripts/__tests__/sync-discovery-core.node.test.mjs
+      - name: Verify OGAM-owned X25519 + ChaCha20-Poly1305 SyncEngine and 0 localFileDependencies
+        run: node --experimental-strip-types --test scripts/__tests__/sync-engine-core.node.test.mjs
+      - name: Verify standalone open-core lockfile, APK workflow, and Slice 14 runtime contracts
+        run: node --experimental-strip-types --test scripts/__tests__/standalone-opencore-build.node.test.mjs
+      - name: Verify Jarvis Russian UI, branding, and open catalog contract
+        run: node --test scripts/__tests__/jarvis-i18n-ru.node.test.mjs
+      - name: Verify Jarvis Russian prompt bridge, video intent, and standalone promo suppression
+        run: node --experimental-strip-types --test scripts/__tests__/jarvis-russian-prompts.node.test.mjs
+      - name: Verify Jarvis Slice 20 native STT, Voice Mode, Video slots, and Phone Actions contracts
+        run: node --test scripts/__tests__/jarvis-slice20-capabilities.node.test.mjs
+      - name: Verify Jarvis Slice 21 Russian STT accuracy, migration, and watchdog contracts
+        run: node --test scripts/__tests__/jarvis-slice21-stt-watchdog.node.test.mjs
+      - name: Generate complete source/config inventory
+        run: node scripts/audit-offgrid-imports.mjs --output=ogam-import-audit.json
+      - name: Upload audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ogam-import-audit
+          path: ogam-import-audit.json
+          if-no-files-found: error
+          retention-days: 14

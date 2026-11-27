@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import { BOOST_PROMO, boostPromoCopy, boostPromoLink, boostPromoVisible, type BoostPromoSurface } from '@offgrid/models';
+import { BOOST_PROMO, boostPromoCopy, boostPromoLink, boostPromoVisible, type BoostPromoSurface } from '../utils/boostPromo';
 import { useTheme, useThemedStyles } from '../theme';
 import type { ThemeColors } from '../theme';
 import { cardSurface } from '../theme/surface';
@@ -10,6 +10,7 @@ import { useAppStore } from '../stores';
 import { AnimatedPressable } from './AnimatedPressable';
 import { boostPromo } from '../services/analytics/analytics';
 import { OfflineError, openWebSheet } from '../services/proCheckout';
+import { isJarvisStandaloneRuntime } from '../i18n';
 
 const COPY = boostPromoCopy('phone');
 
@@ -28,10 +29,10 @@ export const BoostPromoCard: React.FC<{ surface: BoostPromoSurface }> = ({ surfa
   const [offline, setOffline] = useState(false);
 
   useEffect(() => {
-    if (visible) boostPromo('shown', surface);
+    if (visible && !isJarvisStandaloneRuntime) boostPromo('shown', surface);
   }, [visible, surface]);
 
-  if (!visible) return null;
+  if (isJarvisStandaloneRuntime || !visible) return null;
 
   const claim = (): void => {
     boostPromo('clicked', surface);

@@ -11,7 +11,7 @@ import { setupChatScreen } from '../../harness/chatHarness';
 
 jest.unmock('@react-navigation/native');
 
-const { mediaStyle } = require('@offgrid/models');
+const { mediaStyle } = require('../../../src/constants/mediaStyles');
 
 /** My message's "•••" › Retry. RNTL's press traversal does not reach this control inside the message
  *  list, so the bound handler is invoked off the node, which is what a tap does. */

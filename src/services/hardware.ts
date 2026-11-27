@@ -2,7 +2,7 @@ import { Platform, NativeModules } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import RNFS from 'react-native-fs';
 import logger from '../utils/logger';
-import { IPHONE_INFERENCE_THREADS } from '@offgrid/models';
+import { IPHONE_INFERENCE_THREADS } from '../utils/mobileRuntimePolicy';
 import { readPerformanceCoreCount } from './cpuTopologyReader';
 // Access NativeModules.LocalDreamModule dynamically (not destructured)
 // so it can be mocked in tests after module import.

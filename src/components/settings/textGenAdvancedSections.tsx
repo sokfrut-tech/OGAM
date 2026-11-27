@@ -27,7 +27,7 @@ import {
   REASONING_BUDGET_AUTO,
   REASONING_BUDGET_OPTIONS,
   reasoningBudgetLabel,
-} from '@offgrid/models';
+} from '../../utils/reasoningBudget';
 import { HTP_ENABLED as HTP_UI_ENABLED } from '../../config/featureFlags';
 import { createTextGenAdvancedStyles } from './textGenAdvancedStyles';
 import { SegmentedRow, BOOL_OPTIONS, type PillOption } from './segmentedRow';

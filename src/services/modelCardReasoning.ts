@@ -6,7 +6,7 @@
  * and keeps the answer on the model's record, so the Thinking toggle stays right offline and after
  * a restart. Offline or a missing card leaves the record unknown and the template decides.
  */
-import { modelCardDeniesReasoning, modelCardUrl } from '@offgrid/models';
+import { modelCardDeniesReasoning, modelCardUrl } from '../utils/modelCapabilityRules';
 import { useAppStore } from '../stores/appStore';
 import { commitModelsList } from './modelManager/storage';
 import type { DownloadedModel } from '../types';

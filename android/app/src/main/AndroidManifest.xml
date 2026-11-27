@@ -1,6 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -11,6 +20,8 @@
 
     <!-- For voice recording -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- For explicit timer and alarm actions via system AlarmClock UI -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
 
     <!-- Requested only when the user opens the QR scanner. -->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -100,6 +111,43 @@
             <data android:scheme="offgrid" android:host="pro" />
         </intent-filter>
       </activity>
+
+      <!-- Internal-only bridge: external apps cannot trigger a system-assistant microphone session. -->
+      <activity
+          android:name="ai.offgridmobile.voice.JarvisAssistantBridgeActivity"
+          android:exported="false"
+          android:excludeFromRecents="true"
+          android:noHistory="true"
+          android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+      <!--
+           Jarvis system-assistant entry point.
+           The service is available only on Android 12+ (res/values-v31); earlier releases
+           retain normal OGAM voice input but are not exposed as a system assistant because
+           the legacy RecognitionService path is not yet implemented locally.
+           The session process only hands off a visible assistant URI to MainActivity.
+      -->
+      <service
+          android:name="ai.offgridmobile.voice.JarvisVoiceInteractionService"
+          android:label="@string/jarvis_assistant_name"
+          android:enabled="@bool/jarvis_voice_interaction_enabled"
+          android:permission="android.permission.BIND_VOICE_INTERACTION"
+          android:exported="true">
+        <intent-filter>
+          <action android:name="android.service.voice.VoiceInteractionService" />
+        </intent-filter>
+        <meta-data
+            android:name="android.voice_interaction"
+            android:resource="@xml/jarvis_voice_interaction" />
+      </service>
+
+      <service
+          android:name="ai.offgridmobile.voice.JarvisVoiceInteractionSessionService"
+          android:label="@string/jarvis_assistant_name"
+          android:enabled="@bool/jarvis_voice_interaction_enabled"
+          android:permission="android.permission.BIND_VOICE_INTERACTION"
+          android:exported="true"
+          android:process=":jarvis_voice" />
 
       <!-- Android does not let normal background apps read the system clipboard. This explicit
            selection-menu action receives only the text the user chose and stores it until the

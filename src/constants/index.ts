@@ -67,6 +67,10 @@ export const OFFICIAL_MODEL_AUTHORS: Record<string, string> = {
   XHToken: 'iFLYTEK',
   InternScience: 'Shanghai AI Lab',
   RecursiveSI: 'Recursive',
+  dphn: 'Dolphin',
+  cognitivecomputations: 'Cognitive Computations',
+  NousResearch: 'Nous Research',
+  IlyaGusev: 'Saiga (RU)',
 };
 
 // Verified quantizers - trusted community members who quantize models
@@ -165,7 +169,7 @@ export interface OnboardingSlide {
 // Core onboarding slides. Optional feature packages contribute additional slide data through the
 // onboarding.additionalSlides hook so Core keeps one renderer without advertising unavailable
 // features in free builds.
-import { boostPromoCopy } from '@offgrid/models';
+import { boostPromoCopy } from '../utils/boostPromo';
 
 export const ONBOARDING_SLIDES: readonly OnboardingSlide[] = [
   {
@@ -205,7 +209,7 @@ export const ONBOARDING_SLIDES: readonly OnboardingSlide[] = [
   },
 ];
 
-// Fonts, type, spacing, radius and the living field come from @offgrid/design (the one token source).
-import { FONTS, TYPOGRAPHY, SPACING, RADIUS, LIVING_FIELD, ALIVE } from '@offgrid/design';
+// Fonts, type, spacing, radius and the living field come from OGAM-owned designTokens.
+import { FONTS, TYPOGRAPHY, SPACING, RADIUS, LIVING_FIELD, ALIVE } from '../theme/designTokens';
 
 export { FONTS, TYPOGRAPHY, SPACING, RADIUS, LIVING_FIELD, ALIVE };

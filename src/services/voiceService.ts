@@ -6,6 +6,17 @@ import Voice, {
 } from '@react-native-voice/voice';
 import { Platform, PermissionsAndroid } from 'react-native';
 import logger from '../utils/logger';
+import { locale } from '../i18n';
+
+/**
+ * Map the app's supported UI locale to the speech recognizer locale.
+ * The app currently ships Russian and English; unsupported device locales use
+ * the same English fallback as the UI instead of silently forcing English on
+ * Russian-speaking users.
+ */
+export function getVoiceRecognitionLocale(appLocale: 'en' | 'ru' = locale): 'en-US' | 'ru-RU' {
+  return appLocale === 'ru' ? 'ru-RU' : 'en-US';
+}
 
 export type VoiceEventCallbacks = {
   onStart?: () => void;
@@ -111,7 +122,7 @@ class VoiceService {
   async startListening(): Promise<void> {
     try {
       await this.initialize();
-      await Voice.start('en-US');
+      await Voice.start(getVoiceRecognitionLocale());
     } catch (error) {
       logger.error('Failed to start voice recognition:', error);
       throw error;

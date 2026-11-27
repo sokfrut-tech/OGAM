@@ -26,6 +26,10 @@ export interface UseWhisperTranscriptionParams {
    * owner of the voice session must hear this, or it keeps "listening" to a mic that is shut.
    */
   onCaptureEnded?: () => void;
+  /** Called for every completed capture, including a manually stopped empty turn. */
+  onCaptureSettled?: (hasTranscript: boolean) => void;
+  /** Called when model readiness or native mic startup fails before capture begins. */
+  onCaptureStartFailed?: () => void;
 }
 
 export interface UseWhisperTranscriptionResult {
@@ -43,7 +47,7 @@ export interface UseWhisperTranscriptionResult {
   clearResult: () => void;
 }
 
-export const useWhisperTranscription = ({ ensureModelReady, onCaptureEnded }: UseWhisperTranscriptionParams): UseWhisperTranscriptionResult => {
+export const useWhisperTranscription = ({ ensureModelReady, onCaptureEnded, onCaptureSettled, onCaptureStartFailed }: UseWhisperTranscriptionParams): UseWhisperTranscriptionResult => {
   const [isRecording, setIsRecording] = useState(false);
   const [isStartingRecording, setIsStartingRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -68,6 +72,10 @@ export const useWhisperTranscription = ({ ensureModelReady, onCaptureEnded }: Us
   const stopRequested = useRef(false);
   const onCaptureEndedRef = useRef(onCaptureEnded);
   onCaptureEndedRef.current = onCaptureEnded;
+  const onCaptureSettledRef = useRef(onCaptureSettled);
+  onCaptureSettledRef.current = onCaptureSettled;
+  const onCaptureStartFailedRef = useRef(onCaptureStartFailed);
+  onCaptureStartFailedRef.current = onCaptureStartFailed;
   // Session-intent nonce: bumped whenever a start is superseded (stop/cancel). startRecording captures
   // it before the async ensureModelReady() gap (which now frees+reloads the model, so it can be seconds)
   // and aborts the continuation if it changed — otherwise releasing/cancelling the mic DURING the load
@@ -244,6 +252,10 @@ export const useWhisperTranscription = ({ ensureModelReady, onCaptureEnded }: Us
     }
     if (!ready) {
       setError("Couldn't load the voice model — free some memory and try again");
+      setIsStartingRecording(false);
+      setIsRecording(false);
+      setIsTranscribing(false);
+      onCaptureStartFailedRef.current?.();
       return;
     }
 
@@ -276,6 +288,10 @@ export const useWhisperTranscription = ({ ensureModelReady, onCaptureEnded }: Us
             setPartialResult(cleaned);
           }
         } else {
+          // Report whether this capture produced text even when it was stopped manually.
+          // The one-shot assistant intent uses this to clear itself after silence without
+          // changing the existing voice-session transition contract.
+          onCaptureSettledRef.current?.(Boolean(result.text && cleanTranscription(result.text)));
           // Recording finished - haptic feedback
           if (mountedRef.current) Vibration.vibrate(30);
           if (mountedRef.current) setIsRecording(false);
@@ -312,6 +328,7 @@ export const useWhisperTranscription = ({ ensureModelReady, onCaptureEnded }: Us
         setIsTranscribing(false);
         // Error haptic
         Vibration.vibrate([0, 50, 50, 50]);
+        if (startNonce.current === currentNonce) onCaptureStartFailedRef.current?.();
       }
     }
   }, [ensureModelReady, stopRecording, finalizeTranscription, transcriptionLanguage]);

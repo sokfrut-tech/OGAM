@@ -2,7 +2,7 @@ import React from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { TouchableOpacity } from './Touchable';
 import Icon from 'react-native-vector-icons/Feather';
-import { withoutChatsOnDevice, type RemoteSearchOutcome, type RemoteSearchResult } from '@offgrid/rag';
+import { withoutChatsOnDevice, type RemoteSearchOutcome, type RemoteSearchResult } from '../utils/remoteComputerSearch';
 import { Button } from './Button';
 import { useTheme, useThemedStyles } from '../theme';
 import type { ThemeColors } from '../theme';
@@ -97,7 +97,9 @@ export const PairedComputerResults: React.FC<Props> = ({
 
 const ResultRow: React.FC<{ result: RemoteSearchResult; onPress?: () => void }> = ({ result, onPress }) => {
   const styles = useThemedStyles(createStyles);
-  const meta = [result.source, result.timestamp ? formatWhen(new Date(result.timestamp).toISOString()) : '']
+  const parsedTime = result.timestamp ? new Date(result.timestamp) : null;
+  const when = parsedTime && !Number.isNaN(parsedTime.getTime()) ? formatWhen(parsedTime.toISOString()) : '';
+  const meta = [result.source, when]
     .filter(Boolean)
     .join(' · ');
   const content = (

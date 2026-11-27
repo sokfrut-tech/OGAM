@@ -17,7 +17,7 @@ const LIGHT21 = 'off-grid-ai/Wan2.1-T2V-1.3B-GGUF-Q4';
 const TURBO = 'hum-ma/Wan2.2-TI2V-5B-Turbo-GGUF';
 
 function installOnPhone(rtl: typeof import('@testing-library/react-native'), ids: string[], active: string | null) {
-  const { CATALOG } = require('@offgrid/models');
+  const { CATALOG } = require('../../../src/utils/modelCatalogCore');
   const { useAppStore } = require('../../../src/stores');
   rtl.act(() => {
     useAppStore.setState({

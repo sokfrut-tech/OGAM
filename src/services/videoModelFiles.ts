@@ -1,5 +1,5 @@
 import RNFS from 'react-native-fs';
-import type { ModelEntry } from '@offgrid/models';
+import type { ModelEntry } from '../types/modelCatalog';
 
 /** Where video model packs live. Core keeps the layout so storage and restore can see the files;
  *  the video product (pack checks, downloads, generation) is in Pro. */

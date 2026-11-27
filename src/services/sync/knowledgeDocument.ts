@@ -1,5 +1,5 @@
 import { callHook, HOOKS } from '../../bootstrap/hookRegistry';
-import type { KnowledgeDocumentDescriptor } from '@offgrid/sync';
+import type { KnowledgeDocumentDescriptor } from '../../types/syncContracts';
 
 export interface KnowledgeDocumentSnapshot extends KnowledgeDocumentDescriptor {
   filePath: string;

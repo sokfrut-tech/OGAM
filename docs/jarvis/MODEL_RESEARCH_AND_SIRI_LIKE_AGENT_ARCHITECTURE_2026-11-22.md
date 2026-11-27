@@ -1,0 +1,248 @@
+# OGAM / Jarvis — model research and Siri-like assistant architecture
+
+Date: 2026-11-22  
+Status: research baseline; no model is selected as the sole production default yet.  
+Target: independent OGAM fork, Android-first, local/offline-first, Russian-speaking Jarvis.  
+Visual identity: Iron Man / Stark-style technical HUD. Assistant behaviour: natural, concise, context-aware and proactive like a modern personal assistant, not a command-line chatbot.
+
+## 1. Non-negotiable product decisions
+
+- Prefer downloadable open weights and local inference. No mandatory account, paid API, hosted model, telemetry or network connection.
+- "Uncensored" is a model-behaviour descriptor, not a technical standard. Record the exact model revision, quantization, license, provenance and refusal-evaluation evidence. Do not accept a model-card claim as independent proof.
+- Keep model freedom separate from device authority. The model may propose tool calls; a deterministic Android capability broker validates permissions, parameters, user consent and execution results.
+- The assistant must be useful in Russian. English-only benchmark wins do not qualify a model as the default.
+- Preserve a model-provider abstraction so a user can switch between local models and optional external endpoints without changing Jarvis memory, skills, tools or UI.
+- Do not silently download large weights or enable remote fallback. Show size, RAM estimate, network destination and ask before optional cloud use.
+- Do not copy Apple, Iron Man, or third-party proprietary code/assets. Reproduce product patterns independently and use original Jarvis artwork, sounds and animations.
+
+## 2. Initial local model candidates
+
+### A. First on-device baseline: Qwen3.5-4B
+
+- Official model: https://huggingface.co/Qwen/Qwen3.5-4B
+- License declared on the official model page: Apache-2.0.
+- The official card documents multimodal input and agentic/tool-calling usage. A first-party GGUF conversion is available from https://huggingface.co/ggml-org/Qwen3.5-4B-GGUF.
+- GGUF Q4_K_M is listed at approximately 3.03 GB on the ggml-org distribution; Q8_0 approximately 4.48 GB. Actual runtime memory is larger because of context/KV cache, native buffers and Android.
+- Use as the reproducible baseline for Russian dialogue, tool-call correctness, latency, thermal behaviour and memory pressure. This is not an "uncensored" model by default.
+
+### B. Low-refusal experiment: Aurum 4B Uncensored
+
+- Model card: https://huggingface.co/2Beyes/Aurum-4B-Uncensored-GGUF
+- The publisher describes it as a Qwen3.5-4B derivative with refusal behaviour removed and publishes Q4_K_M around 2.8 GB, with a matching vision projector.
+- The model card's refusal-evaluation numbers are publisher-reported, not an independent benchmark. Treat them as a hypothesis to reproduce, not a guarantee.
+- It is the most relevant early candidate for the user's "less restricted / uncensored" requirement, but it must pass the same Russian quality, hallucination, prompt-injection, tool-call and Android stability tests as the baseline.
+- Keep it as an opt-in experimental profile until the evaluation is complete. Do not make it the only installed or default model based solely on its name.
+
+### C. Efficient multimodal alternative: Gemma 4 E2B / E4B
+
+- Official overview: https://ai.google.dev/gemma/docs/core
+- Official release announcement: https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/
+- Google describes E2B/E4B as mobile/edge models, multimodal (text, image, video and native audio on the smaller models), with tool/function calling and Apache-2.0 release.
+- Google publishes approximate mobile memory requirements through LiteRT-LM: E2B 1.1 GB, E4B 2.5 GB (text-only figures 0.84/2.2 GB). These are vendor estimates for that runtime, not guaranteed OGAM llama.cpp numbers.
+- This is a strong mobile and multimodal comparison candidate, not automatically the least-restricted model. Verify actual Russian behaviour and the original model card/license before distribution.
+
+### D. Larger models are not first-run phone defaults
+
+Families such as Qwen 27B, GLM, DeepSeek and Kimi are worth evaluating for a PC/home-server companion or optional LAN inference, but their weight and memory requirements make them unsuitable as the first on-device target. A local 4B model that actually runs reliably is more useful than a nominally stronger model that constantly swaps, overheats or kills the app.
+
+## 3. Model evaluation gate
+
+Build a reproducible, versioned test set before choosing a default. Run every candidate with the same prompts, context, temperature, tool schemas and hardware state.
+
+Required test groups:
+1. Russian conversation: natural spoken phrasing, grammar, names, dates, numbers, code-switching and noisy ASR transcripts.
+2. Personal assistant: multi-turn context, remembering user-approved facts, follow-up references and correction of mistaken assumptions.
+3. Planning: turn a vague goal into steps, identify missing inputs, preserve constraints, estimate dependencies and update a plan after interruption.
+4. Tool calling: valid JSON/schema, correct tool selection, no invented tool success, recovery from tool errors and multi-step execution.
+5. Low-refusal behaviour: benign sensitive/controversial topics, technical education, creative tasks and legitimate security research. Measure unnecessary refusals separately from unsafe compliance.
+6. Reliability: hallucination rate, unsupported claims, source attribution, uncertainty and consistency over repeated runs.
+7. Safety at the action boundary: resist prompt injection in retrieved pages/files; never execute a destructive, financial, communication or privacy-sensitive action without the app's permission/confirmation rules.
+8. Android performance: cold load, warm tokens/sec, time-to-first-token, peak RSS/native memory, KV cache growth, battery drain, thermal throttling, background/foreground recovery and crash-free long sessions.
+
+Keep raw benchmark prompts/results and exact model file hashes in the repository. Do not use a model's own self-evaluation as the sole score.
+
+## 4. Siri-like product patterns to study and implement independently
+
+Apple public documentation is useful for product behaviour and integration patterns, not as a source of reusable code or private implementation details.
+
+- Personal context: Siri AI is described as understanding context across messages, mail, photos, calendar and other personal data. Jarvis should implement an explicit local context index with per-source permissions, retention controls and source citations.
+- On-screen awareness: Apple documents contextual understanding of what is visible and the ability to follow references such as "this" or "that". Jarvis can provide an opt-in screen-context snapshot through Android-supported APIs/accessibility, with visible capture state and sensitive-field redaction.
+- Natural actions: Apple's App Intents expose app actions and entities through schemas so a person can say what they want instead of memorising exact commands. Jarvis should expose its own typed Skill/Tool schemas to the planner and map them to deterministic Android executors.
+- Multi-step workflows: Apple Shortcuts can assemble workflows from natural-language descriptions. Jarvis should create an editable plan, show steps/progress, ask only for genuinely missing or risky decisions, and support pause/resume/cancel.
+- Conversational continuity: keep one session context across voice and text, support interruption/barge-in, follow-up questions, and a conversation history.
+- Multimodal awareness: camera/image and screen input should be optional, permission-gated tools, not hidden always-on capture.
+- Model profiles: Apple's Foundation Models documentation describes dynamic profiles and tool-calling controls. Jarvis should support task profiles (fast dialogue, deeper planning, vision, coding) while preserving a single assistant identity and shared permission broker.
+
+### Apple availability caveat (important for a German/Russian user)
+
+Apple's current public Siri AI support page says Siri AI is initially unavailable on iOS in the EU and its listed initial languages do not include Russian. Apple also states that Apple Intelligence requires supported iPhone hardware (iPhone 15 Pro/Pro Max and iPhone 16 or later, depending on feature). This is a product-research reference only; Jarvis must not depend on Apple services or their regional availability.
+
+## 5. Proposed Jarvis architecture
+
+1. **Voice interface** — wake word, VAD, streaming ASR, interruptible TTS, duplex turn-taking and text fallback. Keep ASR/TTS replaceable and local.
+2. **Conversation orchestrator** — owns session state, dialogue turns, intent classification, clarification and response streaming.
+3. **Planner** — creates typed plans with steps, dependencies, preconditions, risk levels, progress and rollback/compensation where possible. A plan is data, not executable code.
+4. **Local model router** — chooses a user-installed model/profile based on task, available RAM/thermal state and modality; no silent cloud fallback.
+5. **Memory and context** — SQLite-backed short/long-term memory, FTS/semantic retrieval, explicit user-approved durable memories, source references, per-category permissions and delete/export controls.
+6. **Skills/tool registry** — typed JSON schemas, descriptions, capability declarations, required Android permissions, risk classification and result schemas.
+7. **Android capability broker** — validates every call, checks permission state, requests confirmation for sensitive operations, executes through supported Android APIs/services and returns a factual result.
+8. **Knowledge/research** — opt-in web/local-file retrieval with provenance, untrusted-content isolation and prompt-injection-resistant tool boundaries.
+9. **Presentation layer** — original Iron Man-inspired HUD: central animated reactor/assistant presence, compact live status, waveform, task cards, timeline, tool activity and clear permission prompts. Keep the interface readable and usable one-handed; visual effects must never hide task state or actions.
+
+The assistant's personality should be warm, composed, precise and lightly witty when appropriate. It should speak naturally, not announce internal reasoning, and distinguish "I plan to do this", "I am doing this" and "I completed this" accurately.
+
+## 6. Apple research sources
+
+- Apple Siri AI product announcement (2026): https://www.apple.com/newsroom/2026/09/siri-ai-a-profoundly-more-capable-and-personal-assistant-is-here/
+- Apple Support — Siri AI on iPhone: https://support.apple.com/guide/iphone/get-started-with-siri-ai-iphv6zwrg8jvfgr/27/ios/27
+- Apple Developer — Apple Intelligence, Foundation Models, App Intents, Visual Intelligence and Shortcuts: https://developer.apple.com/apple-intelligence/
+- Apple Developer — Foundation Models updates and tool-calling controls: https://developer.apple.com/documentation/updates/foundationmodels
+- Apple Human Interface Guidelines — Siri: https://developer.apple.com/design/human-interface-guidelines/siri
+
+## 7. Research references for model candidates
+
+- Qwen3.5-4B official model card: https://huggingface.co/Qwen/Qwen3.5-4B
+- ggml-org Qwen3.5-4B GGUF: https://huggingface.co/ggml-org/Qwen3.5-4B-GGUF
+- Aurum 4B Uncensored GGUF (community derivative; claims require independent validation): https://huggingface.co/2Beyes/Aurum-4B-Uncensored-GGUF
+- Google Gemma 4 overview: https://ai.google.dev/gemma/docs/core
+- Google Gemma 4 release and Apache-2.0 announcement: https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/
+
+## 8. Decisions and next steps
+
+- Keep Qwen3.5-4B as the reproducible baseline and Aurum 4B as the low-refusal experiment; add Gemma 4 E2B/E4B as the mobile multimodal comparison.
+- Do not hard-code one model into Jarvis identity or planner. The same assistant, memory, skills and HUD must survive model switching.
+- Inspect actual OPPO Find X6 Pro RAM, available storage, Android version, llama.rn backend support and thermal behaviour before choosing quantization/default.
+- Verify all candidate model licenses and full model cards at the exact pinned revision before packaging or redistributing weights.
+- Implemented on 2026-11-22: `docs/jarvis/model-evaluation/manifest.v1.json`, `cases.ru.v1.json`, `scripts/model-eval/score-run.mjs`, and CI tests. The suite currently covers 14 Russian scenarios and six candidate profiles; the scorer requires pinned revision/SHA-256/license review, runtime/device metadata, human ratings and explicit safety flags. Its six Node tests passed in GitHub Actions run #120. This validates the harness, **not** the models.
+- Next: pin and license-review the exact candidate artifacts, then run at least three identical suite passes per candidate on the same OPPO Find X6 Pro build/runtime; record cold/warm load, RAM, TTFT, tokens/sec, heat, battery, crashes and raw human-rated answers. Do not replace the existing model catalog or memory-fit policy before that evidence exists.
+- No candidate weights were downloaded by the harness work and no production model is selected.
+- Separately, the planned splitGgufModelName / modelDisplayName / isRawModelName extraction remains blocked until the full @offgrid/models implementation and tests can be recovered. The public repository search did not expose those helper implementations; do not guess their behaviour.
+
+
+## 9. Open Android assistant projects inspected
+
+These are architectural references, not dependencies selected for OGAM. Inspect current source and third-party notices again before any reuse.
+
+- Jandal AI — https://github.com/NickMonrad/kernel-ai-assistant — Apache-2.0. Relevant patterns: on-device Gemma via LiteRT, long-term semantic memory, deterministic Android actions, voice and native tool calling. Strong match for the local Brain-Memory-Action split; inspect its permission/action boundary and tests.
+- PocketDaemon — https://github.com/HyperCoherence/PocketDaemon — MIT. Relevant patterns: Android-native voice sessions, local memory, skills and telephony integration. Its README explicitly describes it as experimental and its privileged Magisk path as unsuitable for general consumer use; do not import privileged call/SMS behaviour into the default app.
+- Hermes Vox — https://github.com/chezgoulet/hermes-vox — GPL-3.0. Relevant patterns: voice call UX, interruption/turn-taking, visible agent activity, local audio path separated from the agent's tools/memory. Treat code reuse as a separate copyleft decision; architecture study only for now.
+- Droy — https://github.com/moonoops/Droy — AGPL-3.0-only. Relevant patterns: Android task execution, planner/session handling, companion UX and memory integration. Architecture study only unless the project explicitly accepts AGPL obligations; review its third-party notices before any component reuse.
+- Simon — https://github.com/damyan-deshev/simon — README describes local STT/TTS, SQLite FTS memory, Android client and a pre-response reasoning/checking phase. A root LICENSE file was not found in the inspected repository paths; no code copying or dependency until a valid license is confirmed.
+
+Selection rule: MIT/Apache-2.0 projects are candidates for deeper component-level inspection, but the license of every bundled dependency, model, asset and copied file still governs. GPL/AGPL projects remain reference-only unless the project explicitly chooses the corresponding obligations. No license means no copying.
+
+
+## 10. Additional uncensored/abliterated model comparison (2026-11-22)
+
+A second pass over Hugging Face model cards found two materially different Qwen3.5-4B derivatives. They should not be collapsed into one "uncensored" category:
+
+- **Huihui-Qwen3.5-4B-abliterated** — https://huggingface.co/huihui-ai/Huihui-Qwen3.5-4B-abliterated. The author describes it as a refusal-reduced fine-tune of Qwen3.5-4B, and notes that the text weights were processed, the image side was not, and the MTP head is no longer included. The GGUF packaging page https://huggingface.co/privastudio/qwen3.5-abliterated lists Q4_K_M around 2.71 GB and requires a Hugging Face access/terms acknowledgement at the time inspected. This is a candidate, but the access gate, provenance chain and missing MTP head must be recorded.
+- **Qwen3.5-4B-Uncensored-v2** — https://huggingface.co/InterpreticAI/Qwen3.5-4B-Uncensored-v2-GGUF. The card describes a narrower change: political censorship reduction. Its published evaluation reports a political-censorship rate of 13.7% (7/51) versus 92.2% (47/51) for the base model, while its BF16 evaluation reports that 93/100 harmful-request prompts were still refused. These are author-reported results, not independent validation. Q4_K_M is listed around 2.78 GB; a matching vision projector is listed separately. This is a useful "less over-refusal while retaining many harmful-request refusals" comparison profile, not a no-refusal model.
+- **Aurum 4B Uncensored** — https://huggingface.co/2Beyes/Aurum-4B-Uncensored-GGUF. Its author claims 0/100 refusals on a harmful-request set and Q4_K_M around 2.8 GB. This is the most unrestricted candidate found in this pass, and therefore requires the strongest adversarial, prompt-injection and tool-boundary tests before any default selection.
+
+Recommended evaluation profiles:
+1. Baseline: official Qwen3.5-4B.
+2. Reduced-over-refusal: Qwen3.5-4B-Uncensored-v2.
+3. Abliterated research: Huihui-Qwen3.5-4B-abliterated.
+4. Unrestricted research: Aurum 4B Uncensored.
+
+Do not rank these by "uncensored" labels alone. Evaluate Russian language quality, factual accuracy, reasoning, tool-call validity and refusal behaviour separately. Keep the action broker outside the model so even the unrestricted research profile cannot directly grant itself Android permissions or silently execute privileged actions.
+
+Dynamic discovery sources such as https://abliteratedmodels.org/ and https://aiunzipped.com/models/uncensored are useful for finding candidates, but are indexes, not provenance authorities. Verify each candidate against its upstream model card, exact files, license and checksums.
+
+
+## 11. Runtime compatibility gate for Qwen3.5 GGUF
+
+The OGAM package manifest currently pins llama.rn as npm alias @ogai/llama.rn at 0.13.0-b12560. Public llama.cpp evidence indicates the qwen35 architecture support landed in build b7990 and Qwen3.5 MTP support in/after b9180. This makes the pinned build number look sufficiently recent, but it is not proof that the exact OGAM native binary supports every tensor, hybrid SSM layer, vision projector or MTP path.
+
+Before adding Qwen3.5-family files to the production catalog:
+- inspect the exact @ogai/llama.rn source revision and bundled llama.cpp commit, not just the package version string;
+- run a real GGUF metadata parse and load smoke test on Android arm64;
+- test prompt-template/tool-call parsing with --jinja-equivalent runtime configuration;
+- test Q4_K_M text-only first, then matching mmproj, then MTP as an optional performance path;
+- confirm cancellation, unload/reload, memory reporting and app background recovery;
+- keep the official Qwen3.5 model available as a non-abliterated control in all comparative tests.
+
+References: llama.cpp qwen35 architecture requirements are documented by the Qwen3.5 GGUF conversion pages, including https://huggingface.co/axteam/Qwen3.5-2B-GGUF; upstream implementation discussion: https://github.com/ggml-org/llama.cpp/issues/31551. A reported version threshold is not a substitute for testing OGAM's exact native build.
+
+
+## 12. Expanded feature study: Siri AI (2026) and OGAM source audit
+
+### Current Siri AI product capabilities confirmed from Apple's public 2026 material
+
+Apple's September 14, 2026 release describes Siri AI as conversational, with personal-context understanding across messages/email/photos, broad world knowledge, on-screen awareness, and systemwide app actions such as drafting email and editing/sharing photos. The June 2026 announcement additionally describes a dedicated Siri app with conversation history, continuity across Apple devices, web answers, and Visual Intelligence expansion.
+
+For Jarvis, turn these into independently implemented Android capabilities:
+- Continuous conversation history and contextual follow-up across voice and text.
+- Local personal-context connectors with per-source permission and provenance.
+- Explicit screen/image context supplied by the user or a visible, enabled capture feature.
+- Search/research with current sources and reliable attribution.
+- Typed actions exposed through a skill registry.
+- Draft-first communication and editing workflows, with explicit approval before sending/sharing.
+- Optional multi-device conversation continuity using OGAM's encrypted local mesh, after security review.
+
+Apple developer guidance now points new Siri/Apple Intelligence integrations toward App Intents rather than legacy SiriKit. App Intents expose typed actions and entities to Siri, Spotlight, Shortcuts, widgets and other system surfaces. Its current updates include long-running actions, progress reporting, cancellation, undoable actions and execution-mode selection. Jarvis should implement analogous platform-neutral contracts and Android executors; no Apple framework dependency is appropriate for the Android target.
+
+Sources:
+- https://www.apple.com/newsroom/2026/09/siri-ai-a-profoundly-more-capable-and-personal-assistant-is-here/
+- https://www.apple.com/newsroom/2026/06/apple-unveils-next-generation-of-apple-intelligence-siri-ai-and-more/
+- https://developer.apple.com/documentation/appintents
+- https://developer.apple.com/documentation/updates/appintents
+- https://developer.apple.com/documentation/sirikit
+
+### OGAM upstream capabilities confirmed in architecture and codebase guide
+
+The upstream architecture and codebase guide document the following feature groups, all of which must be represented in the parity matrix and preserved where useful:
+- Local GGUF inference, streaming, context truncation/continuation, KV cache controls, OpenCL GPU offload, performance instrumentation, project prompts and model loading lifecycle.
+- Vision/multimodal models, image inputs, mmproj companion files and runtime discovery.
+- Local image generation on Android (MNN/QNN) and iOS (Core ML), previews, background generation, prompt enhancement and media gallery.
+- Local Whisper speech transcription, partial results, model choices and recording UI.
+- Document attachments, persistent file storage, PDF extraction, system document viewer and project RAG.
+- Remote OpenAI-compatible providers (Ollama/LM Studio/LocalAI/vLLM style), model discovery, SSE streaming and secure keychain storage.
+- Tool calling, schema conversion, model-aware tool loop, web search, URL reading, calculator, date/time, device info and knowledge-base retrieval.
+- Projects, project-scoped chats, settings, passphrase lock, onboarding, model browser/download manager, storage management, diagnostics and help/guide.
+- Background downloads and local-network Personal Mesh, including encrypted blob transfer, device discovery/pairing, file/clipboard/screenshot sharing and model residency.
+
+Sources:
+- https://github.com/off-grid-ai/OGAM/blob/main/docs/ARCHITECTURE.md
+- https://github.com/off-grid-ai/OGAM/blob/main/docs/standards/CODEBASE_GUIDE.md
+- https://github.com/off-grid-ai/OGAM
+
+### OGAM fork source audit observations (current branch)
+
+- The fork already contains an extensive implementation surface: 3,349 tracked tree entries; 122 screen files, 244 service files, 146 component files, 31 hook files and 26 store files (nested-file counts, not screen counts).
+- Android native code includes download workers, device-memory and LiteRT modules, screenshot watcher, clipboard/PROCESS_TEXT handoff, PDF extraction, image-generation bridge and Personal Mesh sync services.
+- The app manifest includes microphone, camera, calendar, media, network and foreground-service permissions. Permissions are not considered active capability until runtime request paths and denial/error cases are tested.
+- Core tool registry currently exposes video generation/film, web search, calculator, date/time, device information, knowledge-base search and URL reading. Tool execution is currently dispatched by a central switch. Tool definitions do not yet constitute a full Siri-like skill catalogue with typed permissions, risk levels, progress, cancellation and undo.
+- The visible Tools screen currently describes email/calendar/MCP as "Pro tools". Email/calendar extension implementation is not in the standalone tree; tests dynamically load the absent Pro submodule and skip when unavailable. Therefore do not claim these capabilities are independently implemented in OGAM core. Build OGAM-owned free local Android equivalents where useful, using platform APIs and explicit approval, rather than relying on the private Pro module or bypassing its licensing.
+- voiceSession.ts imports initialVoiceSession, nextVoiceSession and predicates from private @offgrid/speech. GitHub code search did not find the package implementation or its tests in public repositories. Do not invent a state machine and replace it blindly; recover exact event/state contracts or build a separately specified, fully tested OGAM-owned state machine with explicit migration.
+- The legacy voiceService.ts wrapper uses react-native-voice; its hard-coded en-US locale was replaced on 2026-11-22 with the existing app locale mapping (ru-RU / en-US), but no production useVoiceRecording call site was found. The main ChatInput path uses audioRecorderService and Whisper/Qwen with useWhisperStore.transcriptionLanguage. AudioRecorderService has PCM sample and RMS callbacks that can support local VAD/realtime ASR. The current audio-session code explicitly reports echo cancellation unavailable on Android; hands-free full-duplex must not be claimed until shared capture/playback voice processing is implemented and tested.
+- generationToolLoop.ts still imports shared tool-loop budget/prompt helpers from @offgrid/models. These are additional extraction candidates, but require exact contracts and tests before replacement.
+- nativeScreenshot.ts observes screenshots through a permission-gated native module; nativeClipboard.ts exposes user-originated PROCESS_TEXT handoff and explicitly notes Android blocks ambient clipboard reads while another app has focus. These are useful foundations for on-screen awareness and selected-text actions, but must remain visible and consent-driven.
+- nativeSync.ts / engine.ts still depend on @offgrid/sync. Personal Mesh is a substantial feature, not a simple utility; preserve it while recovering protocol contracts, cryptography and tests before removing that dependency.
+
+### New architecture decision: Skill contract v1
+
+Every Jarvis action should be described with:
+- stable skill ID and version;
+- user-facing title/summary and model-facing instructions;
+- JSON input schema and validated output schema;
+- required capabilities/Android permissions;
+- risk class (read-only, reversible write, external communication, destructive, financial);
+- network/data-egress declaration;
+- confirmation policy and preview text;
+- foreground/background mode, progress events and cancellation;
+- idempotency key and execution timeout;
+- undo/compensation handler where possible;
+- audit event with actual executor result.
+
+Model output only proposes a skill call. A deterministic broker validates schema, permissions, risk, confirmation and current app state before execution. The assistant must never report a successful action unless the executor returns a verified success result.
+
+### Next code-level work
+
+1. Build a source-level inventory report mapping each OGAM screen/service/native module to imports, tests, dependency and parity category.
+2. Migrate the tool loop's shared helper contracts only after extracting their exact upstream tests/behaviour; add OGAM-owned skill contract tests.
+3. Recover or replace the private voice state machine through a separately tested contract; then add Russian ASR, local TTS, VAD, wake-word provider and interruption support.
+4. Implement OGAM-owned Calendar read/create/update and email/message draft flows using Android platform intents/calendar APIs, with preview and approval; no send action by default.
+5. Build personal-context connectors and screen awareness behind explicit per-source consent.
+6. Preserve and verify every OGAM capability before changing the main navigation to the JARVIS HUD.

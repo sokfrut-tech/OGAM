@@ -14,6 +14,7 @@ import { useTheme, useThemedStyles } from '../theme';
 import type { ThemeColors, ThemeShadows } from '../theme';
 import { triggerHaptic } from '../utils/haptics';
 import { useAppStore } from '../stores';
+import { t } from '../i18n';
 import {
   OnboardingScreen,
   AutoSetupScreen,
@@ -33,6 +34,8 @@ import {
   ModelSettingsScreen,
   DeviceInfoScreen,
   StorageSettingsScreen,
+  LocalModelsScreen,
+  ImageGenScreen,
   SearchModelScreen,
   SecuritySettingsScreen,
   EngineUpdatesScreen,
@@ -160,7 +163,7 @@ const MainTabs: React.FC = () => {
         <Tab.Screen
           name="HomeTab"
           component={HomeScreen}
-          options={{ tabBarLabel: 'Home', tabBarButtonTestID: 'home-tab' }}
+          options={{ tabBarLabel: t('nav.home'), tabBarButtonTestID: 'home-tab' }}
           listeners={() => ({
             tabPress: () => { triggerHaptic('selection'); },
           })}
@@ -168,7 +171,7 @@ const MainTabs: React.FC = () => {
         <Tab.Screen
           name="ChatsTab"
           component={ChatsListScreen}
-          options={{ tabBarLabel: 'Chats', tabBarButtonTestID: 'chats-tab' }}
+          options={{ tabBarLabel: t('nav.chats'), tabBarButtonTestID: 'chats-tab' }}
           listeners={() => ({
             tabPress: () => { triggerHaptic('selection'); },
           })}
@@ -176,7 +179,7 @@ const MainTabs: React.FC = () => {
         <Tab.Screen
           name="ProjectsTab"
           component={ProjectsScreen}
-          options={{ tabBarLabel: 'Projects', tabBarButtonTestID: 'projects-tab' }}
+          options={{ tabBarLabel: t('nav.projects'), tabBarButtonTestID: 'projects-tab' }}
           listeners={() => ({
             tabPress: () => { triggerHaptic('selection'); },
           })}
@@ -184,7 +187,7 @@ const MainTabs: React.FC = () => {
         <Tab.Screen
           name="ModelsTab"
           component={ModelsScreen}
-          options={{ tabBarLabel: 'Models', tabBarButtonTestID: 'models-tab' }}
+          options={{ tabBarLabel: t('nav.models'), tabBarButtonTestID: 'models-tab' }}
           listeners={() => ({
             tabPress: () => { triggerHaptic('selection'); },
           })}
@@ -192,7 +195,7 @@ const MainTabs: React.FC = () => {
         <Tab.Screen
           name="ProTab"
           component={ProTabScreen}
-          options={{ tabBarLabel: 'Pro', tabBarButtonTestID: 'pro-tab' }}
+          options={{ tabBarLabel: t('nav.pro'), tabBarButtonTestID: 'pro-tab' }}
           listeners={() => ({
             tabPress: () => { triggerHaptic('selection'); },
           })}
@@ -200,7 +203,7 @@ const MainTabs: React.FC = () => {
         <Tab.Screen
           name="SettingsTab"
           component={SettingsScreen}
-          options={{ tabBarLabel: 'Settings', tabBarButtonTestID: 'settings-tab' }}
+          options={{ tabBarLabel: t('nav.settings'), tabBarButtonTestID: 'settings-tab' }}
           listeners={() => ({
             tabPress: () => { triggerHaptic('selection'); },
           })}
@@ -255,6 +258,8 @@ export const AppNavigator: React.FC = () => {
         <RootStack.Screen name="RemoteServerEditor" component={RemoteServerEditorScreen} />
         <RootStack.Screen name="DeviceInfo" component={DeviceInfoScreen} />
         <RootStack.Screen name="StorageSettings" component={StorageSettingsScreen} />
+        <RootStack.Screen name="LocalModels" component={LocalModelsScreen} />
+        <RootStack.Screen name="ImageGen" component={ImageGenScreen} />
         <RootStack.Screen name="SearchModel" component={SearchModelScreen} />
         <RootStack.Screen name="SecuritySettings" component={SecuritySettingsScreen} />
         <RootStack.Screen name="EngineUpdates" component={EngineUpdatesScreen} />

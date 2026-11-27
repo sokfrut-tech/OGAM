@@ -3,21 +3,22 @@ import { View, Text } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { useTheme, useThemedStyles } from '../../theme';
 import type { ThemeColors, ThemeShadows } from '../../theme';
-import { formatFileSize } from '@offgrid/models';
+import { formatFileSize } from '../../utils/formatFileSize';
 import { TYPOGRAPHY, SPACING } from '../../constants';
 import { AnimatedPressable } from '../AnimatedPressable';
 import type { PickSlot } from '../../services/devicePicks';
 import { cardSurface } from '../../theme/surface';
 import { MadeByOffGrid } from '../ModelCardContent';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 
 /**
  * Fast, Balanced and Best for this phone, at the top of a models tab: three tiles side by side.
  * Three full-width rows spent a third of the screen on three names (screen review).
  */
 const PICK_LABELS: Record<PickSlot, string> = {
-  fast: 'Fast',
-  balanced: 'Balanced',
-  best: 'Best',
+  fast: isJarvisStandaloneRuntime ? 'Быстрая' : 'Fast',
+  balanced: isJarvisStandaloneRuntime ? 'Баланс' : 'Balanced',
+  best: isJarvisStandaloneRuntime ? 'Лучшая' : 'Best',
 };
 
 export type PickState =
@@ -43,7 +44,9 @@ export const PicksRow: React.FC<{ items: PickItem[]; testID?: string }> = ({ ite
   if (items.length === 0) return null;
   return (
     <View style={styles.section} testID={testID}>
-      <Text style={styles.sectionLabel}>For this phone</Text>
+      <Text style={styles.sectionLabel}>
+        {isJarvisStandaloneRuntime ? 'Подобрано для вашего телефона' : 'For this phone'}
+      </Text>
       <View style={styles.tiles}>
         {items.map(item => <PickCard key={item.slot} item={item} />)}
       </View>

@@ -1,5 +1,7 @@
 import { initLlama, LlamaContext } from 'llama.rn';
-import { REASONING_BUDGET_AUTO, thinkingBudgetPayload, MOBILE_BACKEND_ROWS, MOBILE_MTP_DRAFT_TOKENS, mobileUseMmap, type MobileBackend } from '@offgrid/models';
+import { thinkingBudgetPayload, REASONING_BUDGET_AUTO } from '../utils/reasoningBudget';
+import { MOBILE_BACKEND_ROWS, mobileUseMmap, type MobileBackend } from '../utils/mobileRuntimePolicy';
+import { MOBILE_MTP_DRAFT_TOKENS } from '../utils/modelCapabilityRules';
 import RNFS from 'react-native-fs';
 import { Platform } from 'react-native';
 import { APP_CONFIG } from '../constants';

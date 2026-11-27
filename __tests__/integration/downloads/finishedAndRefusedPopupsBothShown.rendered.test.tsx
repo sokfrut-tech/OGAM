@@ -1,4 +1,5 @@
 import { installNativeBoundary, requireRTL, MB, GB } from '../../harness/nativeBoundary';
+import { formatFileSize } from '../../../src/utils/formatFileSize';
 
 // Two pop-ups raised at the same moment are both seen, one after the other. Journey: the user taps
 // four files of one model; three start and the fourth waits in the three-at-a-time queue. The phone
@@ -33,7 +34,6 @@ describe('a finished download and a refused queued download', () => {
     };
     const React = require('react');
     const rtl = requireRTL();
-    const { formatFileSize } = require('@offgrid/models');
     const { registerCoreDownloadProviders } = require('../../../src/services/modelDownloadService/registerProviders');
     const { ModelsScreen } = require('../../../src/screens/ModelsScreen');
     registerCoreDownloadProviders();

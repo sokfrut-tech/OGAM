@@ -5,7 +5,7 @@ import {
   speechMayPlay,
   type VoiceSession,
   type VoiceSessionEvent,
-} from '@offgrid/speech';
+} from '../utils/voiceSessionMachine';
 import { useAppStore } from '../stores/appStore';
 import { useUiModeStore } from '../stores/uiModeStore';
 import logger from '../utils/logger';
@@ -13,9 +13,9 @@ import logger from '../utils/logger';
 /**
  * The one owner of "what is this voice session doing": listening, speaking, or stopped.
  *
- * The machine is in `@offgrid/speech` because a spoken turn is not a mobile idea - desktop has the
- * same three states. This holds the single instance, asks the store which mode is selected, and tells
- * everyone when the state changes.
+ * The pure state machine lives in `../utils/voiceSessionMachine` (OGAM-owned). This holds
+ * the single instance, asks the store which mode is selected, and tells everyone when the
+ * state changes.
  *
  * ONE owner on purpose. What this replaces kept the same truth in several places at once - a lock with
  * tokens, a derived floor, a per-hook `suspended` ref, an `awaitingSpeech` flag, a `replyInFlight`

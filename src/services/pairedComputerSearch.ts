@@ -1,4 +1,4 @@
-import { searchRemoteComputer, type RemoteSearchOutcome } from '@offgrid/rag';
+import { searchRemoteComputer, type RemoteSearchOutcome } from '../utils/remoteComputerSearch';
 import type { RemoteServer } from '../types';
 import { remoteServerManager } from './remoteServerManager';
 import {

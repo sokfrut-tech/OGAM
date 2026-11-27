@@ -1,5 +1,6 @@
 import { selectHasProAccess } from '../stores/proAccessSlice';
 import { useAppStore } from '../stores/appStore';
+import { isJarvisStandaloneRuntime } from '../i18n';
 import { proGateShown } from './analytics/analytics';
 
 // One automatic offer, after the user has completed enough work to understand the product.
@@ -28,6 +29,7 @@ export function emitProPrompt(variant: ProPromptVariant): void {
 
 // Called by generationService after each completed text response
 export function checkProPromptForText(delayMs: number): void {
+  if (isJarvisStandaloneRuntime) return;
   const s = useAppStore.getState();
   if (selectHasProAccess(s)) return;
   if (s.proAhaTriggeredBy !== null) return;
@@ -38,6 +40,7 @@ export function checkProPromptForText(delayMs: number): void {
 
 // Called by imageGenerationService after each completed image generation
 export function checkProPromptForImage(delayMs: number): void {
+  if (isJarvisStandaloneRuntime) return;
   const s = useAppStore.getState();
   if (selectHasProAccess(s)) return;
   if (s.proAhaTriggeredBy !== null) return;

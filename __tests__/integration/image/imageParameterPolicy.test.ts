@@ -1,4 +1,4 @@
-import { standardImageModelDefaults } from '@offgrid/models';
+import { standardImageModelDefaults } from '../../../src/utils/imageParameterCore';
 import { resolveMobileImageParameters } from '../../../src/services/imageParameterPolicy';
 
 describe('shared image parameter policy at the Mobile generation boundary', () => {

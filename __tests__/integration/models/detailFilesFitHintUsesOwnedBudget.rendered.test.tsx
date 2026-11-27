@@ -74,7 +74,7 @@ describe('detail Available Files fit hint matches the owned fileExceedsBudget ve
     installNativeBoundary({ download: true, fs: true, ram: { platform: 'android', totalBytes: 4 * GB, availBytes: 3 * GB } });
 
      
-    const { PHONE_FIT_BUDGET } = require('@offgrid/models');
+    const { PHONE_FIT_BUDGET } = require('../../../src/utils/modelFitBudget');
      
     // The shared fit rule's ceiling on a 4 GB phone: 4 × 0.5 × 1e9 = exactly 2,000,000,000 bytes.
     const budgetBytes = 4 * PHONE_FIT_BUDGET.ceil * 1e9;

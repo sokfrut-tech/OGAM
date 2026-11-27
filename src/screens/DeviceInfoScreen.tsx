@@ -15,6 +15,7 @@ import type { ThemeColors, ThemeShadows } from '../theme';
 import { FONTS, TYPOGRAPHY, SPACING } from '../constants';
 import { useAppStore } from '../stores';
 import { hardwareService } from '../services';
+import { isJarvisStandaloneRuntime, t } from '../i18n';
 
 export const DeviceInfoScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -35,53 +36,61 @@ export const DeviceInfoScreen: React.FC = () => {
       .catch(() => {});
     return () => { alive = false; };
   }, []);
-  const gb = (mb: number) => `${(mb / 1024).toFixed(1)} GB`;
+  const gb = (mb: number) => `${(mb / 1024).toFixed(1)} ${isJarvisStandaloneRuntime ? 'ГБ' : 'GB'}`;
 
   return (
     <AliveScreen style={styles.container}>
-      <ScreenHeader title="Device information" onBack={() => navigation.goBack()} />
+      <ScreenHeader title={t('settings.deviceInfo')} onBack={() => navigation.goBack()} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        <SectionLabel title="Hardware" />
+        <SectionLabel title={t('settings.hardware')} />
         <Card style={styles.section}>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Model</Text>
+            <Text style={styles.infoLabel}>{isJarvisStandaloneRuntime ? 'Модель' : 'Model'}</Text>
             <Text style={styles.infoValue}>{deviceInfo?.deviceModel}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>System</Text>
+            <Text style={styles.infoLabel}>{isJarvisStandaloneRuntime ? 'Система' : 'System'}</Text>
             <Text style={styles.infoValue}>
               {deviceInfo?.systemName} {deviceInfo?.systemVersion}
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Memory</Text>
-            <Text style={styles.infoValue}>{totalRamGB.toFixed(1)} GB</Text>
+            <Text style={styles.infoLabel}>{isJarvisStandaloneRuntime ? 'Память (ОЗУ)' : 'Memory'}</Text>
+            <Text style={styles.infoValue}>
+              {totalRamGB.toFixed(1)} {isJarvisStandaloneRuntime ? 'ГБ' : 'GB'}
+            </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Free now</Text>
+            <Text style={styles.infoLabel}>{isJarvisStandaloneRuntime ? 'Свободно сейчас' : 'Free now'}</Text>
             <Text style={styles.infoValue}>{proc ? gb(proc.availableMB) : '…'}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Used by Off Grid AI</Text>
+            <Text style={styles.infoLabel}>
+              {isJarvisStandaloneRuntime ? 'Занято Jarvis Ai' : 'Used by Off Grid AI'}
+            </Text>
             <Text style={styles.infoValue}>{proc ? gb(proc.footprintMB) : '…'}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Off Grid AI can use up to</Text>
+            <Text style={styles.infoLabel}>
+              {isJarvisStandaloneRuntime ? 'Лимит Jarvis Ai' : 'Off Grid AI can use up to'}
+            </Text>
             <Text style={styles.infoValue}>{proc ? gb(proc.limitMB) : '…'}</Text>
           </View>
           <View style={[styles.infoRow, styles.lastRow]}>
-            <Text style={styles.infoLabel}>Phone class</Text>
+            <Text style={styles.infoLabel}>{isJarvisStandaloneRuntime ? 'Класс устройства' : 'Phone class'}</Text>
             <Text style={[styles.infoValue, styles.tierBadge]}>
               {deviceTier.charAt(0).toUpperCase() + deviceTier.slice(1)}
             </Text>
           </View>
         </Card>
 
-        <SectionLabel title="What runs here" />
+        <SectionLabel title={t('settings.whatRunsHere')} />
         <Card style={styles.section}>
           <Text style={styles.description}>
-            Your device tier determines which models will run smoothly. Higher RAM allows larger, more capable models.
+            {isJarvisStandaloneRuntime
+              ? 'Класс устройства определяет доступные по объёму ОЗУ локальные модели. Больше памяти — умнее и крупнее модели.'
+              : 'Your device tier determines which models will run smoothly. Higher RAM allows larger, more capable models.'}
           </Text>
 
           <View style={styles.tierInfo}>

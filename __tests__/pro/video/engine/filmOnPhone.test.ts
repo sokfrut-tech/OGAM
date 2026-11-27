@@ -25,7 +25,7 @@ async function ready(stills = false) {
   if (stills) {
     // The disk a finished image download leaves: every file of an sd.cpp catalog pack, and its record.
     const { getSDImageModels } = require('../../../../src/services/huggingFaceModelBrowser');
-    const { sdImagePackFor } = require('@offgrid/models');
+    const { sdImagePackFor } = require('../../../../src/utils/sdImagePackPolicy');
     const template = getSDImageModels().find(
       (model: { fileName: string; huggingFaceFiles?: unknown[] }) => sdImagePackFor(model.fileName) && model.huggingFaceFiles?.length,
     );

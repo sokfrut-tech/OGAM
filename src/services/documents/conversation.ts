@@ -3,7 +3,7 @@
 // documents had ids is identified by hashing its file, once.
 
 import RNFS from 'react-native-fs';
-import type { ConversationDocumentsPort, DocumentSource } from '@offgrid/rag/documents';
+import type { ConversationDocumentsPort, DocumentSource } from '../../utils/ragDocumentsCore';
 import { useChatStore } from '../../stores/chatStore';
 import type { MediaAttachment } from '../../types';
 import { knowledgeDocumentIds, localPath } from './project';

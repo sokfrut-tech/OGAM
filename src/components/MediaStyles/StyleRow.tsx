@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { FlatList, Image, Text, View } from 'react-native';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import type { MediaStyle, MediaStyleKind } from '@offgrid/models';
+import type { MediaStyle, MediaStyleKind } from '../../constants/mediaStyles';
 import { TouchableOpacity } from '../Touchable';
 import { useTheme, useThemedStyles } from '../../theme';
 import type { ThemeColors, ThemeShadows } from '../../theme';

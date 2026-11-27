@@ -5,6 +5,8 @@ import { transcriptionResidentSizeMB } from '../services/whisperModels';
 import { modelResidencyManager } from '../services/modelResidency';
 import logger from '../utils/logger';
 import { createHydrationGatedStorage } from '../utils/hydrationGatedStorage';
+import { isJarvisStandaloneRuntime, locale } from '../i18n';
+import { defaultTranscriptionLanguage } from '../utils/defaultTranscriptionLanguage';
 
 /**
  * Outcome of a whisper load, so callers can tell WHY it didn't load:
@@ -39,6 +41,8 @@ interface WhisperState {
   error: string | null;
   /** Language passed to every realtime and file transcription. */
   transcriptionLanguage: string;
+  /** Tracks whether a pre-RU standalone profile already migrated from default `'en'`. */
+  ruDefaultMigrated?: boolean;
 
   // Actions
   downloadModel: (modelId: string) => Promise<void>;
@@ -56,7 +60,10 @@ interface WhisperState {
   setTranscriptionLanguage: (language: string) => void;
 }
 
-type PersistedWhisperState = Pick<WhisperState, 'downloadedModelId' | 'transcriptionLanguage'>;
+type PersistedWhisperState = Pick<
+  WhisperState,
+  'downloadedModelId' | 'transcriptionLanguage' | 'ruDefaultMigrated'
+>;
 
 type SetState = (partial: Partial<WhisperState> | ((s: WhisperState) => Partial<WhisperState>)) => void;
 
@@ -86,7 +93,10 @@ export const useWhisperStore = create<WhisperState>()(
       isModelLoading: false,
       isModelLoaded: false,
       error: null,
-      transcriptionLanguage: 'en',
+      // Fresh installs follow the selected app locale. Existing persisted preferences are
+      // intentionally preserved by Zustand hydration; do not overwrite a person's prior choice.
+      transcriptionLanguage: defaultTranscriptionLanguage(locale),
+      ruDefaultMigrated: false,
 
       downloadModel: async (modelId: string) => {
         setProgress(set, modelId, 0);
@@ -276,17 +286,28 @@ export const useWhisperStore = create<WhisperState>()(
       },
 
       setTranscriptionLanguage: (transcriptionLanguage: string) => {
-        set({ transcriptionLanguage });
+        set({ transcriptionLanguage, ruDefaultMigrated: true });
       },
     }),
     {
       name: 'local-llm-whisper-storage',
       storage: whisperStorage.storage,
       onRehydrateStorage: whisperStorage.onRehydrateStorage(),
-      merge: whisperStorage.merge<WhisperState>(),
+      merge: whisperStorage.merge<WhisperState>((persisted, current) => {
+        const saved = { ...current, ...(persisted as Partial<WhisperState>) };
+        if (
+          isJarvisStandaloneRuntime &&
+          !saved.ruDefaultMigrated &&
+          saved.transcriptionLanguage === 'en'
+        ) {
+          return { ...saved, transcriptionLanguage: 'ru', ruDefaultMigrated: true };
+        }
+        return saved;
+      }),
       partialize: (state): PersistedWhisperState => ({
         downloadedModelId: state.downloadedModelId,
         transcriptionLanguage: state.transcriptionLanguage,
+        ruDefaultMigrated: state.ruDefaultMigrated,
       }),
     }
   )

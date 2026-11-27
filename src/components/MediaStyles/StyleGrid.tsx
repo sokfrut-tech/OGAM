@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, Text, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import type { MediaStyleKind } from '@offgrid/models';
+import type { MediaStyleKind } from '../../constants/mediaStyles';
 import { TouchableOpacity } from '../Touchable';
 import { useTheme, useThemedStyles } from '../../theme';
 import type { ThemeColors, ThemeShadows } from '../../theme';

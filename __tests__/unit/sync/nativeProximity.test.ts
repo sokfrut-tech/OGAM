@@ -3,8 +3,8 @@ import type {
   DeviceInfo,
   DiscoveredDevice,
   SyncConnection,
-} from '@offgrid/sync';
-import { DiscoveryOrchestrator } from '@offgrid/sync';
+} from '../../../src/types/syncContracts';
+import { DiscoveryOrchestrator } from '../../../src/utils/syncDiscoveryCore';
 import {
   CONNECTION_CLOSED_EVENT,
   CONNECTION_OPENED_EVENT,

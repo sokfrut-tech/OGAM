@@ -33,6 +33,38 @@ import {
 import { callHook, HOOKS } from '../bootstrap/hookRegistry';
 import { useAppStore } from '../stores';
 import { RootStackParamList } from '../navigation/types';
+import { isJarvisStandaloneRuntime, t } from '../i18n';
+
+const ONBOARDING_SLIDES_RU: readonly OnboardingSlide[] = [
+  {
+    id: 'freedom',
+    keyword: 'ВАШ ИИ',
+    title: 'Jarvis Ai.\nБез ограничений.',
+    description:
+      'Без подписок, регистрации и передачи чатов на серверы. ИИ работает локально прямо на вашем устройстве.',
+  },
+  {
+    id: 'magic',
+    keyword: 'ДИАЛОГ',
+    title: 'Пишите свободно.\nВсё под рукой.',
+    description:
+      'Общайтесь с открытыми моделями, добавляйте документы в проекты и используйте голосовую озвучку.',
+  },
+  {
+    id: 'create',
+    keyword: 'ТВОРЧЕСТВО',
+    title: 'Картинки и видео\nна телефоне.',
+    description:
+      'Создавайте изображения и короткие видео прямо на устройстве с ускорением GPU/NPU.',
+  },
+  {
+    id: 'hardware',
+    keyword: 'ГОТОВО',
+    title: 'Модели\nпод ваш смартфон.',
+    description:
+      'Загружайте быстрые локальные и русскоязычные GGUF-модели или подключайте домашние серверы Ollama / LM Studio.',
+  },
+];
 
 type OnboardingScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
@@ -162,14 +194,18 @@ const SlideContent: React.FC<{
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   navigation,
 }) => {
-  const additionalSlides =
-    callHook<readonly OnboardingSlide[]>(HOOKS.onboardingAdditionalSlides) ??
-    [];
-  const slides = [
-    ...ONBOARDING_SLIDES.slice(0, -1),
-    ...additionalSlides,
-    ONBOARDING_SLIDES[ONBOARDING_SLIDES.length - 1],
-  ];
+  const additionalSlides = isJarvisStandaloneRuntime
+    ? []
+    : callHook<readonly OnboardingSlide[]>(HOOKS.onboardingAdditionalSlides) ??
+      [];
+  const baseSlides = isJarvisStandaloneRuntime ? ONBOARDING_SLIDES_RU : ONBOARDING_SLIDES;
+  const slides = isJarvisStandaloneRuntime
+    ? baseSlides
+    : [
+        ...baseSlides.slice(0, -1),
+        ...additionalSlides,
+        baseSlides[baseSlides.length - 1],
+      ];
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -251,7 +287,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         <View style={styles.header}>
           {!isLastSlide && (
             <Button
-              title="Skip"
+              title={t('common.skip')}
               variant="ghost"
               onPress={handleSkip}
               testID="onboarding-skip"
@@ -284,29 +320,31 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 
         <View style={styles.footer}>
           <Button
-            title={isLastSlide ? 'Get Started' : 'Next'}
+            title={isLastSlide ? t('onboarding.getStarted') : t('common.next')}
             onPress={handleNext}
             size="large"
             style={styles.nextButton}
             testID="onboarding-next"
           />
-          <TouchableOpacity
-            onPress={() => Linking.openURL(WEDNESDAY_URL)}
-            style={styles.madeWithLove}
-          >
-            <View style={styles.madeWithLoveRow}>
-              <Text style={styles.madeWithLoveText}>
-                {'made with '}
-                <Text style={styles.heart}>{'♥'}</Text>
-                {' by '}
-              </Text>
-              <Image
-                source={require('../assets/wednesday_logo.png')}
-                style={styles.wednesdayLogo}
-              />
-              <Text style={styles.madeWithLoveText}>{'Wednesday'}</Text>
-            </View>
-          </TouchableOpacity>
+          {isJarvisStandaloneRuntime ? null : (
+            <TouchableOpacity
+              onPress={() => Linking.openURL(WEDNESDAY_URL)}
+              style={styles.madeWithLove}
+            >
+              <View style={styles.madeWithLoveRow}>
+                <Text style={styles.madeWithLoveText}>
+                  {'made with '}
+                  <Text style={styles.heart}>{'♥'}</Text>
+                  {' by '}
+                </Text>
+                <Image
+                  source={require('../assets/wednesday_logo.png')}
+                  style={styles.wednesdayLogo}
+                />
+                <Text style={styles.madeWithLoveText}>{'Wednesday'}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </AliveScreen>

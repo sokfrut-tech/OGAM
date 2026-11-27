@@ -1,5 +1,5 @@
 import RNFS from 'react-native-fs';
-import { mtpHeadForPrimaryFile, type MtpHeadFile } from '@offgrid/models';
+import { mtpHeadForPrimaryFile, type MtpHeadFile } from '../utils/mtpHeadsCore';
 
 /**
  * MTP heads published as a separate GGUF beside a model. Which head belongs to which model is the

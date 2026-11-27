@@ -21,13 +21,13 @@ import {
   VisionRepairAdviceCard,
 } from '../../components';
 import { AnimatedPressable } from '../../components/AnimatedPressable';
-import { generationService } from '../../services';
+import { generationService, type LLMGenerationDiagnostics } from '../../services';
 import type { QueueActions } from '../../components/ChatInput/Toolbar';
 import { RestyleSheet } from '../../components/MediaStyles/RestyleSheet';
 import { EmptyChat, ImageProgressIndicator } from './ChatScreenComponents';
 import { getPlaceholderText, useChatScreen } from './useChatScreen';
 import { createStyles } from './styles';
-import { useTheme } from '../../theme';
+import { useTheme, type ThemeColors } from '../../theme';
 import { useAppStore } from '../../stores';
 import { getToolExtensions } from '../../services/tools/extensions';
 import { enableAssistantTools, useAssistantToolAvailability, useExtensionToolCount } from '../../services/tools/useExtensionToolCount';
@@ -47,6 +47,9 @@ import { useGetPro } from '../../hooks/useGetPro';
 export type ChatMessageAreaProps = {
   assistantSelected: boolean;
   onAssistantSelectedChange: (selected: boolean) => void;
+  /** One-shot voice request entered through Android's system assistant. */
+  assistantVoiceInput?: boolean;
+  onAssistantVoiceInputConsumed?: () => void;
   flatListRef: React.RefObject<FlatList | null>;
   isNearBottomRef: React.MutableRefObject<boolean>;
   chat: ReturnType<typeof useChatScreen>;
@@ -159,6 +162,37 @@ const ModelStatusBar: React.FC<{
 };
 
 /**
+ * A native completion can keep the JSI context occupied even after the UI has stopped streaming.
+ * This notice is driven by the generation lifecycle diagnostics via generationService.
+ */
+const NativeGenerationNotice: React.FC<{
+  styles: ReturnType<typeof createStyles>;
+  colors: ThemeColors;
+}> = ({ styles, colors }) => {
+  const [diagnostics, setDiagnostics] = useState<LLMGenerationDiagnostics>(
+    () => generationService.getNativeGenerationDiagnostics(),
+  );
+  useEffect(
+    () => generationService.subscribeNativeGenerationDiagnostics(setDiagnostics),
+    [],
+  );
+  if (diagnostics.phase !== 'delayed' && diagnostics.phase !== 'stopping') return null;
+  const stopping = diagnostics.phase === 'stopping';
+  return (
+    <Animated.View entering={FadeIn.duration(200)}>
+      <View style={styles.pendingSettingsBar} testID="native-generation-notice">
+        <Icon name={stopping ? 'clock' : 'alert-circle'} size={16} color={colors.warning} />
+        <Text style={styles.pendingSettingsText}>
+          {stopping
+            ? 'Остановка запрошена. Ждём завершения операции модели. Новый запрос пока нельзя запустить.'
+            : 'Ответ не обновлялся 60 секунд. Возможно, модель ещё обрабатывает запрос. Нажмите «Стоп», чтобы остановить генерацию.'}
+        </Text>
+      </View>
+    </Animated.View>
+  );
+};
+
+/**
  * Compacting can take a minute on a phone (the model summarises the older turns). Say what it is for
  * and how long it has run, so the wait never looks stuck (hand test 23: 90 s of bare dots).
  */
@@ -191,6 +225,8 @@ const CHAT_LIST_KEEP_POSITION = { minIndexForVisible: 0 } as const;
 export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
   assistantSelected,
   onAssistantSelectedChange,
+  assistantVoiceInput = false,
+  onAssistantVoiceInputConsumed,
   flatListRef,
   isNearBottomRef,
   chat,
@@ -457,6 +493,7 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
           onStop={chat.handleStop}
         />
       )}
+      <NativeGenerationNotice styles={styles} colors={colors} />
       <ModelStatusBar
         // While generating for this chat the loading state is shown inside the
         // reply bubble ("Loading <model>…"), so don't also show it in this bar.
@@ -531,6 +568,8 @@ export const ChatMessageArea: React.FC<ChatMessageAreaProps> = ({
         <ChatInput
           assistantSelected={assistantSelected}
           onAssistantSelectedChange={onAssistantSelectedChange}
+          assistantVoiceInput={assistantVoiceInput}
+          onAssistantVoiceInputConsumed={onAssistantVoiceInputConsumed}
           onSend={chat.handleSend}
           onStop={chat.handleStop}
           disabled={!chat.hasActiveModel}

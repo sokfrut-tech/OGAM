@@ -6,13 +6,12 @@
  * its two files live on disk and whether this phone may offer it.
  */
 import { Platform } from 'react-native';
+import { CATALOG } from '../utils/modelCatalogCore';
+import type { MobileWhisperCatalogModel, ModelEntry } from '../types/modelCatalog';
 import {
-  CATALOG,
   isTranscriptionEngineAvailableOn,
   transcriptionEngineOf,
-  type MobileWhisperCatalogModel,
-  type ModelEntry,
-} from '@offgrid/models';
+} from '../utils/transcriptionEnginePolicy';
 import { engineLoadsCatalogModel } from './llamaEngineSupport';
 import { loadsOnPhone } from './devicePicks';
 

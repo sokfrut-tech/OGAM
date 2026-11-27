@@ -1,4 +1,4 @@
-import { splitGgufPartNames } from '@offgrid/models';
+import { splitGgufPartNames } from '../utils/ggufSplitFiles';
 import { isMMProjFile } from './mmproj';
 
 export type ModelArtifactKind =

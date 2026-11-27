@@ -2,7 +2,7 @@ import {
   projectProgress,
   type ProgressLike,
   type ProgressPresentation,
-} from '@offgrid/ui';
+} from './progressCore';
 import { formatBytes } from './formatBytes';
 
 export interface MobileProgressPresentation {

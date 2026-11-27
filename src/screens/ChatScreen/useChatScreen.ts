@@ -16,7 +16,8 @@ import {
 import { useSyncIdentityStore } from '../../stores/syncIdentityStore';
 import { useRemoteChatStreamPreviews } from './useRemoteChatStreamPreviews';
 import { useActiveTextModel } from '../../hooks/useActiveTextModel';
-import { hardwareService } from '../../services';
+import { activeModelService, hardwareService } from '../../services';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 import { useGeneratingConversationId } from '../../hooks/useGenerationSession';
 import {
   MediaAttachment,
@@ -210,18 +211,54 @@ export const useChatScreen = () => {
     discoveredModels[activeServerId || '']?.length > 0 ||
     Object.values(discoveredModels).some(models => models.length > 0);
 
+  const didAutoSelectRef = useRef({ text: false, image: false });
+  useEffect(() => {
+    if (!isJarvisStandaloneRuntime) return;
+    if (
+      !activeImageModelId &&
+      availableDownloadedImageModels.length > 0 &&
+      !didAutoSelectRef.current.image
+    ) {
+      didAutoSelectRef.current.image = true;
+      useAppStore
+        .getState()
+        .setActiveImageModelId(availableDownloadedImageModels[0].id);
+    }
+    if (
+      !activeModelId &&
+      !activeServerId &&
+      availableDownloadedTextModels.length > 0 &&
+      !didAutoSelectRef.current.text
+    ) {
+      didAutoSelectRef.current.text = true;
+      activeModelService.selectTextModel(availableDownloadedTextModels[0].id);
+    }
+  }, [
+    activeImageModelId,
+    activeModelId,
+    activeServerId,
+    availableDownloadedImageModels,
+    availableDownloadedTextModels,
+  ]);
   const effectiveProjectId = activeConversation
     ? activeConversation.projectId
     : pendingProjectId;
   const activeProject = effectiveProjectId
     ? getProject(effectiveProjectId)
     : null;
+  const fallbackImageModel =
+    !activeRemoteImageServer &&
+    isJarvisStandaloneRuntime &&
+    availableDownloadedImageModels.length > 0
+      ? availableDownloadedImageModels[0]
+      : undefined;
   const activeImageModel = activeRemoteImageServer
     ? {
         id: activeRemoteImageServer.mediaModels!.image!,
         name: `${activeRemoteImageServer.name} / ${activeRemoteImageServer.mediaModels!.image}`,
       }
-    : downloadedImageModels.find(m => m.id === activeImageModelId);
+    : (downloadedImageModels.find(m => m.id === activeImageModelId) ??
+        fallbackImageModel);
   const imageModelLoaded = !!activeImageModel;
   const isGeneratingImage = imageGenState.isGenerating;
   const isStreamingForThisConversation = isStreamingActiveConversation(

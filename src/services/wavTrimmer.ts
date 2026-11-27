@@ -1,6 +1,6 @@
 import RNFS from 'react-native-fs';
 import { Buffer } from 'buffer';
-import { WAV_HEADER_BYTES, WAV_HEADER_SCAN_BYTES, planWavTrim } from '@offgrid/speech';
+import { WAV_HEADER_BYTES, WAV_HEADER_SCAN_BYTES, planWavTrim } from '../utils/wavTrimPlan';
 import logger from '../utils/logger';
 
 /**
@@ -12,8 +12,8 @@ import logger from '../utils/logger';
  * dead air at its end - a 0:02 label over a seven-second file. Voice notes here play back and sync,
  * so that silence is not cosmetic.
  *
- * This is the I/O half only. WHERE to cut is `planWavTrim` in `@offgrid/speech` - pure, shared with
- * desktop, and tested on real WAV bytes. This file reads, writes and swaps.
+ * This is the I/O half only. WHERE to cut is `planWavTrim` in `src/utils/wavTrimPlan.ts` - pure
+ * and tested on real WAV bytes. This file reads, writes and swaps.
  *
  * Failure is always non-fatal: on any problem the original file is left exactly as it was. A note with
  * silence at the front is a blemish; a note we corrupted while tidying is lost audio.

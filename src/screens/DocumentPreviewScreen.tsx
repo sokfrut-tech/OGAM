@@ -5,7 +5,7 @@ import {
   FlatList,
 } from 'react-native';
 import { LIST_CLIPPING_PROPS } from '../constants/listClipping';
-import type { DocumentPage } from '@offgrid/rag/documents';
+import type { DocumentPage } from '../utils/ragDocumentsCore';
 import { LoadingDots } from '../components/LoadingDots';
 import { AliveScreen } from '../components/AliveScreen';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';

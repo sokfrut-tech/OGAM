@@ -68,6 +68,13 @@ describe('buildEnhancementMessages', () => {
     expect(msgs[0].content).not.toContain('conversation history');
   });
 
+  it('requests English output with a conservative CLIP-friendly word budget', () => {
+    const msgs = buildEnhancementMessages('закат над горами', []);
+    expect(msgs[0].content).toContain('natural English');
+    expect(msgs[0].content).toContain('45 words or fewer');
+    expect(msgs[0].content).toContain('75-token CLIP context');
+  });
+
   it('wraps user content with User Request: prefix', () => {
     const msgs = buildEnhancementMessages('mountains', []);
     expect(msgs[msgs.length - 1].content).toBe('User Request: mountains');

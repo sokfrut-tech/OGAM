@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { prefersQ4_0 } from '@offgrid/models';
+import { prefersQ4_0 } from '../utils/modelCapabilityRules';
 import type { ModelFile } from '../types';
 import { useAppStore } from '../stores/appStore';
 import { huggingFaceService } from './huggingface';

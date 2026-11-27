@@ -1,10 +1,12 @@
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import { useWhisperTranscription } from '../../hooks/useWhisperTranscription';
 import { useWhisperStore, useAppStore, useRemoteServerStore } from '../../stores';
 import { activeModelService } from '../../services/activeModelService';
 import { audioRecorderService } from '../../services/audioRecorderService';
 import { whisperService } from '../../services/whisperService';
+import { isEnglishOnlyWhisperModel } from '../../services/whisperModels';
 import { recordingController } from '../../services/recordingController';
 import { useSilenceEndpoint, type SilenceEndpoint } from './useSilenceEndpoint';
 import { finaliseRecording, type RecordedAudio } from './finaliseRecording';
@@ -12,6 +14,8 @@ import { useVoiceSessionDriver } from './useVoiceSessionDriver';
 import { voiceSession } from '../../services/voiceSession';
 import { resolveTranscription } from './transcriptionOutcome';
 import { ensureWhisperForTranscription } from './ensureWhisperForTranscription';
+import { jarvisSttService } from '../../services/jarvisPro/jarvisSttService';
+import { isJarvisStandaloneRuntime } from '../../i18n';
 import logger from '../../utils/logger';
 
 interface UseVoiceInputParams {
@@ -19,8 +23,9 @@ interface UseVoiceInputParams {
   interfaceMode: 'chat' | 'audio';
   onTranscript: (text: string) => void;
   onAudioAttachment?: (audio: { uri: string; format: 'wav' | 'mp3'; durationSeconds?: number; transcription?: string }) => void;
-  /** Called in Audio Mode to auto-send. Includes audio info so caller can build attachment atomically. */
-  onAutoSend?: (text: string, audio: { uri: string; format: 'wav' | 'mp3'; durationSeconds: number }) => void;
+  /** Called in Audio Mode to auto-send. Includes audio info when a recorded file exists. */
+  onAutoSend?: (text: string, audio?: { uri: string; format: 'wav' | 'mp3'; durationSeconds: number }) => void;
+  onAssistantVoiceInputConsumed?: () => void;
 }
 
 /** Stop the recorder and produce the note the person MEANT - dead air cut from both ends. The one
@@ -127,7 +132,86 @@ function useTurnResultOwnership(
   };
 }
 
-export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onAudioAttachment, onAutoSend }: UseVoiceInputParams) {
+interface NativeAndroidSttParams {
+  transcriptionLanguage: string;
+  stillOwned: () => boolean;
+  autoSend: boolean;
+  setIsRecordingNativeStt: (value: boolean) => void;
+  setNativePartialResult: (value: string) => void;
+  clearConversationId: () => void;
+  dropTurn: () => void;
+  consumeAssistantVoiceInput: () => void;
+  onAutoSend?: (text: string) => void;
+  onTranscript: (text: string) => void;
+  reportNothingHeard: (message: string, strikes: number) => void;
+  setDirectError: (message: string | null) => void;
+  settleFailedCaptureStart: () => void;
+}
+
+/** Start Android SpeechRecognizer dictation and route final/error callbacks back to Voice.ts. */
+async function beginNativeAndroidStt(params: NativeAndroidSttParams): Promise<void> {
+  let handledTerminal = false;
+  params.setNativePartialResult('');
+  params.setIsRecordingNativeStt(true);
+  const started = await jarvisSttService.startListening({
+    language: params.transcriptionLanguage,
+    preferOffline: false,
+    onPartial: text => params.setNativePartialResult(text),
+    onResult: text => {
+      handledTerminal = true;
+      params.setIsRecordingNativeStt(false);
+      params.setNativePartialResult('');
+      params.clearConversationId();
+      if (!params.stillOwned()) {
+        params.dropTurn();
+        params.consumeAssistantVoiceInput();
+        return;
+      }
+      const trimmed = text.trim();
+      if (!trimmed) {
+        if (params.autoSend) {
+          params.reportNothingHeard('Не удалось распознать речь', 2);
+          return;
+        }
+        voiceSession.dispatch('dictationFinished');
+        params.consumeAssistantVoiceInput();
+        return;
+      }
+      if (params.autoSend) {
+        voiceSession.dispatch('turnCaptured');
+        params.onAutoSend?.(trimmed);
+        return;
+      }
+      params.onTranscript(trimmed);
+      voiceSession.dispatch('dictationFinished');
+    },
+    onError: msg => {
+      handledTerminal = true;
+      params.setIsRecordingNativeStt(false);
+      params.setNativePartialResult('');
+      params.clearConversationId();
+      if (params.autoSend) {
+        params.reportNothingHeard(msg, 2);
+        return;
+      }
+      params.setDirectError(msg);
+      params.settleFailedCaptureStart();
+    },
+    onEnd: () => {
+      params.setIsRecordingNativeStt(false);
+      params.setNativePartialResult('');
+      if (!handledTerminal && !params.autoSend) {
+        voiceSession.dispatch('dictationFinished');
+      }
+    },
+  });
+  if (!started) {
+    params.setIsRecordingNativeStt(false);
+    params.settleFailedCaptureStart();
+  }
+}
+
+export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onAudioAttachment, onAutoSend, onAssistantVoiceInputConsumed }: UseVoiceInputParams) {
   const recordingConversationIdRef = useRef<string | null>(null);
   const turnResult = useTurnResultOwnership(conversationId, recordingConversationIdRef);
   const onTranscriptRef = useRef(onTranscript);
@@ -136,6 +220,8 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
   onAudioAttachmentRef.current = onAudioAttachment;
   const onAutoSendRef = useRef(onAutoSend);
   onAutoSendRef.current = onAutoSend;
+  const onAssistantVoiceInputConsumedRef = useRef(onAssistantVoiceInputConsumed);
+  onAssistantVoiceInputConsumedRef.current = onAssistantVoiceInputConsumed;
   const downloadedModelId = useWhisperStore(state => state.downloadedModelId);
   const transcriptionLanguage = useWhisperStore(state => state.transcriptionLanguage);
   const remoteTranscriptionAvailable = useRemoteTranscriptionAvailable();
@@ -143,9 +229,31 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
   const [isAudioModeRecording, setIsAudioModeRecording] = useState(false);
   /** Hands-free: the mic is open but nobody has spoken yet, so the turn has not begun. */
 
+  const [isRecordingNativeStt, setIsRecordingNativeStt] = useState(false);
+  const [nativePartialResult, setNativePartialResult] = useState('');
+  const [nativeSttAvailable, setNativeSttAvailable] = useState(
+    () =>
+      isJarvisStandaloneRuntime &&
+      Platform.OS === 'android' &&
+      jarvisSttService.isNativeModulePresent(),
+  );
   const [isTranscribingFile, setIsTranscribingFile] = useState(false);
   const [directError, setDirectError] = useState<string | null>(null);
   const transcriptionNotice = useTranscriptionNotice();
+
+  useEffect(() => {
+    if (!isJarvisStandaloneRuntime || Platform.OS !== 'android') return;
+    let active = true;
+    jarvisSttService
+      .isAvailable()
+      .then(ok => {
+        if (active) setNativeSttAvailable(ok);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const supportsDirectAudio = (): boolean =>
     activeModelService.supportsAudioInput() && audioRecorderService.supportsDirectAudioInput();
@@ -154,11 +262,27 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
   // Voice layout and recorder from observing two different store snapshots.
   const isInAudioInterfaceMode = (): boolean => interfaceMode === 'audio';
 
+  const incompatibleEnglishWhisper =
+    isJarvisStandaloneRuntime &&
+    transcriptionLanguage === 'ru' &&
+    isEnglishOnlyWhisperModel(downloadedModelId);
+  const effectiveLocalModelId = incompatibleEnglishWhisper ? null : downloadedModelId;
+
   // Use file-based transcription path when: Audio Mode + Whisper available + not direct audio model
   const shouldUseFilePath = (): boolean =>
-    isInAudioInterfaceMode() && !!downloadedModelId && !supportsDirectAudio();
+    isInAudioInterfaceMode() && !!effectiveLocalModelId && !supportsDirectAudio();
 
-  const ensureWhisper = createWhisperReadiness(downloadedModelId, remoteTranscriptionAvailable);
+  const ensureWhisper = createWhisperReadiness(effectiveLocalModelId, remoteTranscriptionAvailable);
+
+  // A failed start must return the session to idle as well as clear Jarvis's one-shot flag.
+  // Otherwise the state machine remains in listen with no microphone actually open.
+  const settleFailedCaptureStart = () => {
+    if (voiceSession.current().state === 'listen') {
+      voiceSession.dispatch('turnCaptured');
+      voiceSession.dispatch('dictationFinished');
+    }
+    onAssistantVoiceInputConsumedRef.current?.();
+  };
 
   const {
     isRecording: isWhisperRecording,
@@ -176,6 +300,10 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
     // The capture closed itself (whisper.rn's length cap). The session must leave "listening", or every
     // later tap is refused. Dictation ends as a stop ends it; voice mode gets no reply from this, so it
     // ends the session the way an empty turn does instead of handing the floor to an assistant.
+    onCaptureSettled: hasTranscript => {
+      if (!hasTranscript) onAssistantVoiceInputConsumedRef.current?.();
+    },
+    onCaptureStartFailed: settleFailedCaptureStart,
     onCaptureEnded: () => {
       logger.log('[TURN] capture ended by itself');
       if (isInAudioInterfaceMode()) {
@@ -189,11 +317,20 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
   });
 
   const isTranscribing = isWhisperTranscribing || isTranscribingFile;
-  const isRecording = isDirectRecording || isAudioModeRecording || isWhisperRecording;
+  const isRecording =
+    isDirectRecording || isAudioModeRecording || isWhisperRecording || isRecordingNativeStt;
   const error = directError ?? whisperError;
 
-  // voiceAvailable: direct audio OR whisper downloaded
-  const voiceAvailable = supportsDirectAudio() || !!downloadedModelId || remoteTranscriptionAvailable;
+  // voiceAvailable: direct audio OR whisper downloaded OR native Android STT in standalone builds
+  const voiceAvailable =
+    supportsDirectAudio() ||
+    !!downloadedModelId ||
+    remoteTranscriptionAvailable ||
+    (isJarvisStandaloneRuntime && nativeSttAvailable);
+  const voiceAvailableRef = useRef(voiceAvailable);
+  voiceAvailableRef.current = voiceAvailable;
+  const nativeSttAvailableRef = useRef(nativeSttAvailable);
+  nativeSttAvailableRef.current = nativeSttAvailable;
 
   useVoiceSessionDriver({
     // Hands-free auto-arm is voice-mode only (a global setting leaves the session in `listen`, so
@@ -236,6 +373,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
         const msg = err instanceof Error ? err.message : 'Recording failed';
         logger.error('[Voice] Direct audio recording error:', err);
         setDirectError(msg);
+        onAssistantVoiceInputConsumedRef.current?.();
       }
       return;
     }
@@ -250,7 +388,42 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
         const msg = err instanceof Error ? err.message : 'Recording failed';
         logger.error('[Voice] Audio mode recording error:', err);
         setDirectError(msg);
+        onAssistantVoiceInputConsumedRef.current?.();
       }
+      return;
+    }
+
+    if (
+      !effectiveLocalModelId &&
+      isJarvisStandaloneRuntime &&
+      Platform.OS === 'android' &&
+      nativeSttAvailable
+    ) {
+      await beginNativeAndroidStt({
+        transcriptionLanguage,
+        stillOwned: turnResult.claim(),
+        autoSend: isInAudioInterfaceMode() && !!onAutoSendRef.current,
+        setIsRecordingNativeStt,
+        setNativePartialResult,
+        clearConversationId: () => {
+          recordingConversationIdRef.current = null;
+        },
+        dropTurn: turnResult.drop,
+        consumeAssistantVoiceInput: () => onAssistantVoiceInputConsumedRef.current?.(),
+        onAutoSend: onAutoSendRef.current,
+        onTranscript: text => onTranscriptRef.current(text),
+        reportNothingHeard,
+        setDirectError,
+        settleFailedCaptureStart,
+      });
+      return;
+    }
+
+    if (incompatibleEnglishWhisper) {
+      setDirectError(
+        'Выбрана англоязычная модель речи (.en). Для русского скачайте Whisper Small (RU) или Qwen3-ASR в «Модели → Транскрибация».',
+      );
+      settleFailedCaptureStart();
       return;
     }
 
@@ -263,6 +436,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
   const reportNothingHeard = (message: string, strikes: number) => {
     for (let i = 0; i < strikes; i++) voiceSession.dispatch('nothingHeard');
     setDirectError(message);
+    onAssistantVoiceInputConsumedRef.current?.();
     setTimeout(() => setDirectError(null), 3000);
   };
 
@@ -303,14 +477,17 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
         // (llama) model's hold-to-talk has. Transcribe the recording and drop the text into the composer
         // for the user to review/edit/send; do NOT build a voice-note attachment (that was the litert-only
         // divergence). The temp recording file is transient there.
-        const autoSend = !!onAutoSendRef.current && isInAudioInterfaceMode();
+        const autoSend = isInAudioInterfaceMode() && !!onAutoSendRef.current;
         const { whisperReady, transcript } = await transcribeRecordedFile(
           path,
           autoSend ? '[Voice] transcription error:' : '[Voice] chat-mode dictation transcription error:',
         );
         // NEVER dispatch an empty transcript — that misroutes to the text model.
         const outcome = resolveTranscription(whisperReady, transcript);
-        if (!stillOwned()) turnResult.drop();
+        if (!stillOwned()) {
+          turnResult.drop();
+          onAssistantVoiceInputConsumedRef.current?.();
+        }
         // Nothing to send. Hands-free must NOT re-open the mic: on device that spun - record, hear the
         // room, transcribe to nothing, arm again - three turns in eight seconds with no output. Two
         // verdicts end the session; a person tapping the mic resumes it.
@@ -322,6 +499,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
     } catch (err) {
       setIsDirectRecording(false);
       logger.error('[Voice] Failed to stop direct recording:', err);
+      onAssistantVoiceInputConsumedRef.current?.();
     }
   };
 
@@ -350,6 +528,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
       const outcome = resolveTranscription(whisperReady, transcript);
       if (!stillOwned()) {
         turnResult.drop();
+        onAssistantVoiceInputConsumedRef.current?.();
       } else if (!outcome.dispatch) {
         reportNothingHeard(outcome.message, 1);
       } else if (onAutoSendRef.current) {
@@ -362,6 +541,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
       setIsAudioModeRecording(false);
       setIsTranscribingFile(false);
       logger.error('[Voice] Failed to stop audio mode recording:', err);
+      onAssistantVoiceInputConsumedRef.current?.();
     }
   };
 
@@ -377,6 +557,11 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
     // Released on EVERY stop path, so a mic that closed can never keep the floor.
     stopListeningForSilence();
     try {
+      if (isRecordingNativeStt) {
+        await jarvisSttService.stopListening();
+        return;
+      }
+
       if (isDirectRecording) {
         await stopDirectRecording();
         return;
@@ -399,19 +584,28 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
     const isReplayCancellation = !!voiceSession.current().replayReturnsTo;
     stopListeningForSilence();
     try {
-      cancelActiveCapture({
-        isDirectRecording,
-        isAudioModeRecording,
-        setIsDirectRecording,
-        setIsAudioModeRecording,
-        stopWhisperRecording,
-        clearWhisperResult: clearResult,
-        clearConversation: () => { recordingConversationIdRef.current = null; turnResult.invalidate(); },
-      });
+      if (isRecordingNativeStt) {
+        setIsRecordingNativeStt(false);
+        setNativePartialResult('');
+        recordingConversationIdRef.current = null;
+        turnResult.invalidate();
+        void jarvisSttService.cancel();
+      } else {
+        cancelActiveCapture({
+          isDirectRecording,
+          isAudioModeRecording,
+          setIsDirectRecording,
+          setIsAudioModeRecording,
+          stopWhisperRecording,
+          clearWhisperResult: clearResult,
+          clearConversation: () => { recordingConversationIdRef.current = null; turnResult.invalidate(); },
+        });
+      }
     } finally {
       // A user cancellation ends the manual turn. A replay cancellation is
       // different: replayStarted already owns the floor and replayEnded returns it.
       if (!isReplayCancellation) voiceSession.dispatch('dictationFinished');
+      onAssistantVoiceInputConsumedRef.current?.();
     }
   };
 
@@ -429,6 +623,9 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
   cancelRef.current = cancelRecording;
   useEffect(() => {
     return recordingController.registerHandlers({
+      canStart: options => options?.requiresTranscript
+        ? !!downloadedModelId || remoteTranscriptionAvailable || (isJarvisStandaloneRuntime && nativeSttAvailableRef.current)
+        : voiceAvailableRef.current,
       start: () => startRef.current(),
       stop: () => {
         // In hands-free there was no tap to start, so the stop button means STOP THE SESSION - and a
@@ -470,7 +667,7 @@ export function useVoiceInput({ conversationId, interfaceMode, onTranscript, onA
     isModelLoading,
     isStartingRecording,
     isTranscribing,
-    partialResult,
+    partialResult: nativePartialResult || partialResult,
     error,
     transcriptionNotice,
     voiceAvailable,

@@ -1,5 +1,5 @@
 import { EmbeddingModelsTab } from './EmbeddingModelsTab';
-import type { HFSearchResult } from '@offgrid/models';
+import type { HFSearchResult } from '../../types/modelCatalog';
 import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
@@ -27,18 +27,19 @@ import { UnderlineTabs } from '../../components/UnderlineTabs';
 import { useIsFocused } from '@react-navigation/native';
 import { LivingField } from '../../components/LivingField';
 import { useGetPro } from '../../hooks/useGetPro';
+import { t } from '../../i18n';
 
 const MODEL_TABS: ReadonlyArray<{
   key: ModelTab;
   label: string;
   testID?: string;
 }> = [
-  { key: 'text', label: 'Text' },
-  { key: 'embedding', label: 'Documents', testID: 'embedding-tab' },
-  { key: 'image', label: 'Image' },
-  { key: 'video', label: 'Video', testID: 'video-models-tab' },
-  { key: 'voice', label: 'Voice', testID: 'voice-models-tab' },
-  { key: 'transcription', label: 'Speech', testID: 'transcription-models-tab' },
+  { key: 'text', label: t('models.tab.text') },
+  { key: 'embedding', label: t('models.tab.documents'), testID: 'embedding-tab' },
+  { key: 'image', label: t('models.tab.image') },
+  { key: 'video', label: t('models.tab.video'), testID: 'video-models-tab' },
+  { key: 'voice', label: t('models.tab.voice'), testID: 'voice-models-tab' },
+  { key: 'transcription', label: t('models.tab.speech'), testID: 'transcription-models-tab' },
 ];
 
 interface ModelsScreenProps {
@@ -132,10 +133,30 @@ export const ModelsScreen: React.FC<ModelsScreenProps> = ({
         {/* Header */}
         <HideWhenEmbedded embedded={embedded}>
           <ScreenHeader
-            title="Models"
+            title={t('models.screenTitle')}
             variant="tab"
             right={
               <View style={headerStyles.actions}>
+                <TouchableOpacity
+                  style={styles.downloadManagerButton}
+                  hitSlop={SPACING.md}
+                  onPress={() => vm.navigation.navigate('ImageGen')}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('models.imageGenerator')}
+                  testID="image-generator-screen-button"
+                >
+                  <Icon name="image" size={20} color={colors.text} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.downloadManagerButton}
+                  hitSlop={SPACING.md}
+                  onPress={() => vm.navigation.navigate('LocalModels')}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('models.localLibrary')}
+                  testID="local-model-library-button"
+                >
+                  <Icon name="folder" size={20} color={colors.text} />
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.downloadManagerButton}
                   hitSlop={SPACING.md}

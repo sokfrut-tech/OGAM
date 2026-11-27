@@ -57,6 +57,8 @@ export interface GenerateImageParams {
   guidanceScale?: number;
   seed?: number;
   previewInterval?: number;
+  /** The prompt was previewed/edited by the user; do not run the automatic enhancer again. */
+  promptIsFinal?: boolean;
 }
 
 export interface ActiveImageModel {

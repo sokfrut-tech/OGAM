@@ -14,15 +14,15 @@ import {
 import { looksLikeVisionModel } from '../utils/visionModel';
 import { huggingFaceRevisionPath } from '../utils/modelOrigin';
 import { isMMProjFile, pickMmProjForDownload } from './mmproj';
+import { isCompanionFile } from '../utils/modelCompanionFiles';
+import { collapseSplitGgufParts } from '../utils/ggufSplitFiles';
 import {
   searchHuggingFace,
   getModelFiles as listRepoFiles,
   getModelType,
-  isCompanionFile,
-  collapseSplitGgufParts,
   type HFSearchResult,
   type ModelFileVariant,
-} from '@offgrid/models';
+} from '../utils/huggingFaceCore';
 
 const splitPartOf = (part: ModelFile): NonNullable<ModelFile['parts']>[number] => ({
   name: part.name,
@@ -89,7 +89,7 @@ class HuggingFaceService {
       ...(result.activeParams ? { activeParams: result.activeParams } : {}),
       ...(result.hasMtp ? { hasMtp: true } : {}),
       ...(result.newer ? { newer: result.newer } : {}),
-      ...(result.variants?.length ? { variants: result.variants } : {}),
+      ...(result.variants?.length ? { variants: result.variants.map(v => v.id) } : {}),
     };
   }
 

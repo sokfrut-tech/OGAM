@@ -3,8 +3,8 @@ import { activeModelService } from './activeModelService';
 import { DownloadedModel } from '../types';
 import logger from '../utils/logger';
 
-/** The video-request rule is shared with Desktop (@offgrid/models). */
-export { isVideoRequest } from '@offgrid/models';
+/** Video-request intent detection owned by OGAM. */
+export { isVideoRequest } from '../utils/videoIntent';
 
 type Intent = 'image' | 'text';
 
@@ -175,6 +175,12 @@ const TEXT_PATTERNS = [
   /\?$/,
   /^[?!]/,  // Questions starting with ? or !
 
+  // Russian text/question indicators (Unicode-safe boundaries)
+  /(?:^|\s)(?:объясни|расскажи|опиши|подскажи|помоги|переведи|перескажи|резюмируй|сравни|проанализируй)(?=$|\s|[,.:;!?])/iu,
+  /^\s*(?:как|что\s+такое|почему|зачем|когда|где|кто|какой|какая|какое|какие)\s+/iu,
+  /(?:^|\s)(?:напиши|составь|исправь)\s+(?:код|скрипт|функцию|запрос|письмо|текст|стих|эссе|сочинение|рассказ)(?=$|\s|[,.:;!?])/iu,
+  /^\s*(?:привет|здравствуй|здравствуйте|спасибо|благодарю|ок|окей|ладно|понятно|да|нет)(?=$|\s|[!.,?])/iu,
+
   // Instructions and guidance
   /\b(step by step|tutorial|guide|instructions|how-to)\b/i,
   /\b(teach me|learn|understand|example|examples)\b/i,
@@ -182,6 +188,16 @@ const TEXT_PATTERNS = [
   // Time and scheduling
   /\b(schedule|calendar|appointment|meeting|deadline|due date)\b/i,
   /\b(today|tomorrow|yesterday|next week|last week)\b/i,
+];
+
+const RUSSIAN_NON_IMAGE_QUESTION_RE =
+  /^\s*(?:как\s+(?:нарисовать|срисовать|рисуют|сгенерировать|создать|сделать)|почему|зачем|что\s+такое|кто\s+такой|объясни|расскажи|научи|подскажи\s+как)(?=$|[\s,.:;!?()"'«»-])/iu;
+
+const RUSSIAN_IMAGE_PATTERNS: RegExp[] = [
+  /(?:^|[\s,.:;!?()"'«»-])(?:нарисуй|рисуй|нарисовать|сгенерируй|сгенерировать|генерируй|создай|создать|сделай|сделать|изобрази|изобразить|визуализируй|визуализировать|отрендери|покажи)(?:\s+[а-яёa-z0-9-]+){0,4}\s+(?:картинк|картин|изображен|рисун|фот|арт|иллюстрац|портрет|пейзаж|обои|аватар|логотип|постер|баннер|эскиз|набросок)/iu,
+  /(?:^|[\s,.:;!?()"'«»-])(?:картинк|изображен|рисун|фот|арт|иллюстрац|портрет|пейзаж|обои|логотип|постер)\S*\s+(?:с|со|на\s+котор|где|про|из|в\s+стиле)(?=$|[\s,.:;!?()"'«»-])/iu,
+  /^\s*(?:(?:пожалуйста|можешь|сможешь|джарвис|jarvis|эй|просто|давай)[\s,!.:;-]*)*(?:нарисуй|рисуй|изобрази|визуализируй|отрендери)(?:\s+(?:мне|нам|пожалуйста))?\s+(?!вывод|выводы|линию|грань|план|схем|график|таблиц|код|программу)[а-яёa-z0-9]+/iu,
+  /\S+\s+\S+.*,\s*(?:фото|фотография|фотореализм|реализм|иллюстрация|картина|арт|цифровой арт|3д|рендер|акварель|маслом|киберпанк|фэнтези|аниме|концепт-арт|4к|8к)\s*$/iu,
 ];
 
 /**
@@ -243,10 +259,22 @@ class IntentClassifier {
    * Returns null if uncertain
    */
   private classifyByPattern(message: string): Intent | null {
+    if (RUSSIAN_NON_IMAGE_QUESTION_RE.test(message)) {
+      logger.log('[ROUTE-SM] classify pattern=RU_TEXT_QUESTION');
+      return 'text';
+    }
+
     // Check for strong image generation indicators
     for (const pattern of IMAGE_PATTERNS) {
       if (pattern.test(message)) {
         logger.log(`[ROUTE-SM] classify pattern=IMAGE matched /${pattern.source}/`);
+        return 'image';
+      }
+    }
+
+    for (const pattern of RUSSIAN_IMAGE_PATTERNS) {
+      if (pattern.test(message)) {
+        logger.log(`[ROUTE-SM] classify pattern=RU_IMAGE matched /${pattern.source}/`);
         return 'image';
       }
     }
@@ -383,12 +411,14 @@ const TOOL_PATTERNS: Record<string, RegExp[]> = {
     /\b(trending|viral|popular right now|who won|who is winning|what happened)\b/i,
     /what('s| is) (happening|going on|the latest|the news|new|out now)/i,
     /\b(just released|just launched|came out|available now)\b/i,
+    /(?:^|[\s,.:;!?])(?:поищи|найди в интернете|загугли|погода|прогноз погоды|новости|курс|сколько стоит|последние события|сейчас в мире)(?=$|[\s,.:;!?])/iu,
   ],
   read_url: [
     /https?:\/\//i,
     /\b(visit|open|read|fetch|check|scrape|summarize|summarise|analyse|analyze)\b.{0,30}\b(link|url|site|page|article|post|blog)\b/i,
     /\b(this link|that link|the link|the url|the article|the page|this page|that page)\b/i,
     /\b(from this|from that|from the)\b.{0,20}\b(link|url|site|page|article)\b/i,
+    /(?:^|[\s,.:;!?])(?:открой|прочитай|изучи|перескажи).{0,25}(?:ссылк|сайт|страниц|стать)/iu,
   ],
   calculator: [
     /\b(calculat|evaluat|compute|how much is|solve|work out|figure out)/i,
@@ -397,6 +427,7 @@ const TOOL_PATTERNS: Record<string, RegExp[]> = {
     /\b\d+\s*(plus|minus|times|divided by|over|squared|cubed|mod)\s*\d+\b/i,
     /\b(sum|total|add up|average|mean|median|factorial|square root|sqrt|power of)\b/i,
     /\b(how many|how long|how far|how tall|how heavy)\b.{0,30}\b(in|to|from|is)\b/i,
+    /(?:^|[\s,.:;!?])(?:посчитай|вычисли|сколько будет|реши пример|процент)/iu,
   ],
   get_current_datetime: [
     /\b(what time|current time|what is the time|what's the time)\b/i,
@@ -406,12 +437,14 @@ const TOOL_PATTERNS: Record<string, RegExp[]> = {
     /\b(what's the date|tell me the date|give me the date)\b/i,
     /\b(right now|at the moment|at this moment)\b.{0,20}\b(time|date|day)\b/i,
     /\b(how long (until|till|before)|how long ago|how many days (until|till|since|left))\b/i,
+    /(?:^|[\s,.:;!?])(?:который час|сколько времени|какое сегодня число|какая сегодня дата|какой сегодня день|текущее время)(?=$|[\s,.:;!?])/iu,
   ],
   get_device_info: [
     /\b(battery|battery level|battery percentage|battery life|charge|charging|low battery)\b/i,
     /\b(storage|free space|disk space|available space|how much space|running out of space)\b/i,
     /\b(memory|ram|device info|phone info|device details|phone details|my device)\b/i,
     /\b(cpu|processor|performance|my phone specs|phone model)\b/i,
+    /(?:^|[\s,.:;!?])(?:заряд батаре|сколько памяти|свободного места|характеристики телефона|оперативн\S+ памят|информация об устройстве)/iu,
   ],
 };
 

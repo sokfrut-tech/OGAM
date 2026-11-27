@@ -105,7 +105,7 @@ describe('Models search leaves out what this phone cannot run', () => {
 
   it('a catalog model that needs a newer llama.cpp than the engine is not offered; a new enough engine offers it', async () => {
     const restoreFetches: (() => void)[] = [];
-    const { CATALOG } = require('@offgrid/models');
+    const { CATALOG } = require('../../../src/utils/modelCatalogCore');
     const needsNewer = CATALOG.find((e: { name: string }) => e.name === 'K2 Horizon 3.7B');
 
     // Engine reports a build: one new enough, then one a build too old.

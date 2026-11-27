@@ -1,0 +1,41 @@
+import type { ThemeColors, ThemeShadows } from '../theme';
+import { SPACING } from '../constants';
+
+export const createStyles = (colors: ThemeColors, _shadows: ThemeShadows) => ({
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { padding: SPACING.xl, paddingBottom: SPACING.xxl },
+  headerRow: {
+    flexDirection: 'row' as const, alignItems: 'center' as const,
+    justifyContent: 'space-between' as const, marginBottom: SPACING.md,
+  },
+  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '600' as const },
+  card: { marginBottom: SPACING.lg, padding: SPACING.md },
+  countText: { color: colors.textSecondary, marginBottom: SPACING.sm },
+  modelRow: { paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  modelRowSimple: { paddingVertical: SPACING.sm },
+  modelName: { color: colors.text, fontWeight: '500' as const },
+  modelMeta: { color: colors.textMuted, fontSize: 12 },
+  scanTitle: { color: colors.text, fontSize: 18, fontWeight: '600' as const, marginBottom: SPACING.sm },
+  scanDescription: { color: colors.textSecondary, lineHeight: 20, marginBottom: SPACING.md },
+  chooseButton: {
+    minHeight: 48, borderRadius: 12, backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.border, flexDirection: 'row' as const,
+    alignItems: 'center' as const, justifyContent: 'center' as const,
+    gap: SPACING.sm, marginBottom: SPACING.md,
+  },
+  chooseButtonText: { color: colors.text, fontWeight: '600' as const },
+  error: { color: colors.error, marginBottom: SPACING.md },
+  artifactCard: { padding: SPACING.md, marginBottom: SPACING.sm },
+  artifactRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: SPACING.sm },
+  artifactInfo: { flex: 1 },
+  artifactName: { color: colors.text, fontWeight: '500' as const },
+  artifactMeta: { color: colors.textMuted, fontSize: 12 },
+  importButton: { padding: SPACING.sm },
+  importText: { color: colors.primary, fontWeight: '600' as const },
+  progressContainer: { marginTop: SPACING.sm },
+  progressTrack: { height: 4, borderRadius: 2, backgroundColor: colors.border, overflow: 'hidden' as const },
+  progressFill: { height: 4, backgroundColor: colors.primary },
+  progressLabel: { color: colors.textMuted, fontSize: 12, marginTop: 4 },
+  artifactOnly: { color: colors.textMuted, fontSize: 12, marginTop: SPACING.xs },
+  noFiles: { color: colors.textMuted },
+});

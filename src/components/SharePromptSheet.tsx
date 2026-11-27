@@ -6,6 +6,7 @@ import type { ThemeColors, ThemeShadows } from '../theme';
 import { SPACING, TYPOGRAPHY } from '../constants';
 import { requestStoreReview, type ShareVariant } from '../utils/sharePrompt';
 import { useAppStore } from '../stores/appStore';
+import { isJarvisStandaloneRuntime } from '../i18n';
 import {
   ratingPromptDismissed,
   ratingPromptRateTapped,
@@ -65,6 +66,10 @@ export const SharePromptSheet: React.FC<SharePromptSheetProps> = ({ visible, onC
         .catch(() => {});
     }, REVIEW_AFTER_CLOSE_MS);
   };
+
+  if (isJarvisStandaloneRuntime) {
+    return null;
+  }
 
   return (
     <AppSheet

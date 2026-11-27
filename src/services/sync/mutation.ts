@@ -1,5 +1,6 @@
-import { VIDEO_SETTING_KEYS, acceptsVideoSetting } from '@offgrid/models';
+import { VIDEO_SETTING_KEYS, acceptsVideoSetting } from '../../utils/videoPackPolicy';
 import { callHook, HOOKS } from '../../bootstrap/hookRegistry';
+import { isRuntimeOnlyMessage } from '../../utils/chatSyncPrimitives';
 import {
   KNOWLEDGE_DOCUMENT_ENTITY,
   NOTE_FILE_ENTITY,
@@ -14,10 +15,11 @@ import {
   createWritingLearnedFields,
   writingLearnedEntityId,
   createSharedFileStateFields,
-  isRuntimeOnlyMessage,
-  type SharedFileDescriptor,
-  type WritingLearned,
-} from '@offgrid/sync';
+} from '../../utils/syncEntityCore';
+import type {
+  SharedFileDescriptor,
+  WritingLearned,
+} from '../../types/syncContracts';
 import type { Conversation, Message, Project } from '../../types';
 import type { KnowledgeDocumentSnapshot } from './knowledgeDocument';
 import { serializeMessageContext } from './messageContext';

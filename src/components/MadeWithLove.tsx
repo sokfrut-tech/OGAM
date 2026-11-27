@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Image, Linking, StyleSheet } from 'react-native';
 import { TouchableOpacity } from './Touchable';
 import { TYPOGRAPHY, WEDNESDAY_URL } from '../constants';
+import { isJarvisStandaloneRuntime } from '../i18n';
 import { useTheme } from '../theme';
 
 /**
@@ -10,6 +11,9 @@ import { useTheme } from '../theme';
  */
 export const MadeWithLove: React.FC = () => {
   const { colors } = useTheme();
+  if (isJarvisStandaloneRuntime) {
+    return null;
+  }
   return (
     <TouchableOpacity
       onPress={() => Linking.openURL(WEDNESDAY_URL)}

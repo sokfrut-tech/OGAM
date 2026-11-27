@@ -1,0 +1,5 @@
+<resources>
+    <!-- Android 7–11 keep normal OGAM voice input but are not registered as a system assistant.
+         System-assistant support is enabled from API 31 where recognitionService metadata is ignored. -->
+    <bool name="jarvis_voice_interaction_enabled">false</bool>
+</resources>

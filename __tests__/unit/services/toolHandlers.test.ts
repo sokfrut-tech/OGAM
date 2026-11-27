@@ -16,13 +16,13 @@ describe('web_search handler', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('returns error for missing query parameter', async () => {
-    const result = await executeToolCall({ id: 'ws_1', name: 'web_search', arguments: {} });
-    expect(result.error).toContain('Missing required parameter: query');
+    const result = await executeToolCall({ id: 'ws_1', name: 'web_search', arguments: {} }, ['web_search']);
+    expect(result.error).toContain('Missing required input: query');
   });
 
   it('returns no-results message when search returns empty HTML', async () => {
     mockFetch.mockResolvedValue({ text: async () => '<html><body>Nothing here</body></html>' });
-    const result = await executeToolCall({ id: 'ws_2', name: 'web_search', arguments: { query: 'xyzzy' } });
+    const result = await executeToolCall({ id: 'ws_2', name: 'web_search', arguments: { query: 'xyzzy' } }, ['web_search']);
     expect(result.error).toBeUndefined();
     expect(result.content).toContain('No results found');
   });
@@ -36,7 +36,7 @@ describe('web_search handler', () => {
       '</div>',
     ].join('');
     mockFetch.mockResolvedValue({ text: async () => html });
-    const result = await executeToolCall({ id: 'ws_3', name: 'web_search', arguments: { query: 'example' } });
+    const result = await executeToolCall({ id: 'ws_3', name: 'web_search', arguments: { query: 'example' } }, ['web_search']);
     expect(result.error).toBeUndefined();
     expect(result.content).toBeDefined();
   });

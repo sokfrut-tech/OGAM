@@ -1,4 +1,5 @@
-import { CATALOG, isLoadableOnDevice, pickModelsForDevice, PHONE_FIT_BUDGET, type FitBudget, type ModelEntry, type PickCandidate } from '@offgrid/models';
+import { CATALOG, pickModelsForDevice, type ModelEntry, type PickCandidate } from '../utils/modelCatalogCore';
+import { isLoadableOnDevice, PHONE_FIT_BUDGET, type FitBudget } from '../utils/modelFitBudget';
 import { textModelBudget } from './memoryBudget';
 import { registerBundledCatalog, withRemoteCatalog } from '../stores/modelCatalogStore';
 import { engineLlamaBuild, engineLoadsCatalogModel } from './llamaEngineSupport';

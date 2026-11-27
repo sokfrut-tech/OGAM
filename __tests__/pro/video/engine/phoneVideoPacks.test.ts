@@ -9,7 +9,8 @@
  *
  * A pure rule over the shipped catalog: nothing to fake.
  */
-import { CATALOG, isVideoWeightAvailableOn, type ModelEntry } from '@offgrid/models';
+import { CATALOG, type ModelEntry } from '../../../../src/utils/modelCatalogCore';
+import { isVideoWeightAvailableOn } from '../../../../src/utils/videoPackPolicy';
 import { completeVideoPacks, videoPacksForPhone } from '../../../../src/services/phoneVideoPacks';
 
 const ids = (packs: ModelEntry[]) => packs.map(pack => pack.id);

@@ -15,6 +15,7 @@ import { openPendingImprove, startScribeEntry } from './src/services/scribeEntry
 import { startProCheckoutReturn } from './src/services/proCheckout';
 import { AliveProvider } from './src/components/AliveProvider';
 import { AppNavigator } from './src/navigation';
+import { jarvisVoiceLinking } from './src/navigation/jarvisVoiceLinking';
 import { getRegisteredScreens } from './src/navigation/screenRegistry';
 import {
   appNavigationRef,
@@ -28,6 +29,8 @@ import { useDebugLogsStore } from './src/stores/debugLogsStore';
 import { initDebugLogFile, appendDebugLine, stopDebugLogFile } from './src/utils/debugLogFile';
 import { startStartupMemoryProbe } from './src/services/startupMemoryProbe';
 import { loadProFeatures } from './src/bootstrap/loadProFeatures';
+import { activateJarvisOpenCapabilities } from './src/bootstrap/activateJarvisOpenCapabilities';
+import { isJarvisStandaloneRuntime } from './src/i18n';
 import { hydrateDownloadStore } from './src/services/downloadHydration';
 import { initModelCatalog } from './src/stores/modelCatalogStore';
 import { initActiveDownloadPersistence } from './src/services/activeDownloadPersistence';
@@ -44,19 +47,11 @@ import { useDownloadStore } from './src/stores/downloadStore';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { DebugLogsScreen } from './src/components/DebugLogsScreen';
 import { LoadingDots } from './src/components/LoadingDots';
-import { AnalyticsConsentPrompt } from './src/components/AnalyticsConsentPrompt';
-import {
-  startAnalytics,
-  trackScreen,
-} from './src/services/analytics/analytics';
-import { featureSnapshot } from './src/services/analytics/featureSnapshot';
-import { usageSnapshot } from './src/services/analytics/usageSnapshot';
 import { startEnginePacks } from './src/services/enginePacks';
 
 LogBox.ignoreAllLogs(); // Suppress all logs
 
 let stopStartupProbe: (() => void) | null = null;
-let stopAnalytics: (() => void) | null = null;
 // Every build mirrors logger output into the in-app Debug Logs viewer and the size-capped log
 // file, so Report a problem carries a trace from a store build too. Log lines hold metadata only,
 // never chat content (docs/ANALYTICS.md, Report a problem). The console stays dev-only (logger.ts).
@@ -399,6 +394,9 @@ function App() {
         // Debug developer unlock; Sync reconciliation owns device admission.
         logger.log('[BOOT] load pro features');
         await loadProFeatures();
+        if (isJarvisStandaloneRuntime) {
+          activateJarvisOpenCapabilities();
+        }
       } catch (proError) {
         logger.error('[App] Pro feature load failed, continuing without Pro:', proError);
       }
@@ -406,9 +404,6 @@ function App() {
       // Show the UI immediately
       logger.log('[BOOT] startup complete');
       setIsInitializing(false);
-
-      // Settings are hydrated: analytics starts only now, and only if the person opted in.
-      stopAnalytics = startAnalytics(featureSnapshot, usageSnapshot);
 
       // Android: settle an engine pack on trial (test prompt) and look for a newer llama.cpp.
       // Off the boot gate; it never throws, and iOS does nothing here.
@@ -447,8 +442,6 @@ function App() {
     return () => {
       startupGeneration.current += 1;
       stopNetworkReconnectWatcher();
-      stopAnalytics?.();
-      stopAnalytics = null;
     };
   }, [initializeApp]);
 
@@ -491,15 +484,14 @@ function App() {
         <SystemBars style={isDark ? 'light' : 'dark'} />
         {AppRoot ? <AppRoot /> : null}
         <NavigationContainer
+          linking={jarvisVoiceLinking}
           ref={appNavigationRef}
           onReady={() => {
             applyPendingProRedirect();
             openPendingImprove().catch(() => undefined);
-            trackScreen(appNavigationRef.getCurrentRoute()?.name);
           }}
           onStateChange={() => {
             applyPendingProRedirect();
-            trackScreen(appNavigationRef.getCurrentRoute()?.name);
           }}
           theme={{
             dark: isDark,
@@ -533,7 +525,6 @@ function App() {
         >
           <AppNavigator />
         </NavigationContainer>
-        <AnalyticsConsentPrompt />
         {__DEV__ && showSyncStatusBar ? <DevSyncStrip /> : null}
         </AliveProvider>
       </SafeAreaProvider>

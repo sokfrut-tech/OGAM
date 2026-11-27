@@ -1,4 +1,4 @@
-import type { ModelEntry } from '@offgrid/models';
+import type { ModelEntry } from '../types/modelCatalog';
 import type { PickSlot } from './devicePicks';
 import type { ModelFile } from '../types';
 import type { ImageModelDescriptor } from './imageModelDownloadTypes';

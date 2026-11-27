@@ -13,7 +13,7 @@ import {
   type KeywordHit,
   type KeywordSearchPort,
   type StoredDocument,
-} from '@offgrid/rag/documents';
+} from '../../utils/ragDocumentsCore';
 import logger from '../../utils/logger';
 
 /**

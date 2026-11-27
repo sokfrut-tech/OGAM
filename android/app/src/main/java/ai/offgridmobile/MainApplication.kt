@@ -25,6 +25,10 @@ import ai.offgridmobile.screenshot.SyncScreenshotPackage
 import ai.offgridmobile.sync.MeshResidencyPackage
 import ai.offgridmobile.enginepack.EnginePackBoot
 import ai.offgridmobile.enginepack.EnginePackPackage
+import ai.offgridmobile.voice.JarvisAssistantRolePackage
+import ai.offgridmobile.voice.JarvisAndroidTtsPackage
+import ai.offgridmobile.voice.JarvisAndroidSttPackage
+import ai.offgridmobile.actions.JarvisPhoneActionsPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -50,6 +54,10 @@ class MainApplication : Application(), ReactApplication {
           add(SyncDownloadsPackage())
           add(BlobChannelPackage())
           add(EnginePackPackage())
+          add(JarvisAssistantRolePackage())
+          add(JarvisAndroidTtsPackage())
+          add(JarvisAndroidSttPackage())
+          add(JarvisPhoneActionsPackage())
         },
       // A fatal JS error still crashes the app, as React Native's default does, but with its JS
       // stack as frames so Play Console can show and group it.

@@ -11,7 +11,7 @@
  * ram(). The app's own hardwareService reads them. The `unload` callbacks registered here stand for
  * the engine releasing a model; where a release gives memory back, the callback updates the sensor.
  */
-import { planEviction, type Resident } from '@offgrid/models';
+import { planEviction, type Resident } from '../../../src/utils/modelResidencyPolicy';
 import { computeBudgetMB } from '../../../src/services/modelResidency/budget';
 import { installNativeBoundary, GB, type NativeBoundary } from '../../harness/nativeBoundary';
 

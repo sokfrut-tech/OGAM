@@ -28,6 +28,7 @@ import { formatWhen } from '../utils/localTime';
 import { useConversationPreviewLine } from '../hooks/useConversationPreviewLine';
 import { byRecentActivity } from '../utils/conversationOrdering';
 import { SCROLL_DEPTH_PROPS } from '../constants/scrollDepth';
+import { isJarvisStandaloneRuntime, t } from '../i18n';
 import { chatTitle } from '../utils/chatTitle';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -225,7 +226,7 @@ export const ProjectDetailScreen: React.FC = () => {
 
       {/* What makes this a project: its instructions and its files, in view rather than behind a tab
           (screen review). Each row opens its own screen. */}
-      <SectionLabel title="What it knows" style={styles.chatsLabel} />
+      <SectionLabel title={t('projects.whatItKnows')} style={styles.chatsLabel} />
       <View style={styles.knowsGroup}>
         <TouchableOpacity
           style={styles.knowsRow}
@@ -236,9 +237,20 @@ export const ProjectDetailScreen: React.FC = () => {
         >
           <Icon name="align-left" size={16} color={colors.textSecondary} />
           <View style={styles.knowsText}>
-            <Text style={styles.knowsTitle}>{instructionsLine ? 'Instructions' : 'Add instructions'}</Text>
+            <Text style={styles.knowsTitle}>
+              {isJarvisStandaloneRuntime
+                ? instructionsLine
+                  ? 'Инструкции'
+                  : 'Добавить инструкции'
+                : instructionsLine
+                ? 'Instructions'
+                : 'Add instructions'}
+            </Text>
             <Text style={styles.knowsDesc} numberOfLines={1}>
-              {instructionsLine || 'Tell every chat here how to answer.'}
+              {instructionsLine ||
+                (isJarvisStandaloneRuntime
+                  ? 'Задайте общие правила ответов для всех чатов проекта.'
+                  : 'Tell every chat here how to answer.')}
             </Text>
           </View>
           <Icon name="chevron-right" size={16} color={colors.textMuted} />
@@ -253,20 +265,38 @@ export const ProjectDetailScreen: React.FC = () => {
           <Icon name="file-text" size={16} color={colors.textSecondary} />
           <View style={styles.knowsText}>
             <Text style={styles.knowsTitle} testID="project-knowledge-base-count">
-              {fileCount === 0 ? 'Add a file' : fileCount === 1 ? '1 file' : `${fileCount} files`}
+              {isJarvisStandaloneRuntime
+                ? fileCount === 0
+                  ? 'Добавить файл'
+                  : `Файлов: ${fileCount}`
+                : fileCount === 0
+                ? 'Add a file'
+                : fileCount === 1
+                ? '1 file'
+                : `${fileCount} files`}
             </Text>
             <Text style={styles.knowsDesc} numberOfLines={1}>
-              {fileCount === 0 ? 'Chats here then answer from it.' : fileCount === 1 ? 'Chats here answer from it.' : 'Chats here answer from these.'}
+              {isJarvisStandaloneRuntime
+                ? 'Чаты проекта будут искать ответы в этих документах.'
+                : fileCount === 0
+                ? 'Chats here then answer from it.'
+                : fileCount === 1
+                ? 'Chats here answer from it.'
+                : 'Chats here answer from these.'}
             </Text>
           </View>
           <Icon name="chevron-right" size={16} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
 
-      <SectionLabel title={`Chats · ${projectChats.length}`} style={styles.chatsLabel} testID="project-chats-count" />
+      <SectionLabel title={t('projects.chatsCount', { count: projectChats.length })} style={styles.chatsLabel} testID="project-chats-count" />
       {projectChats.length === 0 ? (
         // Under its label, right below the card: centred in the page it floated 330 pt away (hand test 74).
-        <Text style={styles.emptyChatsText}>Start a chat. It follows this project's instructions.</Text>
+        <Text style={styles.emptyChatsText}>
+          {isJarvisStandaloneRuntime
+            ? 'Начните чат — он будет учитывать инструкции этого проекта.'
+            : "Start a chat. It follows this project's instructions."}
+        </Text>
       ) : (
         <>
           <FlatList
