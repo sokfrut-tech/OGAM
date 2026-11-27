@@ -282,10 +282,14 @@ export const JarvisAudioEmptyHero: React.FC = () => {
           testID="jarvis-voice-open-stt-models"
           style={styles.sideButton}
           onPress={() =>
-            navigation?.navigate('Main' as never, {
+            (
+              navigation as
+                | { navigate?: (name: string, params?: Record<string, unknown>) => void }
+                | undefined
+            )?.navigate?.('Main', {
               screen: 'ModelsTab',
               params: { initialTab: 'transcription' },
-            } as never)
+            })
           }
         >
           <Icon name="download" size={14} color={colors.primary} />
